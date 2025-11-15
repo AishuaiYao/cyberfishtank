@@ -2,19 +2,28 @@
 const screenWidth = wx.getSystemInfoSync().screenWidth;
 const screenHeight = wx.getSystemInfoSync().screenHeight;
 
-// 游戏配置
+// 游戏配置 - 增强UI设计
 const config = {
-  topMargin: 80, // 顶部边距
-  partHeight: 60, // 功能区每个部分高度
-  indicatorHeight: 80, // 指示区高度
-  drawingAreaHeight: 220, // 绘画区高度
-  scoreHeight: 50, // 得分区高度
-  jumpHeight: 60, // 跳转区高度
-  buttonWidth: 80, // 按钮宽度
-  buttonHeight: 40, // 按钮高度
-  colorButtonSize: 30, // 颜色按钮大小
-  colors: ['#000000', '#FF0000', '#00FF00', '#800080', '#FFFF00', '#FFA500', '#FFFFFF'], // 颜色数组
-  colorNames: ['黑色', '红色', '绿色', '紫色', '黄色', '橙色', '白色'] // 颜色名称
+  topMargin: 80,
+  partHeight: 70, // 增加高度以容纳更好的视觉效果
+  indicatorHeight: 90,
+  drawingAreaHeight: 240,
+  scoreHeight: 60,
+  jumpHeight: 70,
+  buttonWidth: 85,
+  buttonHeight: 44,
+  colorButtonSize: 34,
+  colors: ['#000000', '#FF3B30', '#4CD964', '#5856D6', '#FFCC00', '#FF9500', '#FFFFFF'],
+  colorNames: ['黑色', '红色', '绿色', '紫色', '黄色', '橙色', '白色'],
+  // 新增UI配置
+  borderRadius: 12,
+  shadowBlur: 8,
+  primaryColor: '#007AFF',
+  secondaryColor: '#5AC8FA',
+  backgroundColor: '#F8F9FA',
+  textColor: '#1D1D1F',
+  lightTextColor: '#8E8E93',
+  borderColor: '#E5E5EA'
 };
 
 // 游戏状态
@@ -26,9 +35,9 @@ let gameState = {
   lastY: 0,
   isEraser: false,
   score: 0,
-  drawingPaths: [], // 存储所有绘制路径
-  currentPath: null, // 当前绘制路径
-  isScoring: false // 是否正在评分中
+  drawingPaths: [],
+  currentPath: null,
+  isScoring: false
 };
 
 // 计算各区域位置
@@ -48,25 +57,85 @@ function getAreaPositions() {
   };
 }
 
+// 绘制圆角矩形 - 新增函数
+function drawRoundedRect(ctx, x, y, width, height, radius, fill, stroke) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height - radius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  ctx.lineTo(x + radius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+
+  if (fill) {
+    ctx.fill();
+  }
+  if (stroke) {
+    ctx.stroke();
+  }
+}
+
+// 绘制带阴影的卡片 - 新增函数
+function drawCard(ctx, x, y, width, height, radius = config.borderRadius) {
+  ctx.shadowColor = 'rgba(0,0,0,0.1)';
+  ctx.shadowBlur = config.shadowBlur;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 2;
+
+  ctx.fillStyle = '#FFFFFF';
+  drawRoundedRect(ctx, x, y, width, height, radius, true, false);
+
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+
+  // 边框
+  ctx.strokeStyle = config.borderColor;
+  ctx.lineWidth = 1;
+  drawRoundedRect(ctx, x, y, width, height, radius, false, true);
+}
+
+// 绘制现代按钮 - 新增函数
+function drawModernButton(ctx, x, y, width, height, text, isActive = false, isPrimary = false) {
+  // 背景
+  ctx.fillStyle = isActive ? config.primaryColor :
+                  isPrimary ? config.primaryColor : '#FFFFFF';
+  drawRoundedRect(ctx, x, y, width, height, config.borderRadius, true, false);
+
+  // 边框
+  ctx.strokeStyle = isActive ? config.primaryColor : config.borderColor;
+  ctx.lineWidth = isActive ? 0 : 1;
+  drawRoundedRect(ctx, x, y, width, height, config.borderRadius, false, true);
+
+  // 文字
+  ctx.fillStyle = isActive ? '#FFFFFF' :
+                  isPrimary ? '#FFFFFF' : config.textColor;
+  ctx.font = '15px -apple-system, "PingFang SC", "Helvetica Neue"';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, x + width / 2, y + height / 2);
+
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+}
+
 // 初始化游戏
 function init() {
   console.log('游戏初始化开始...');
   console.log('屏幕尺寸:', screenWidth, 'x', screenHeight);
 
-  // 创建画布
   const canvas = wx.createCanvas();
   const ctx = canvas.getContext('2d');
 
-  // 设置画布尺寸
   canvas.width = screenWidth;
   canvas.height = screenHeight;
 
   console.log('画布创建成功，尺寸:', canvas.width, 'x', canvas.height);
 
-  // 绘制游戏界面
   drawGameUI(ctx);
-
-  // 绑定触摸事件
   bindTouchEvents(canvas, ctx);
 
   console.log('游戏初始化完成');
@@ -76,28 +145,19 @@ function init() {
 function drawGameUI(ctx) {
   console.log('开始绘制游戏界面...');
 
-  // 清空画布
-  ctx.clearRect(0, 0, screenWidth, screenHeight);
-
-  // 绘制白色背景
-  ctx.fillStyle = '#FFFFFF';
+  // 渐变背景
+  const gradient = ctx.createLinearGradient(0, 0, screenWidth, screenHeight);
+  gradient.addColorStop(0, '#F8F9FA');
+  gradient.addColorStop(1, '#FFFFFF');
+  ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, screenWidth, screenHeight);
 
   const positions = getAreaPositions();
 
-  // 绘制功能区
   drawFunctionArea(ctx, positions.functionAreaY);
-
-  // 绘制指示区
   drawIndicatorArea(ctx, positions.indicatorAreaY);
-
-  // 绘制绘画区
   drawDrawingArea(ctx, positions.drawingAreaY);
-
-  // 绘制得分区
   drawScoreArea(ctx, positions.scoreAreaY);
-
-  // 绘制跳转区
   drawJumpArea(ctx, positions.jumpAreaY);
 
   console.log('游戏界面绘制完成');
@@ -105,123 +165,186 @@ function drawGameUI(ctx) {
 
 // 绘制功能区
 function drawFunctionArea(ctx, startY) {
-  // Part 1: 颜色选择
-  const colorButtonsY = startY + 15;
-  const totalWidth = config.colorButtonSize * 7 + 20 * 6;
+  // Part 1: 颜色选择 - 卡片式设计
+  drawCard(ctx, 15, startY, screenWidth - 30, config.partHeight - 10);
+
+  const colorButtonsY = startY + 20;
+  const totalWidth = config.colorButtonSize * 7 + 18 * 6;
   const startX = (screenWidth - totalWidth) / 2;
 
   for (let i = 0; i < 7; i++) {
-    const x = startX + i * (config.colorButtonSize + 20);
+    const x = startX + i * (config.colorButtonSize + 18);
 
-    // 绘制颜色圆圈
+    // 颜色圆圈带阴影
+    ctx.shadowColor = 'rgba(0,0,0,0.15)';
+    ctx.shadowBlur = 4;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 2;
+
     ctx.beginPath();
     ctx.arc(x + config.colorButtonSize/2, colorButtonsY + config.colorButtonSize/2,
             config.colorButtonSize/2, 0, Math.PI * 2);
-
-    // 填充颜色
     ctx.fillStyle = config.colors[i];
     ctx.fill();
 
-    // 黑色描边
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 1;
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+
+    // 边框
+    ctx.strokeStyle = config.colors[i] === '#FFFFFF' ? config.borderColor : 'transparent';
+    ctx.lineWidth = config.colors[i] === '#FFFFFF' ? 1 : 0;
     ctx.stroke();
 
-    // 如果是当前选中的颜色，添加外圈标识
+    // 选中状态指示器
     if (config.colors[i] === gameState.currentColor && !gameState.isEraser) {
       ctx.beginPath();
       ctx.arc(x + config.colorButtonSize/2, colorButtonsY + config.colorButtonSize/2,
-              config.colorButtonSize/2 + 3, 0, Math.PI * 2);
-      ctx.strokeStyle = '#007AFF';
+              config.colorButtonSize/2 + 4, 0, Math.PI * 2);
+      ctx.strokeStyle = config.primaryColor;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      // 内圈高亮
+      ctx.beginPath();
+      ctx.arc(x + config.colorButtonSize/2, colorButtonsY + config.colorButtonSize/2,
+              config.colorButtonSize/2 - 2, 0, Math.PI * 2);
+      ctx.strokeStyle = '#FFFFFF';
       ctx.lineWidth = 2;
       ctx.stroke();
     }
   }
 
-  // Part 2: 画笔大小调节
-  const sizeControlY = startY + config.partHeight + 20;
-  ctx.fillStyle = '#000000';
-  ctx.font = '16px Arial';
-  ctx.fillText('Size:', 20, sizeControlY);
+  // Part 2: 画笔大小调节 - 卡片式设计
+  drawCard(ctx, 15, startY + config.partHeight, screenWidth - 30, config.partHeight - 10);
 
-  // 绘制滑动条背景
-  const sliderX = 80;
-  const sliderWidth = screenWidth - 120;
-  ctx.fillStyle = '#E0E0E0';
-  ctx.fillRect(sliderX, sizeControlY - 8, sliderWidth, 4);
+  const sizeControlY = startY + config.partHeight + 25;
 
-  // 绘制滑动块
-  const sliderPos = sliderX + (gameState.brushSize / 20) * sliderWidth;
-  ctx.fillStyle = '#007AFF';
+  ctx.fillStyle = config.textColor;
+  ctx.font = '16px -apple-system, "PingFang SC"';
+  ctx.fillText('画笔大小:', 25, sizeControlY);
+
+  // 现代滑动条
+  const sliderX = 100;
+  const sliderWidth = screenWidth - 140;
+
+  // 滑动条轨道
+  ctx.fillStyle = '#E5E5EA';
+  drawRoundedRect(ctx, sliderX, sizeControlY - 6, sliderWidth, 4, 2, true, false);
+
+  // 进度填充
+  const progressWidth = (gameState.brushSize / 20) * sliderWidth;
+  const gradient = ctx.createLinearGradient(sliderX, 0, sliderX + progressWidth, 0);
+  gradient.addColorStop(0, config.primaryColor);
+  gradient.addColorStop(1, config.secondaryColor);
+  ctx.fillStyle = gradient;
+  drawRoundedRect(ctx, sliderX, sizeControlY - 6, progressWidth, 4, 2, true, false);
+
+  // 滑动块
+  const sliderPos = sliderX + progressWidth;
+  ctx.shadowColor = 'rgba(0,122,255,0.3)';
+  ctx.shadowBlur = 6;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 2;
+
+  ctx.fillStyle = config.primaryColor;
   ctx.beginPath();
-  ctx.arc(sliderPos, sizeControlY - 6, 10, 0, Math.PI * 2);
+  ctx.arc(sliderPos, sizeControlY - 6, 12, 0, Math.PI * 2);
   ctx.fill();
 
-  // 显示当前画笔大小
-  ctx.fillStyle = '#000000';
-  ctx.fillText(gameState.brushSize.toString(), sliderWidth + 90, sizeControlY);
+  ctx.shadowColor = 'transparent';
 
-  // Part 3: 工具按钮
-  const toolsY = startY + config.partHeight * 2 + 10;
-  const toolButtons = ['Eraser', 'Undo', 'Clear', 'Flip'];
-  const toolWidth = (screenWidth - 40) / 4;
+  // 内圈
+  ctx.fillStyle = '#FFFFFF';
+  ctx.beginPath();
+  ctx.arc(sliderPos, sizeControlY - 6, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 大小显示
+  ctx.fillStyle = config.primaryColor;
+  ctx.font = 'bold 16px -apple-system';
+  ctx.textAlign = 'right';
+  ctx.fillText(`${gameState.brushSize}px`, screenWidth - 25, sizeControlY);
+  ctx.textAlign = 'left';
+
+  // Part 3: 工具按钮 - 现代按钮组
+  drawCard(ctx, 15, startY + config.partHeight * 2, screenWidth - 30, config.partHeight - 10);
+
+  const toolsY = startY + config.partHeight * 2 + 15;
+  const toolButtons = [
+    { name: '橡皮', icon: '◻' },
+    { name: '撤销', icon: '↶' },
+    { name: '清空', icon: '×' },
+    { name: '翻转', icon: '⇄' }
+  ];
+  const toolWidth = (screenWidth - 50) / 4;
 
   for (let i = 0; i < toolButtons.length; i++) {
     const x = 20 + i * toolWidth;
+    const isActive = (i === 0 && gameState.isEraser);
 
-    // 绘制按钮背景
-    ctx.fillStyle = gameState.isEraser && i === 0 ? '#007AFF' : '#F0F0F0';
-    ctx.fillRect(x, toolsY, toolWidth - 10, config.buttonHeight);
-
-    // 绘制按钮边框
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(x, toolsY, toolWidth - 10, config.buttonHeight);
-
-    // 绘制按钮文字
-    ctx.fillStyle = gameState.isEraser && i === 0 ? '#FFFFFF' : '#000000';
-    ctx.font = '14px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(toolButtons[i], x + (toolWidth - 10) / 2, toolsY + 25);
+    drawModernButton(ctx, x, toolsY, toolWidth - 10, config.buttonHeight,
+                    `${toolButtons[i].icon} ${toolButtons[i].name}`,
+                    isActive, false);
   }
-
-  ctx.textAlign = 'left';
 }
 
 // 绘制指示区
 function drawIndicatorArea(ctx, startY) {
-  ctx.fillStyle = '#000000';
-  ctx.font = 'bold 18px Arial';
+  drawCard(ctx, 15, startY, screenWidth - 30, config.indicatorHeight - 10);
+
+  ctx.fillStyle = config.textColor;
+  ctx.font = 'bold 18px -apple-system, "PingFang SC"';
   ctx.textAlign = 'center';
 
-  ctx.fillText('画一条鱼吧!', screenWidth / 2, startY + 25);
-  ctx.fillText('鱼头请朝右', screenWidth / 2, startY + 55);
+  // 图标装饰
+  ctx.fillStyle = config.primaryColor;
+  ctx.font = '24px Arial';
+  ctx.fillText('🎨', screenWidth / 2, startY + 28);
+
+  ctx.fillStyle = config.textColor;
+  ctx.font = 'bold 18px -apple-system';
+  ctx.fillText('画一条鱼吧!', screenWidth / 2, startY + 55);
+
+  ctx.fillStyle = config.lightTextColor;
+  ctx.font = '15px -apple-system';
+  ctx.fillText('鱼头请朝右', screenWidth / 2, startY + 78);
 
   ctx.textAlign = 'left';
 }
 
 // 绘制绘画区
 function drawDrawingArea(ctx, startY) {
-  // 绘制绘画区域边框
-  ctx.strokeStyle = '#CCCCCC';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(10, startY, screenWidth - 20, config.drawingAreaHeight);
+  // 现代卡片式绘画区域
+  ctx.shadowColor = 'rgba(0,0,0,0.08)';
+  ctx.shadowBlur = 12;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 4;
 
-  // 绘制背景网格
-  ctx.strokeStyle = '#F0F0F0';
-  ctx.lineWidth = 0.5;
+  ctx.fillStyle = '#FFFFFF';
+  drawRoundedRect(ctx, 12, startY, screenWidth - 24, config.drawingAreaHeight, config.borderRadius, true, false);
+
+  ctx.shadowColor = 'transparent';
+
+  // 边框
+  ctx.strokeStyle = config.borderColor;
+  ctx.lineWidth = 1;
+  drawRoundedRect(ctx, 12, startY, screenWidth - 24, config.drawingAreaHeight, config.borderRadius, false, true);
+
+  // 精致网格背景
+  ctx.strokeStyle = '#F8F9FA';
+  ctx.lineWidth = 0.8;
 
   for (let i = 1; i < 4; i++) {
     ctx.beginPath();
-    ctx.moveTo(10, startY + i * (config.drawingAreaHeight / 4));
-    ctx.lineTo(screenWidth - 10, startY + i * (config.drawingAreaHeight / 4));
+    ctx.moveTo(12, startY + i * (config.drawingAreaHeight / 4));
+    ctx.lineTo(screenWidth - 12, startY + i * (config.drawingAreaHeight / 4));
     ctx.stroke();
   }
 
   for (let i = 1; i < 4; i++) {
     ctx.beginPath();
-    ctx.moveTo(10 + i * ((screenWidth - 20) / 4), startY);
-    ctx.lineTo(10 + i * ((screenWidth - 20) / 4), startY + config.drawingAreaHeight);
+    ctx.moveTo(12 + i * ((screenWidth - 24) / 4), startY);
+    ctx.lineTo(12 + i * ((screenWidth - 24) / 4), startY + config.drawingAreaHeight);
     ctx.stroke();
   }
 
@@ -251,48 +374,58 @@ function redrawAllPaths(ctx, drawingAreaY) {
 
 // 绘制得分区
 function drawScoreArea(ctx, startY) {
-  ctx.fillStyle = '#000000';
-  ctx.font = '16px Arial';
+  drawCard(ctx, 15, startY, screenWidth - 30, config.scoreHeight - 10);
+
+  ctx.fillStyle = config.textColor;
+  ctx.font = '16px -apple-system, "PingFang SC"';
   ctx.textAlign = 'center';
-  
+
   let scoreText = `AI评分：${gameState.score}`;
+  let scoreColor = config.textColor;
+
   if (gameState.isScoring) {
     scoreText = 'AI评分中...';
+    scoreColor = config.primaryColor;
+  } else if (gameState.score > 0) {
+    // 根据分数显示不同颜色
+    if (gameState.score >= 80) scoreColor = '#4CD964';
+    else if (gameState.score >= 60) scoreColor = '#FFCC00';
+    else scoreColor = '#FF3B30';
   }
-  
-  ctx.fillText(scoreText, screenWidth / 2, startY + 30);
+
+  // 分数图标
+  ctx.fillStyle = config.primaryColor;
+  ctx.font = '20px Arial';
+  ctx.fillText('⭐', screenWidth / 2 - 50, startY + 22);
+
+  ctx.fillStyle = scoreColor;
+  ctx.font = gameState.isScoring ? '16px -apple-system' : 'bold 18px -apple-system';
+  ctx.fillText(scoreText, screenWidth / 2, startY + 35);
+
   ctx.textAlign = 'left';
 }
 
 // 绘制跳转区
 function drawJumpArea(ctx, startY) {
-  const jumpButtons = ['鱼缸', '让它游起来！', '排行榜'];
-  const buttonWidth = (screenWidth - 40) / 3;
+  drawCard(ctx, 15, startY, screenWidth - 30, config.jumpHeight - 10);
+
+  const jumpButtons = ['🐠 鱼缸', '🚀 让它游起来！', '🏆 排行榜'];
+  const buttonWidth = (screenWidth - 50) / 3;
 
   for (let i = 0; i < jumpButtons.length; i++) {
     const x = 20 + i * buttonWidth;
+    const isPrimary = i === 1; // 中间按钮为主要操作
 
-    ctx.fillStyle = '#F0F0F0';
-    ctx.fillRect(x, startY, buttonWidth - 10, config.buttonHeight);
-
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(x, startY, buttonWidth - 10, config.buttonHeight);
-
-    ctx.fillStyle = '#000000';
-    ctx.font = '14px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(jumpButtons[i], x + (buttonWidth - 10) / 2, startY + 25);
+    drawModernButton(ctx, x, startY + 13, buttonWidth - 10, config.buttonHeight,
+                    jumpButtons[i], false, isPrimary);
   }
-
-  ctx.textAlign = 'left';
 }
 
 // 调用阿里云通义千问VL模型API进行评分
 function callQWenVLModel(base64Image) {
   return new Promise((resolve, reject) => {
     console.log('开始调用大模型API进行评分...');
-    
+
     wx.request({
       url: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
       method: 'POST',
@@ -320,8 +453,7 @@ function callQWenVLModel(base64Image) {
         if (res.data && res.data.choices && res.data.choices[0]) {
           const content = res.data.choices[0].message.content;
           console.log('大模型返回内容:', content);
-          
-          // 从返回内容中提取分数
+
           const scoreMatch = content.match(/(\d+\.?\d*)/);
           if (scoreMatch) {
             const score = parseFloat(scoreMatch[0]);
@@ -350,46 +482,39 @@ async function getAIScore(canvas, ctx) {
     console.log('正在评分中，跳过本次请求');
     return;
   }
-  
+
   try {
     gameState.isScoring = true;
     console.log('开始AI评分流程...');
-    
-    // 更新UI显示评分中状态
+
     drawGameUI(ctx);
-    
-    // 获取画布base64数据
-    const base64Data = canvas.toDataURL().split(',')[1]; // 去掉data:image/png;base64,前缀
+
+    const base64Data = canvas.toDataURL().split(',')[1];
     console.log('获取画布数据成功，数据长度:', base64Data.length);
-    
-    // 调用大模型API
+
     const score = await callQWenVLModel(base64Data);
-    
-    // 更新分数
+
     gameState.score = Math.round(score);
     console.log('AI评分完成，最终得分:', gameState.score);
-    
+
   } catch (error) {
     console.error('AI评分失败:', error);
-    // 评分失败时使用随机分数作为fallback
     gameState.score = Math.floor(Math.random() * 100);
     console.log('使用随机分数作为fallback:', gameState.score);
   } finally {
     gameState.isScoring = false;
-    // 重新绘制UI显示最终分数
     drawGameUI(ctx);
     console.log('AI评分流程结束');
   }
 }
 
-// 绑定触摸事件 - 修复版本
+// 绑定触摸事件
 function bindTouchEvents(canvas, ctx) {
   console.log('绑定触摸事件...');
 
   const positions = getAreaPositions();
   const drawingAreaY = positions.drawingAreaY;
 
-  // 使用 wx.onTouchStart 而不是 canvas.addEventListener
   wx.onTouchStart((e) => {
     const touch = e.touches[0];
     const x = touch.clientX;
@@ -397,15 +522,13 @@ function bindTouchEvents(canvas, ctx) {
 
     console.log('触摸开始:', x, y);
 
-    // 检查是否在绘画区域内
     if (y >= drawingAreaY && y <= drawingAreaY + config.drawingAreaHeight &&
-        x >= 10 && x <= screenWidth - 10) {
+        x >= 12 && x <= screenWidth - 12) {
 
       gameState.isDrawing = true;
       gameState.lastX = x;
       gameState.lastY = y;
 
-      // 开始新的路径
       gameState.currentPath = {
         color: gameState.isEraser ? '#FFFFFF' : gameState.currentColor,
         size: gameState.brushSize,
@@ -414,7 +537,6 @@ function bindTouchEvents(canvas, ctx) {
 
       console.log('开始绘制，位置:', x, y);
     } else {
-      // 检查功能区点击
       checkFunctionAreaClick(x, y, ctx);
     }
   });
@@ -426,11 +548,9 @@ function bindTouchEvents(canvas, ctx) {
     const x = touch.clientX;
     const y = touch.clientY;
 
-    // 确保在绘画区域内
     if (y >= drawingAreaY && y <= drawingAreaY + config.drawingAreaHeight &&
-        x >= 10 && x <= screenWidth - 10) {
+        x >= 12 && x <= screenWidth - 12) {
 
-      // 绘制线条
       const currentCtx = canvas.getContext('2d');
       currentCtx.beginPath();
       currentCtx.moveTo(gameState.lastX, gameState.lastY);
@@ -441,7 +561,6 @@ function bindTouchEvents(canvas, ctx) {
       currentCtx.lineJoin = 'round';
       currentCtx.stroke();
 
-      // 保存到当前路径
       if (gameState.currentPath) {
         gameState.currentPath.points.push({x: x, y: y});
       }
@@ -455,13 +574,11 @@ function bindTouchEvents(canvas, ctx) {
     console.log('触摸结束');
 
     if (gameState.isDrawing && gameState.currentPath) {
-      // 保存当前路径
       gameState.drawingPaths.push(gameState.currentPath);
       gameState.currentPath = null;
 
       console.log('绘制完成，开始异步AI评分');
-      
-      // 异步获取AI评分，不阻塞用户后续操作
+
       getAIScore(canvas, ctx).catch(error => {
         console.error('异步评分异常:', error);
       });
@@ -484,12 +601,12 @@ function checkFunctionAreaClick(x, y, ctx) {
   const functionAreaY = positions.functionAreaY;
 
   // Part 1: 颜色选择
-  const colorButtonsY = functionAreaY + 15;
-  const totalWidth = config.colorButtonSize * 7 + 20 * 6;
+  const colorButtonsY = functionAreaY + 20;
+  const totalWidth = config.colorButtonSize * 7 + 18 * 6;
   const startX = (screenWidth - totalWidth) / 2;
 
   for (let i = 0; i < 7; i++) {
-    const buttonX = startX + i * (config.colorButtonSize + 20);
+    const buttonX = startX + i * (config.colorButtonSize + 18);
     const buttonY = colorButtonsY;
 
     if (x >= buttonX && x <= buttonX + config.colorButtonSize &&
@@ -504,11 +621,11 @@ function checkFunctionAreaClick(x, y, ctx) {
   }
 
   // Part 2: 画笔大小调节
-  const sizeControlY = functionAreaY + config.partHeight + 10;
-  const sliderX = 80;
-  const sliderWidth = screenWidth - 120;
+  const sizeControlY = functionAreaY + config.partHeight + 15;
+  const sliderX = 100;
+  const sliderWidth = screenWidth - 140;
 
-  if (y >= sizeControlY - 15 && y <= sizeControlY + 15 &&
+  if (y >= sizeControlY - 20 && y <= sizeControlY + 20 &&
       x >= sliderX && x <= sliderX + sliderWidth) {
 
     const newSize = Math.round(((x - sliderX) / sliderWidth) * 20);
@@ -519,34 +636,32 @@ function checkFunctionAreaClick(x, y, ctx) {
   }
 
   // Part 3: 工具按钮
-  const toolsY = functionAreaY + config.partHeight * 2 + 10;
-  const toolButtons = ['Eraser', 'Undo', 'Clear', 'Flip'];
-  const toolWidth = (screenWidth - 40) / 4;
+  const toolsY = functionAreaY + config.partHeight * 2 + 15;
+  const toolWidth = (screenWidth - 50) / 4;
 
-  for (let i = 0; i < toolButtons.length; i++) {
+  for (let i = 0; i < 4; i++) {
     const buttonX = 20 + i * toolWidth;
-    const buttonY = toolsY;
 
     if (x >= buttonX && x <= buttonX + toolWidth - 10 &&
-        y >= buttonY && y <= buttonY + config.buttonHeight) {
+        y >= toolsY && y <= toolsY + config.buttonHeight) {
 
-      handleToolButtonClick(toolButtons[i], ctx);
+      const tools = ['Eraser', 'Undo', 'Clear', 'Flip'];
+      handleToolButtonClick(tools[i], ctx);
       return;
     }
   }
 
   // 跳转区按钮
   const jumpAreaY = positions.jumpAreaY;
-  const jumpButtons = ['鱼缸', '让它游起来！', '排行榜'];
-  const jumpButtonWidth = (screenWidth - 40) / 3;
+  const jumpButtonWidth = (screenWidth - 50) / 3;
 
-  for (let i = 0; i < jumpButtons.length; i++) {
+  for (let i = 0; i < 3; i++) {
     const buttonX = 20 + i * jumpButtonWidth;
-    const buttonY = jumpAreaY;
 
     if (x >= buttonX && x <= buttonX + jumpButtonWidth - 10 &&
-        y >= buttonY && y <= buttonY + config.buttonHeight) {
+        y >= jumpAreaY + 13 && y <= jumpAreaY + 13 + config.buttonHeight) {
 
+      const jumpButtons = ['鱼缸', '让它游起来！', '排行榜'];
       console.log('点击按钮:', jumpButtons[i]);
       wx.showToast({
         title: `功能「${jumpButtons[i]}」开发中`,
