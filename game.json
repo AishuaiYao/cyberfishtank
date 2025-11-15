@@ -1,0 +1,15 @@
+{
+    "pages": [
+      "pages/index",
+      "pages/ranking",
+      "pages/fishTank"
+    ],
+    "window": {
+      "navigationBarTitleText": "画鱼小游戏",
+      "navigationBarTextStyle": "black",
+      "navigationBarBackgroundColor": "#ffffff"
+    },
+    "networkTimeout": {
+      "request": 10000
+    }
+  }
