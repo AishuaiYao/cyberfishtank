@@ -319,9 +319,9 @@ class EventHandler {
     const x = touch.clientX;
     const y = touch.clientY;
     
-    // 检查是否点击了返回按钮区域（右上角）
-    if (x >= config.screenWidth - 70 && x <= config.screenWidth - 20 &&
-        y >= 40 && y <= 70) {
+    // 检查是否点击了返回按钮区域（左上角：20,40 宽50高30）
+    if (x >= 20 && x <= 70 && // 20 + 50 = 70
+        y >= 40 && y <= 70) { // 40 + 30 = 70
       this.hideSwimInterface();
       return;
     }
