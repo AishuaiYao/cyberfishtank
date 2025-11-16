@@ -3,7 +3,7 @@ const { config, getAreaPositions } = require('./config.js');
 class UIManager {
   constructor(ctx) {
     this.ctx = ctx;
-    this.eventHandler = null; // 新增：用于访问事件处理器
+    this.eventHandler = null;
   }
 
   // 设置事件处理器引用
@@ -359,26 +359,100 @@ class UIManager {
     }
   }
 
-// 绘制游泳界面
-drawSwimInterface(gameState, swimInterfaceData) {
-  const ctx = this.ctx;
+  // 绘制游泳界面
+  drawSwimInterface(gameState, swimInterfaceData) {
+    const ctx = this.ctx;
 
-  // 修改：将水蓝色背景改为白色背景
-  ctx.fillStyle = '#FFFFFF'; // 改为白色
-  ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
+    if (swimInterfaceData.mode === 'fishTank') {
+      // 鱼缸模式：显示所有鱼的集合
+      this.drawFishTankInterface(swimInterfaceData);
+    } else {
+      // 单鱼模式：显示单条鱼游泳
+      this.drawSingleFishInterface(gameState, swimInterfaceData);
+    }
+  }
 
-  // 绘制返回按钮（左上角）
-  // 修改：将返回按钮颜色改为蓝色（isPrimary参数改为true）
-  this.drawModernButton(
-    20, // 左上角x坐标
-    40, // 左上角y坐标
-    50, // 宽度
-    30, // 高度
-    '返回',
-    false,
-    true // 改为true，使按钮显示为蓝色
-  );
-}
+  // 绘制单鱼游泳界面
+  drawSingleFishInterface(gameState, swimInterfaceData) {
+    const ctx = this.ctx;
+
+    // 白色背景
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
+
+    // 绘制返回按钮
+    this.drawModernButton(
+      20, // 左上角x坐标
+      40, // 左上角y坐标
+      50, // 宽度
+      30, // 高度
+      '返回',
+      false,
+      true // 蓝色按钮
+    );
+
+    // 绘制标题
+    ctx.fillStyle = config.textColor;
+    ctx.font = 'bold 20px -apple-system';
+    ctx.textAlign = 'center';
+    ctx.fillText('你的鱼正在游泳！', config.screenWidth / 2, 100);
+    ctx.textAlign = 'left';
+
+    // 绘制水蓝色背景区域
+    ctx.fillStyle = '#87CEEB';
+    ctx.fillRect(0, 120, config.screenWidth, config.screenHeight - 170);
+
+    // 如果有鱼，绘制游动的鱼
+    if (swimInterfaceData.fish && this.eventHandler.fishTank) {
+      this.eventHandler.fishTank.draw();
+    }
+  }
+
+  // 绘制鱼缸界面
+  drawFishTankInterface(swimInterfaceData) {
+    const ctx = this.ctx;
+
+    // 白色背景
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
+
+    // 绘制返回按钮
+    this.drawModernButton(
+      20, // 左上角x坐标
+      40, // 左上角y坐标
+      50, // 宽度
+      30, // 高度
+      '返回',
+      false,
+      true // 蓝色按钮
+    );
+
+    // 绘制标题
+    ctx.fillStyle = config.textColor;
+    ctx.font = 'bold 20px -apple-system';
+    ctx.textAlign = 'center';
+    ctx.fillText('公共鱼缸', config.screenWidth / 2, 100);
+
+    // 绘制鱼的数量
+    ctx.fillStyle = config.lightTextColor;
+    ctx.font = '16px -apple-system';
+    const fishCount = this.eventHandler.fishTank ? this.eventHandler.fishTank.fishes.length : 0;
+    ctx.fillText(`共有 ${fishCount} 条鱼`, config.screenWidth / 2, 130);
+    ctx.textAlign = 'left';
+
+    // 绘制鱼缸内容
+    if (this.eventHandler.fishTank) {
+      this.eventHandler.fishTank.draw();
+    } else {
+      // 如果没有鱼缸，显示提示
+      ctx.fillStyle = config.lightTextColor;
+      ctx.font = '16px -apple-system';
+      ctx.textAlign = 'center';
+      ctx.fillText('鱼缸空空如也，快去画一条鱼吧！', config.screenWidth / 2, config.screenHeight / 2);
+      ctx.textAlign = 'left';
+    }
+  }
+
   // 绘制完整UI
   drawGameUI(gameState) {
     // 新增：检查是否显示游泳界面

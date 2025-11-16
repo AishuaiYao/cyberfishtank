@@ -9,10 +9,15 @@ class EventHandler {
     this.uiManager = uiManager;
     this.positions = getAreaPositions();
     this.aiService = new AIService();
-    
+
     // 新增：游泳界面状态
     this.isSwimInterfaceVisible = false;
     this.swimInterfaceData = null;
+
+    // 新增：鱼缸实例和动画相关
+    this.fishTank = null;
+    this.animationId = null;
+    this.lastAnimationTime = 0;
 
     this.bindEvents();
   }
@@ -203,7 +208,7 @@ class EventHandler {
   handleJumpAction(buttonIndex) {
     switch (buttonIndex) {
       case 0: // 鱼缸
-        wx.showToast({ title: '鱼缸功能开发中', icon: 'none' });
+        this.handleFishTank();
         break;
       case 1: // 让它游起来！
         this.handleMakeItSwim();
@@ -212,6 +217,37 @@ class EventHandler {
         wx.showToast({ title: '排行榜功能开发中', icon: 'none' });
         break;
     }
+  }
+
+  // 新增：处理鱼缸功能
+  handleFishTank() {
+    if (!this.fishTank || this.fishTank.fishes.length === 0) {
+      wx.showToast({
+        title: '请先画一条鱼并让它游起来',
+        icon: 'none',
+        duration: 2000
+      });
+      return;
+    }
+
+    // 显示鱼缸界面
+    this.showFishTankInterface();
+  }
+
+  // 新增：显示鱼缸界面
+  showFishTankInterface() {
+    this.isSwimInterfaceVisible = true;
+    this.swimInterfaceData = {
+      mode: 'fishTank'
+    };
+
+    // 启动鱼缸动画
+    if (this.fishTank) {
+      this.fishTank.startAnimation();
+    }
+
+    this.startAnimationLoop();
+    console.log('鱼缸界面已显示');
   }
 
   async handleMakeItSwim() {
@@ -235,10 +271,6 @@ class EventHandler {
       return;
     }
 
-    // 新增：立即显示游泳界面
-    this.showSwimInterface();
-    
-    // 原有的处理逻辑
     try {
       wx.showLoading({ title: '处理中...', mask: true });
 
@@ -265,15 +297,25 @@ class EventHandler {
         duration: 1500
       });
 
-      // 更新游泳界面数据并重绘
+      // 更新游戏状态
       this.gameState.scaledFishImage = scaledImage;
-      this.swimInterfaceData = {
-        fishImage: scaledImage,
-        score: this.gameState.score
-      };
-      
-      // 重绘游泳界面以显示处理后的鱼
-      this.uiManager.drawGameUI(this.gameState);
+
+      // 新增：创建鱼缸并添加鱼
+      if (!this.fishTank) {
+        this.fishTank = new FishTank(this.ctx, config.screenWidth, config.screenHeight);
+      }
+
+      // 添加用户画的鱼到鱼缸
+      const fish = new Fish(
+        scaledImage.canvas,
+        Math.random() * (config.screenWidth - scaledImage.width),
+        Math.random() * (config.screenHeight - scaledImage.height),
+        Math.random() < 0.5 ? -1 : 1
+      );
+      this.fishTank.addFish(fish);
+
+      // 显示游泳界面
+      this.showSwimInterface();
 
     } catch (error) {
       wx.hideLoading();
@@ -289,27 +331,65 @@ class EventHandler {
   // 新增：显示游泳界面
   showSwimInterface() {
     this.isSwimInterfaceVisible = true;
-    
-    // 立即设置界面数据并重绘
     this.swimInterfaceData = {
-      fishImage: this.gameState.scaledFishImage,
-      score: this.gameState.score
+      mode: 'singleFish',
+      fish: this.fishTank ? this.fishTank.fishes[this.fishTank.fishes.length - 1] : null
     };
-    
-    // 立即重绘UI以显示游泳界面
-    this.uiManager.drawGameUI(this.gameState);
-    
+
+    // 启动动画循环
+    this.startAnimationLoop();
+
     console.log('游泳界面已显示');
+  }
+
+  // 新增：启动动画循环
+  startAnimationLoop() {
+    if (this.animationId) {
+      cancelAnimationFrame(this.animationId);
+    }
+
+    const animate = (timestamp) => {
+      if (!this.lastAnimationTime) this.lastAnimationTime = timestamp;
+      const deltaTime = timestamp - this.lastAnimationTime;
+
+      // 更新动画状态
+      this.updateAnimation(deltaTime);
+
+      // 重绘UI
+      this.uiManager.drawGameUI(this.gameState);
+
+      this.lastAnimationTime = timestamp;
+      this.animationId = requestAnimationFrame(animate);
+    };
+
+    this.animationId = requestAnimationFrame(animate);
+  }
+
+  // 新增：更新动画
+  updateAnimation(deltaTime) {
+    if (this.isSwimInterfaceVisible && this.fishTank) {
+      this.fishTank.update(deltaTime);
+    }
+  }
+
+  // 新增：停止动画循环
+  stopAnimationLoop() {
+    if (this.animationId) {
+      cancelAnimationFrame(this.animationId);
+      this.animationId = null;
+    }
+    this.lastAnimationTime = 0;
   }
 
   // 新增：隐藏游泳界面
   hideSwimInterface() {
     this.isSwimInterfaceVisible = false;
     this.swimInterfaceData = null;
-    
+    this.stopAnimationLoop();
+
     // 重绘UI以返回主界面
     this.uiManager.drawGameUI(this.gameState);
-    
+
     console.log('游泳界面已隐藏');
   }
 
@@ -318,14 +398,14 @@ class EventHandler {
     const touch = e.touches[0];
     const x = touch.clientX;
     const y = touch.clientY;
-    
+
     // 检查是否点击了返回按钮区域（左上角：20,40 宽50高30）
     if (x >= 20 && x <= 70 && // 20 + 50 = 70
         y >= 40 && y <= 70) { // 40 + 30 = 70
       this.hideSwimInterface();
       return;
     }
-    
+
     // 这里可以添加其他游泳界面的交互逻辑
     console.log('游泳界面点击位置:', x, y);
   }
@@ -397,7 +477,7 @@ class EventHandler {
     return new Promise((resolve, reject) => {
       try {
         const { width, height } = subImage;
-        const targetSize = 50;
+        const targetSize = 80; // 稍微增大目标尺寸
 
         // 确定长边
         const isWidthLonger = width >= height;
@@ -428,6 +508,149 @@ class EventHandler {
         reject(error);
       }
     });
+  }
+}
+
+// 新增：鱼类定义
+class Fish {
+  constructor(image, x, y, direction = 1) {
+    this.image = image;
+    this.x = x;
+    this.y = y;
+    this.direction = direction;
+    this.phase = Math.random() * Math.PI * 2;
+    this.amplitude = 8; // 减小振幅
+    this.speed = 0.5 + Math.random() * 1; // 随机速度
+    this.vx = this.speed * this.direction;
+    this.vy = (Math.random() - 0.5) * 0.5;
+    this.width = image.width;
+    this.height = image.height;
+    this.peduncle = 0.4;
+    this.tailEnd = Math.floor(this.width * this.peduncle);
+    this.time = 0;
+  }
+
+  update(deltaTime) {
+    this.time += deltaTime / 1000; // 转换为秒
+
+    // 更新位置
+    this.x += this.vx;
+    this.y += this.vy;
+
+    // 边界检查
+    if (this.x <= 0) {
+      this.x = 0;
+      this.direction = 1;
+      this.vx = Math.abs(this.vx);
+    } else if (this.x >= this.canvasWidth - this.width) {
+      this.x = this.canvasWidth - this.width;
+      this.direction = -1;
+      this.vx = -Math.abs(this.vx);
+    }
+
+    if (this.y <= 0) {
+      this.y = 0;
+      this.vy = Math.abs(this.vy) * 0.5;
+    } else if (this.y >= this.canvasHeight - this.height) {
+      this.y = this.canvasHeight - this.height;
+      this.vy = -Math.abs(this.vy) * 0.5;
+    }
+
+    // 添加随机运动
+    if (Math.random() < 0.02) {
+      this.vy += (Math.random() - 0.5) * 0.3;
+    }
+
+    // 限制速度
+    this.vx = Math.max(-2, Math.min(2, this.vx));
+    this.vy = Math.max(-1, Math.min(1, this.vy));
+  }
+
+  setCanvasSize(width, height) {
+    this.canvasWidth = width;
+    this.canvasHeight = height;
+  }
+
+  draw(ctx) {
+    const swimY = this.y + Math.sin(this.time * 2 + this.phase) * this.amplitude;
+    this.drawWigglingFish(ctx, this.x, swimY, this.direction, this.time);
+  }
+
+  drawWigglingFish(ctx, x, y, direction, time) {
+    const w = this.width;
+    const h = this.height;
+
+    // 清除之前的绘制区域
+    ctx.clearRect(x - 5, y - 5, w + 10, h + 10);
+
+    if (direction === 1) {
+      // 向右游动
+      ctx.save();
+      ctx.translate(x, y);
+      for (let i = 0; i < w; i++) {
+        let isTail = i < this.tailEnd;
+        let t = isTail ? (this.tailEnd - i - 1) / (this.tailEnd - 1) : 0;
+        let wiggle = isTail ? Math.sin(time * 5 + this.phase + t * 3) * t * 8 : 0;
+
+        ctx.save();
+        ctx.translate(i, wiggle);
+        ctx.drawImage(this.image, i, 0, 1, h, 0, 0, 1, h);
+        ctx.restore();
+      }
+      ctx.restore();
+    } else {
+      // 向左游动 - 水平翻转
+      ctx.save();
+      ctx.translate(x + w, y);
+      ctx.scale(-1, 1);
+      for (let i = 0; i < w; i++) {
+        let isTail = i < this.tailEnd;
+        let t = isTail ? (this.tailEnd - i - 1) / (this.tailEnd - 1) : 0;
+        let wiggle = isTail ? Math.sin(time * 5 + this.phase + t * 3) * t * 8 : 0;
+
+        ctx.save();
+        ctx.translate(i, wiggle);
+        ctx.drawImage(this.image, i, 0, 1, h, 0, 0, 1, h);
+        ctx.restore();
+      }
+      ctx.restore();
+    }
+  }
+}
+
+// 新增：鱼缸类
+class FishTank {
+  constructor(ctx, width, height) {
+    this.fishes = [];
+    this.ctx = ctx;
+    this.width = width;
+    this.height = height;
+  }
+
+  addFish(fish) {
+    fish.setCanvasSize(this.width, this.height);
+    this.fishes.push(fish);
+  }
+
+  update(deltaTime) {
+    this.fishes.forEach(fish => {
+      fish.update(deltaTime);
+    });
+  }
+
+  draw() {
+    // 绘制水蓝色背景
+    this.ctx.fillStyle = '#87CEEB';
+    this.ctx.fillRect(0, 150, this.width, this.height - 200);
+
+    // 绘制所有鱼
+    this.fishes.forEach(fish => {
+      fish.draw(this.ctx);
+    });
+  }
+
+  startAnimation() {
+    // 鱼缸的动画由EventHandler统一管理
   }
 }
 
