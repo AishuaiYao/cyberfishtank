@@ -4,8 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="实现了功能鱼缸界面-鱼游动的动画渲染初版">
+    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="实现了功能鱼缸界面-鱼游动的动画渲染初版-第二版，背景是白色了，但是返回键丢失。而且鱼的背景有黑色">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/eventHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/eventHandler.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uiManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/uiManager.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -198,7 +200,15 @@
       <option name="project" value="LOCAL" />
       <updated>1763288423358</updated>
     </task>
-    <option name="localTasksCounter" value="17" />
+    <task id="LOCAL-00017" summary="实现了功能鱼缸界面-鱼游动的动画渲染初版-第二版，背景是白色了，但是返回键丢失。而且鱼的背景有黑色">
+      <option name="closed" value="true" />
+      <created>1763289587334</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1763289587334</updated>
+    </task>
+    <option name="localTasksCounter" value="18" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -211,6 +221,7 @@
     <MESSAGE value="实现返回功能" />
     <MESSAGE value="实现了功能鱼缸界面" />
     <MESSAGE value="实现了功能鱼缸界面-鱼游动的动画渲染初版" />
-    <option name="LAST_COMMIT_MESSAGE" value="实现了功能鱼缸界面-鱼游动的动画渲染初版" />
+    <MESSAGE value="实现了功能鱼缸界面-鱼游动的动画渲染初版-第二版，背景是白色了，但是返回键丢失。而且鱼的背景有黑色" />
+    <option name="LAST_COMMIT_MESSAGE" value="实现了功能鱼缸界面-鱼游动的动画渲染初版-第二版，背景是白色了，但是返回键丢失。而且鱼的背景有黑色" />
   </component>
 </project>

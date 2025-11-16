@@ -241,11 +241,6 @@ class EventHandler {
       mode: 'fishTank'
     };
 
-    // 启动鱼缸动画
-    if (this.fishTank) {
-      this.fishTank.startAnimation();
-    }
-
     this.startAnimationLoop();
     console.log('鱼缸界面已显示');
   }
@@ -530,6 +525,39 @@ class Fish {
 
     // 游动区域边界（矩形框内）
     this.tankPadding = 20; // 距离边界的padding
+
+    // 创建透明背景的鱼图像
+    this.transparentImage = this.createTransparentFishImage(image);
+  }
+
+  // 新增：创建透明背景的鱼图像
+  createTransparentFishImage(originalImage) {
+    const tempCanvas = wx.createCanvas();
+    tempCanvas.width = this.width;
+    tempCanvas.height = this.height;
+    const tempCtx = tempCanvas.getContext('2d');
+
+    // 绘制原始图像
+    tempCtx.drawImage(originalImage, 0, 0);
+
+    // 获取图像数据
+    const imageData = tempCtx.getImageData(0, 0, this.width, this.height);
+    const data = imageData.data;
+
+    // 将白色和接近白色的像素设为透明
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+
+      // 如果是白色或接近白色的背景，设为透明
+      if (r > 240 && g > 240 && b > 240) {
+        data[i + 3] = 0; // 设置alpha为0（完全透明）
+      }
+    }
+
+    tempCtx.putImageData(imageData, 0, 0);
+    return tempCanvas;
   }
 
   update(deltaTime) {
@@ -587,11 +615,8 @@ class Fish {
     const w = this.width;
     const h = this.height;
 
-    // 清除之前的绘制区域
-    ctx.clearRect(x - 5, y - 5, w + 10, h + 10);
-
     if (direction === 1) {
-      // 向右游动
+      // 向右游动 - 使用透明背景的图像
       ctx.save();
       ctx.translate(x, y);
       for (let i = 0; i < w; i++) {
@@ -601,12 +626,13 @@ class Fish {
 
         ctx.save();
         ctx.translate(i, wiggle);
-        ctx.drawImage(this.image, i, 0, 1, h, 0, 0, 1, h);
+        // 使用透明背景的图像
+        ctx.drawImage(this.transparentImage, i, 0, 1, h, 0, 0, 1, h);
         ctx.restore();
       }
       ctx.restore();
     } else {
-      // 向左游动 - 水平翻转
+      // 向左游动 - 水平翻转，使用透明背景的图像
       ctx.save();
       ctx.translate(x + w, y);
       ctx.scale(-1, 1);
@@ -617,7 +643,8 @@ class Fish {
 
         ctx.save();
         ctx.translate(i, wiggle);
-        ctx.drawImage(this.image, i, 0, 1, h, 0, 0, 1, h);
+        // 使用透明背景的图像
+        ctx.drawImage(this.transparentImage, i, 0, 1, h, 0, 0, 1, h);
         ctx.restore();
       }
       ctx.restore();
@@ -646,31 +673,34 @@ class FishTank {
     });
   }
 
-  draw() {
-    const ctx = this.ctx;
+draw() {
+  const ctx = this.ctx;
 
-    // 纯白色背景
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 0, this.width, this.height);
+  // 只绘制鱼缸区域，不要覆盖整个屏幕
+  const tankX = this.tankPadding;
+  const tankY = this.tankPadding + 130; // 考虑到标题区域
+  const tankWidth = this.width - this.tankPadding * 2;
+  const tankHeight = this.height - this.tankPadding - 150;
 
-    // 绘制矩形框 - 限制鱼游动的空间
-    ctx.strokeStyle = '#E5E5EA';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([5, 3]); // 虚线样式
+  // 只清除鱼缸区域，而不是整个屏幕
+  ctx.clearRect(tankX, tankY, tankWidth, tankHeight);
 
-    const tankX = this.tankPadding;
-    const tankY = this.tankPadding + 130; // 考虑到标题区域
-    const tankWidth = this.width - this.tankPadding * 2;
-    const tankHeight = this.height - this.tankPadding - 150;
+  // 绘制鱼缸区域背景（白色）
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(tankX, tankY, tankWidth, tankHeight);
 
-    ctx.strokeRect(tankX, tankY, tankWidth, tankHeight);
-    ctx.setLineDash([]); // 重置为实线
+  // 绘制矩形框 - 限制鱼游动的空间
+  ctx.strokeStyle = '#E5E5EA';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([5, 3]); // 虚线样式
+  ctx.strokeRect(tankX, tankY, tankWidth, tankHeight);
+  ctx.setLineDash([]); // 重置为实线
 
-    // 绘制所有鱼
-    this.fishes.forEach(fish => {
-      fish.draw(ctx);
-    });
-  }
+  // 绘制所有鱼
+  this.fishes.forEach(fish => {
+    fish.draw(ctx);
+  });
+}
 
   startAnimation() {
     // 鱼缸的动画由EventHandler统一管理

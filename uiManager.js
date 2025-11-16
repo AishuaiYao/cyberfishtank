@@ -331,7 +331,7 @@ class UIManager {
 
     ctx.fillStyle = config.primaryColor;
     ctx.font = '20px Arial';
-    ctx.fillText('⭐', config.screenWidth / 2 - 50, startY + 22);
+    ctx.fillText('', config.screenWidth / 2 - 50, startY + 22);
 
     ctx.fillStyle = scoreColor;
     ctx.font = gameState.isScoring ? '16px -apple-system' : 'bold 18px -apple-system';
@@ -367,51 +367,50 @@ class UIManager {
     this.drawFishTankInterface(swimInterfaceData);
   }
 
-  // 绘制鱼缸界面
-  drawFishTankInterface(swimInterfaceData) {
-    const ctx = this.ctx;
+// 绘制鱼缸界面
+drawFishTankInterface(swimInterfaceData) {
+  const ctx = this.ctx;
 
-    // 纯白色背景
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
+  // 纯白色背景
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
 
-    // 绘制返回按钮
-    this.drawModernButton(
-      20, // 左上角x坐标
-      40, // 左上角y坐标
-      50, // 宽度
-      30, // 高度
-      '返回',
-      false,
-      true // 蓝色按钮
-    );
+  // 先绘制返回按钮（必须在鱼绘制之前）
+  this.drawModernButton(
+    20, // 左上角x坐标
+    40, // 左上角y坐标
+    50, // 宽度
+    30, // 高度
+    '返回',
+    false,
+    true // 蓝色按钮
+  );
 
-    // 绘制标题 - 改为"公共鱼缸"
-    ctx.fillStyle = config.textColor;
-    ctx.font = 'bold 20px -apple-system';
-    ctx.textAlign = 'center';
-    ctx.fillText('公共鱼缸', config.screenWidth / 2, 100);
+  // 绘制标题 - 改为"公共鱼缸"
+  ctx.fillStyle = config.textColor;
+  ctx.font = 'bold 20px -apple-system';
+  ctx.textAlign = 'center';
+  ctx.fillText('公共鱼缸', config.screenWidth / 2, 100);
 
-    // 绘制鱼的数量
+  // 绘制鱼的数量
+  ctx.fillStyle = config.lightTextColor;
+  ctx.font = '16px -apple-system';
+  const fishCount = this.eventHandler.fishTank ? this.eventHandler.fishTank.fishes.length : 0;
+  ctx.fillText(`共有 ${fishCount} 条鱼`, config.screenWidth / 2, 130);
+  ctx.textAlign = 'left';
+
+  // 绘制鱼缸内容
+  if (this.eventHandler.fishTank) {
+    this.eventHandler.fishTank.draw();
+  } else {
+    // 如果没有鱼缸，显示提示
     ctx.fillStyle = config.lightTextColor;
     ctx.font = '16px -apple-system';
-    const fishCount = this.eventHandler.fishTank ? this.eventHandler.fishTank.fishes.length : 0;
-    ctx.fillText(`共有 ${fishCount} 条鱼`, config.screenWidth / 2, 130);
+    ctx.textAlign = 'center';
+    ctx.fillText('鱼缸空空如也，快去画一条鱼吧！', config.screenWidth / 2, config.screenHeight / 2);
     ctx.textAlign = 'left';
-
-    // 绘制鱼缸内容
-    if (this.eventHandler.fishTank) {
-      this.eventHandler.fishTank.draw();
-    } else {
-      // 如果没有鱼缸，显示提示
-      ctx.fillStyle = config.lightTextColor;
-      ctx.font = '16px -apple-system';
-      ctx.textAlign = 'center';
-      ctx.fillText('鱼缸空空如也，快去画一条鱼吧！', config.screenWidth / 2, config.screenHeight / 2);
-      ctx.textAlign = 'left';
-    }
   }
-
+}
   // 绘制完整UI
   drawGameUI(gameState) {
     // 新增：检查是否显示游泳界面
