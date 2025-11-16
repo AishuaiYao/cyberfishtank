@@ -359,60 +359,19 @@ class UIManager {
     }
   }
 
-  // 绘制游泳界面
+  // 绘制游泳界面（现在统一为公共鱼缸）
   drawSwimInterface(gameState, swimInterfaceData) {
     const ctx = this.ctx;
 
-    if (swimInterfaceData.mode === 'fishTank') {
-      // 鱼缸模式：显示所有鱼的集合
-      this.drawFishTankInterface(swimInterfaceData);
-    } else {
-      // 单鱼模式：显示单条鱼游泳
-      this.drawSingleFishInterface(gameState, swimInterfaceData);
-    }
-  }
-
-  // 绘制单鱼游泳界面
-  drawSingleFishInterface(gameState, swimInterfaceData) {
-    const ctx = this.ctx;
-
-    // 白色背景
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
-
-    // 绘制返回按钮
-    this.drawModernButton(
-      20, // 左上角x坐标
-      40, // 左上角y坐标
-      50, // 宽度
-      30, // 高度
-      '返回',
-      false,
-      true // 蓝色按钮
-    );
-
-    // 绘制标题
-    ctx.fillStyle = config.textColor;
-    ctx.font = 'bold 20px -apple-system';
-    ctx.textAlign = 'center';
-    ctx.fillText('你的鱼正在游泳！', config.screenWidth / 2, 100);
-    ctx.textAlign = 'left';
-
-    // 绘制水蓝色背景区域
-    ctx.fillStyle = '#87CEEB';
-    ctx.fillRect(0, 120, config.screenWidth, config.screenHeight - 170);
-
-    // 如果有鱼，绘制游动的鱼
-    if (swimInterfaceData.fish && this.eventHandler.fishTank) {
-      this.eventHandler.fishTank.draw();
-    }
+    // 统一使用鱼缸模式
+    this.drawFishTankInterface(swimInterfaceData);
   }
 
   // 绘制鱼缸界面
   drawFishTankInterface(swimInterfaceData) {
     const ctx = this.ctx;
 
-    // 白色背景
+    // 纯白色背景
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
 
@@ -427,7 +386,7 @@ class UIManager {
       true // 蓝色按钮
     );
 
-    // 绘制标题
+    // 绘制标题 - 改为"公共鱼缸"
     ctx.fillStyle = config.textColor;
     ctx.font = 'bold 20px -apple-system';
     ctx.textAlign = 'center';

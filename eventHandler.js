@@ -314,7 +314,7 @@ class EventHandler {
       );
       this.fishTank.addFish(fish);
 
-      // 显示游泳界面
+      // 显示游泳界面（现在统一为公共鱼缸）
       this.showSwimInterface();
 
     } catch (error) {
@@ -328,18 +328,17 @@ class EventHandler {
     }
   }
 
-  // 新增：显示游泳界面
+  // 新增：显示游泳界面（现在统一为公共鱼缸）
   showSwimInterface() {
     this.isSwimInterfaceVisible = true;
     this.swimInterfaceData = {
-      mode: 'singleFish',
-      fish: this.fishTank ? this.fishTank.fishes[this.fishTank.fishes.length - 1] : null
+      mode: 'fishTank' // 统一使用鱼缸模式
     };
 
     // 启动动画循环
     this.startAnimationLoop();
 
-    console.log('游泳界面已显示');
+    console.log('公共鱼缸界面已显示');
   }
 
   // 新增：启动动画循环
@@ -390,7 +389,7 @@ class EventHandler {
     // 重绘UI以返回主界面
     this.uiManager.drawGameUI(this.gameState);
 
-    console.log('游泳界面已隐藏');
+    console.log('公共鱼缸界面已隐藏');
   }
 
   // 新增：处理游泳界面的触摸事件
@@ -407,7 +406,7 @@ class EventHandler {
     }
 
     // 这里可以添加其他游泳界面的交互逻辑
-    console.log('游泳界面点击位置:', x, y);
+    console.log('公共鱼缸界面点击位置:', x, y);
   }
 
   calculateBoundingBox() {
@@ -528,6 +527,9 @@ class Fish {
     this.peduncle = 0.4;
     this.tailEnd = Math.floor(this.width * this.peduncle);
     this.time = 0;
+
+    // 游动区域边界（矩形框内）
+    this.tankPadding = 20; // 距离边界的padding
   }
 
   update(deltaTime) {
@@ -537,22 +539,27 @@ class Fish {
     this.x += this.vx;
     this.y += this.vy;
 
-    // 边界检查
-    if (this.x <= 0) {
-      this.x = 0;
+    // 边界检查 - 限制在矩形框内
+    const minX = this.tankPadding;
+    const maxX = this.canvasWidth - this.width - this.tankPadding;
+    const minY = this.tankPadding + 150; // 考虑到标题区域
+    const maxY = this.canvasHeight - this.height - this.tankPadding;
+
+    if (this.x <= minX) {
+      this.x = minX;
       this.direction = 1;
       this.vx = Math.abs(this.vx);
-    } else if (this.x >= this.canvasWidth - this.width) {
-      this.x = this.canvasWidth - this.width;
+    } else if (this.x >= maxX) {
+      this.x = maxX;
       this.direction = -1;
       this.vx = -Math.abs(this.vx);
     }
 
-    if (this.y <= 0) {
-      this.y = 0;
+    if (this.y <= minY) {
+      this.y = minY;
       this.vy = Math.abs(this.vy) * 0.5;
-    } else if (this.y >= this.canvasHeight - this.height) {
-      this.y = this.canvasHeight - this.height;
+    } else if (this.y >= maxY) {
+      this.y = maxY;
       this.vy = -Math.abs(this.vy) * 0.5;
     }
 
@@ -625,6 +632,7 @@ class FishTank {
     this.ctx = ctx;
     this.width = width;
     this.height = height;
+    this.tankPadding = 20; // 矩形框内边距
   }
 
   addFish(fish) {
@@ -639,13 +647,28 @@ class FishTank {
   }
 
   draw() {
-    // 绘制水蓝色背景
-    this.ctx.fillStyle = '#87CEEB';
-    this.ctx.fillRect(0, 150, this.width, this.height - 200);
+    const ctx = this.ctx;
+
+    // 纯白色背景
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, this.width, this.height);
+
+    // 绘制矩形框 - 限制鱼游动的空间
+    ctx.strokeStyle = '#E5E5EA';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 3]); // 虚线样式
+
+    const tankX = this.tankPadding;
+    const tankY = this.tankPadding + 130; // 考虑到标题区域
+    const tankWidth = this.width - this.tankPadding * 2;
+    const tankHeight = this.height - this.tankPadding - 150;
+
+    ctx.strokeRect(tankX, tankY, tankWidth, tankHeight);
+    ctx.setLineDash([]); // 重置为实线
 
     // 绘制所有鱼
     this.fishes.forEach(fish => {
-      fish.draw(this.ctx);
+      fish.draw(ctx);
     });
   }
 
