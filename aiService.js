@@ -1,14 +1,14 @@
 class AIService {
     async getAIScore(canvas, gameState, updateUI) {
       if (gameState.isScoring) return;
-  
+
       try {
         gameState.startScoring();
         updateUI();
-  
+
         const base64Data = canvas.toDataURL().split(',')[1];
         const score = await this.callQWenVLModel(base64Data);
-        
+
         gameState.finishScoring(score);
       } catch (error) {
         console.error('AI评分失败:', error);
@@ -17,7 +17,7 @@ class AIService {
         updateUI();
       }
     }
-  
+
     callQWenVLModel(base64Image) {
       return new Promise((resolve, reject) => {
         wx.request({
@@ -57,5 +57,5 @@ class AIService {
       });
     }
   }
-  
+
   module.exports = AIService;

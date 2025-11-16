@@ -1,4 +1,3 @@
-
 const { config, getAreaPositions } = require('./config.js');
 const AIService = require('./aiService.js');
 
@@ -11,6 +10,10 @@ class EventHandler {
     this.positions = getAreaPositions();
     this.aiService = new AIService();
     
+    // 新增：游泳界面状态
+    this.isSwimInterfaceVisible = false;
+    this.swimInterfaceData = null;
+
     this.bindEvents();
   }
 
@@ -22,6 +25,12 @@ class EventHandler {
   }
 
   handleTouchStart(e) {
+    // 如果游泳界面可见，优先处理游泳界面的点击
+    if (this.isSwimInterfaceVisible) {
+      this.handleSwimInterfaceTouch(e);
+      return;
+    }
+
     const touch = e.touches[0];
     const x = touch.clientX;
     const y = touch.clientY;
@@ -208,8 +217,8 @@ class EventHandler {
   async handleMakeItSwim() {
     // 检查AI评分
     if (this.gameState.score < 60) {
-      wx.showToast({ 
-        title: 'AI评分小于60，这鱼画的太抽象', 
+      wx.showToast({
+        title: 'AI评分小于60，这鱼画的太抽象',
         icon: 'none',
         duration: 2000
       });
@@ -218,17 +227,21 @@ class EventHandler {
 
     // 检查是否有绘制内容
     if (this.gameState.drawingPaths.length === 0) {
-      wx.showToast({ 
-        title: '请先画一条鱼', 
+      wx.showToast({
+        title: '请先画一条鱼',
         icon: 'none',
         duration: 1500
       });
       return;
     }
 
+    // 新增：立即显示游泳界面
+    this.showSwimInterface();
+    
+    // 原有的处理逻辑
     try {
       wx.showLoading({ title: '处理中...', mask: true });
-      
+
       // 计算最小外接矩形
       const boundingBox = this.calculateBoundingBox();
       console.log('最小外接矩形:', boundingBox);
@@ -246,24 +259,75 @@ class EventHandler {
       console.log('缩放图尺寸:', scaledImage.width, scaledImage.height);
 
       wx.hideLoading();
-      wx.showToast({ 
-        title: '处理完成！', 
+      wx.showToast({
+        title: '处理完成！',
         icon: 'success',
         duration: 1500
       });
 
-      // 这里可以继续处理缩放图，比如保存或传递给动画系统
+      // 更新游泳界面数据并重绘
       this.gameState.scaledFishImage = scaledImage;
+      this.swimInterfaceData = {
+        fishImage: scaledImage,
+        score: this.gameState.score
+      };
+      
+      // 重绘游泳界面以显示处理后的鱼
+      this.uiManager.drawGameUI(this.gameState);
 
     } catch (error) {
       wx.hideLoading();
       console.error('处理失败:', error);
-      wx.showToast({ 
-        title: '处理失败，请重试', 
+      wx.showToast({
+        title: '处理失败，请重试',
         icon: 'none',
         duration: 2000
       });
     }
+  }
+
+  // 新增：显示游泳界面
+  showSwimInterface() {
+    this.isSwimInterfaceVisible = true;
+    
+    // 立即设置界面数据并重绘
+    this.swimInterfaceData = {
+      fishImage: this.gameState.scaledFishImage,
+      score: this.gameState.score
+    };
+    
+    // 立即重绘UI以显示游泳界面
+    this.uiManager.drawGameUI(this.gameState);
+    
+    console.log('游泳界面已显示');
+  }
+
+  // 新增：隐藏游泳界面
+  hideSwimInterface() {
+    this.isSwimInterfaceVisible = false;
+    this.swimInterfaceData = null;
+    
+    // 重绘UI以返回主界面
+    this.uiManager.drawGameUI(this.gameState);
+    
+    console.log('游泳界面已隐藏');
+  }
+
+  // 新增：处理游泳界面的触摸事件
+  handleSwimInterfaceTouch(e) {
+    const touch = e.touches[0];
+    const x = touch.clientX;
+    const y = touch.clientY;
+    
+    // 检查是否点击了返回按钮区域（右上角）
+    if (x >= config.screenWidth - 70 && x <= config.screenWidth - 20 &&
+        y >= 40 && y <= 70) {
+      this.hideSwimInterface();
+      return;
+    }
+    
+    // 这里可以添加其他游泳界面的交互逻辑
+    console.log('游泳界面点击位置:', x, y);
   }
 
   calculateBoundingBox() {
@@ -304,9 +368,9 @@ class EventHandler {
       try {
         const ctx = this.canvas.getContext('2d');
         const imageData = ctx.getImageData(
-          boundingBox.x, 
-          boundingBox.y, 
-          boundingBox.width, 
+          boundingBox.x,
+          boundingBox.y,
+          boundingBox.width,
           boundingBox.height
         );
 
@@ -314,7 +378,7 @@ class EventHandler {
         const tempCanvas = wx.createCanvas();
         tempCanvas.width = boundingBox.width;
         tempCanvas.height = boundingBox.height;
-        
+
         const tempCtx = tempCanvas.getContext('2d');
         tempCtx.putImageData(imageData, 0, 0);
 
@@ -346,7 +410,7 @@ class EventHandler {
         const scaledCanvas = wx.createCanvas();
         scaledCanvas.width = scaledWidth;
         scaledCanvas.height = scaledHeight;
-        
+
         const scaledCtx = scaledCanvas.getContext('2d');
         scaledCtx.drawImage(
           subImage.canvas,

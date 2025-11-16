@@ -21,6 +21,9 @@ class Game {
     this.uiManager = new UIManager(ctx);
     this.eventHandler = new EventHandler(canvas, ctx, this.gameState, this.uiManager);
 
+    // 关键：建立双向引用
+    this.uiManager.setEventHandler(this.eventHandler);
+
     this.uiManager.drawGameUI(this.gameState);
 
     console.log('游戏初始化完成');

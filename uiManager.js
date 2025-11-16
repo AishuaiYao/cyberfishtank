@@ -3,6 +3,12 @@ const { config, getAreaPositions } = require('./config.js');
 class UIManager {
   constructor(ctx) {
     this.ctx = ctx;
+    this.eventHandler = null; // 新增：用于访问事件处理器
+  }
+
+  // 设置事件处理器引用
+  setEventHandler(eventHandler) {
+    this.eventHandler = eventHandler;
   }
 
   // 绘制圆角矩形
@@ -27,7 +33,7 @@ class UIManager {
   // 绘制卡片
   drawCard(x, y, width, height, radius = config.borderRadius) {
     const ctx = this.ctx;
-    
+
     ctx.shadowColor = 'rgba(0,0,0,0.1)';
     ctx.shadowBlur = config.shadowBlur;
     ctx.shadowOffsetX = 0;
@@ -47,7 +53,7 @@ class UIManager {
   // 绘制现代按钮
   drawModernButton(x, y, width, height, text, isActive = false, isPrimary = false) {
     const ctx = this.ctx;
-    
+
     ctx.fillStyle = isActive ? config.primaryColor :
                     isPrimary ? config.primaryColor : '#FFFFFF';
     this.drawRoundedRect(x, y, width, height, config.borderRadius, true, false);
@@ -145,7 +151,7 @@ class UIManager {
   // 绘制画笔大小控制
   drawBrushSizeControl(startY, gameState) {
     const ctx = this.ctx;
-    
+
     ctx.fillStyle = config.textColor;
     ctx.font = '16px -apple-system, "PingFang SC"';
     ctx.fillText('画笔大小:', 25, startY);
@@ -282,7 +288,7 @@ class UIManager {
   // 重新绘制所有路径
   redrawAllPaths(gameState, drawingAreaY) {
     const ctx = this.ctx;
-    
+
     gameState.drawingPaths.forEach(path => {
       if (path.points.length > 0) {
         ctx.beginPath();
@@ -353,8 +359,143 @@ class UIManager {
     }
   }
 
+  // 绘制游泳界面
+  drawSwimInterface(gameState, swimInterfaceData) {
+    const ctx = this.ctx;
+    
+    // 绘制水蓝色背景
+    const waterGradient = ctx.createLinearGradient(0, 0, config.screenWidth, config.screenHeight);
+    waterGradient.addColorStop(0, '#87CEEB'); // 浅蓝色
+    waterGradient.addColorStop(0.5, '#5F9EA0'); // 中蓝色
+    waterGradient.addColorStop(1, '#4682B4'); // 深蓝色
+    ctx.fillStyle = waterGradient;
+    ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
+    
+    // 绘制水波纹效果
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.lineWidth = 1;
+    
+    for (let i = 0; i < 5; i++) {
+      ctx.beginPath();
+      ctx.arc(
+        config.screenWidth * 0.2 + i * 80,
+        config.screenHeight * 0.3 + i * 40,
+        60 + i * 20,
+        0,
+        Math.PI * 2
+      );
+      ctx.stroke();
+      
+      ctx.beginPath();
+      ctx.arc(
+        config.screenWidth * 0.8 - i * 80,
+        config.screenHeight * 0.7 - i * 40,
+        50 + i * 15,
+        0,
+        Math.PI * 2
+      );
+      ctx.stroke();
+    }
+    
+    // 绘制气泡效果
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+    for (let i = 0; i < 8; i++) {
+      const size = 3 + Math.random() * 8;
+      const x = Math.random() * config.screenWidth;
+      const y = Math.random() * config.screenHeight;
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    
+    // 绘制标题
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 24px -apple-system, "PingFang SC"';
+    ctx.textAlign = 'center';
+    ctx.fillText('🐠 让鱼游起来！', config.screenWidth / 2, 80);
+    
+    // 绘制返回按钮
+    this.drawModernButton(
+      config.screenWidth - 70,
+      40,
+      50,
+      30,
+      '返回',
+      false,
+      false
+    );
+    
+    // 绘制鱼图像（如果有）
+    if (swimInterfaceData && swimInterfaceData.fishImage) {
+      const fish = swimInterfaceData.fishImage;
+      const fishX = config.screenWidth / 2 - fish.width / 2;
+      const fishY = config.screenHeight / 2 - fish.height / 2;
+      
+      // 绘制鱼的阴影
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+      ctx.shadowBlur = 10;
+      ctx.shadowOffsetX = 5;
+      ctx.shadowOffsetY = 5;
+      
+      ctx.drawImage(fish.canvas, fishX, fishY, fish.width, fish.height);
+      
+      // 重置阴影
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+      
+      // 绘制鱼的描述
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '18px -apple-system';
+      ctx.fillText(
+        `你的鱼得分: ${swimInterfaceData.score || gameState.score}`,
+        config.screenWidth / 2,
+        fishY + fish.height + 40
+      );
+    } else {
+      // 如果没有鱼图像，显示提示
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '18px -apple-system';
+      ctx.fillText(
+        '正在处理你的小鱼...',
+        config.screenWidth / 2,
+        config.screenHeight / 2
+      );
+      
+      // 绘制加载动画
+      const loadingX = config.screenWidth / 2;
+      const loadingY = config.screenHeight / 2 + 40;
+      const radius = 15;
+      const time = Date.now() * 0.002;
+      
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(loadingX, loadingY, radius, 0, Math.PI * 2 * (time % 1));
+      ctx.stroke();
+    }
+    
+    // 绘制提示文字
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.font = '14px -apple-system';
+    ctx.fillText(
+      '点击右上角"返回"回到主界面',
+      config.screenWidth / 2,
+      config.screenHeight - 40
+    );
+    
+    ctx.textAlign = 'left';
+  }
+
   // 绘制完整UI
   drawGameUI(gameState) {
+    // 新增：检查是否显示游泳界面
+    if (this.eventHandler && this.eventHandler.isSwimInterfaceVisible) {
+      this.drawSwimInterface(gameState, this.eventHandler.swimInterfaceData);
+      return;
+    }
+    
     this.drawBackground();
     this.drawFunctionArea(gameState);
     this.drawIndicatorArea();
