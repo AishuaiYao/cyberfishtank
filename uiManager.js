@@ -359,30 +359,26 @@ class UIManager {
     }
   }
 
-  // 绘制游泳界面
-  drawSwimInterface(gameState, swimInterfaceData) {
-    const ctx = this.ctx;
-    
-    // 绘制水蓝色背景
-    const waterGradient = ctx.createLinearGradient(0, 0, config.screenWidth, config.screenHeight);
-    waterGradient.addColorStop(0, '#87CEEB'); // 浅蓝色
-    waterGradient.addColorStop(0.5, '#5F9EA0'); // 中蓝色
-    waterGradient.addColorStop(1, '#4682B4'); // 深蓝色
-    ctx.fillStyle = waterGradient;
-    ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
-    
-    // 绘制返回按钮（左上角）
-    this.drawModernButton(
-      20, // 左上角x坐标
-      40, // 左上角y坐标
-      50, // 宽度
-      30, // 高度
-      '返回',
-      false,
-      false
-    );
-  }
+// 绘制游泳界面
+drawSwimInterface(gameState, swimInterfaceData) {
+  const ctx = this.ctx;
 
+  // 修改：将水蓝色背景改为白色背景
+  ctx.fillStyle = '#FFFFFF'; // 改为白色
+  ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
+
+  // 绘制返回按钮（左上角）
+  // 修改：将返回按钮颜色改为蓝色（isPrimary参数改为true）
+  this.drawModernButton(
+    20, // 左上角x坐标
+    40, // 左上角y坐标
+    50, // 宽度
+    30, // 高度
+    '返回',
+    false,
+    true // 改为true，使按钮显示为蓝色
+  );
+}
   // 绘制完整UI
   drawGameUI(gameState) {
     // 新增：检查是否显示游泳界面
