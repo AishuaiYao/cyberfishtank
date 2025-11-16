@@ -367,52 +367,143 @@ class UIManager {
     this.drawFishTankInterface(swimInterfaceData);
   }
 
-// 绘制鱼缸界面
-drawFishTankInterface(swimInterfaceData) {
-  const ctx = this.ctx;
+  // 绘制鱼缸界面
+  drawFishTankInterface(swimInterfaceData) {
+    const ctx = this.ctx;
 
-  // 纯白色背景
-  ctx.fillStyle = '#FFFFFF';
-  ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
+    // 纯白色背景
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
 
-  // 先绘制返回按钮（必须在鱼绘制之前）
-  this.drawModernButton(
-    20, // 左上角x坐标
-    40, // 左上角y坐标
-    50, // 宽度
-    30, // 高度
-    '返回',
-    false,
-    true // 蓝色按钮
-  );
+    // 先绘制返回按钮（必须在鱼绘制之前）
+    this.drawModernButton(
+      20, // 左上角x坐标
+      40, // 左上角y坐标
+      50, // 宽度
+      30, // 高度
+      '返回',
+      false,
+      true // 蓝色按钮
+    );
 
-  // 绘制标题 - 改为"公共鱼缸"
-  ctx.fillStyle = config.textColor;
-  ctx.font = 'bold 20px -apple-system';
-  ctx.textAlign = 'center';
-  ctx.fillText('公共鱼缸', config.screenWidth / 2, 100);
+    // 绘制标题 - 改为"公共鱼缸"
+    ctx.fillStyle = config.textColor;
+    ctx.font = 'bold 20px -apple-system';
+    ctx.textAlign = 'center';
+    ctx.fillText('公共鱼缸', config.screenWidth / 2, 100);
 
-  // 绘制鱼的数量
-  ctx.fillStyle = config.lightTextColor;
-  ctx.font = '16px -apple-system';
-  const fishCount = this.eventHandler.fishTank ? this.eventHandler.fishTank.fishes.length : 0;
-  ctx.fillText(`共有 ${fishCount} 条鱼`, config.screenWidth / 2, 130);
-  ctx.textAlign = 'left';
-
-  // 绘制鱼缸内容
-  if (this.eventHandler.fishTank) {
-    this.eventHandler.fishTank.draw();
-  } else {
-    // 如果没有鱼缸，显示提示
+    // 绘制鱼的数量
     ctx.fillStyle = config.lightTextColor;
     ctx.font = '16px -apple-system';
+    const fishCount = this.eventHandler.fishTank ? this.eventHandler.fishTank.fishes.length : 0;
+    ctx.fillText(`共有 ${fishCount} 条鱼`, config.screenWidth / 2, 130);
+    ctx.textAlign = 'left';
+
+    // 绘制鱼缸内容
+    if (this.eventHandler.fishTank) {
+      this.eventHandler.fishTank.draw();
+    } else {
+      // 如果没有鱼缸，显示提示
+      ctx.fillStyle = config.lightTextColor;
+      ctx.font = '16px -apple-system';
+      ctx.textAlign = 'center';
+      ctx.fillText('鱼缸空空如也，快去画一条鱼吧！', config.screenWidth / 2, config.screenHeight / 2);
+      ctx.textAlign = 'left';
+    }
+  }
+
+  // 绘制命名对话框
+  drawNameInputDialog(eventHandler) {
+    const ctx = this.ctx;
+
+    // 关键修复：先清除整个画布并绘制背景
+    this.drawBackground();
+
+    const dialogWidth = config.screenWidth - 80;
+    const dialogHeight = 220;
+    const dialogX = 40;
+    const dialogY = (config.screenHeight - dialogHeight) / 2;
+
+    // 绘制半透明背景遮罩
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
+
+    // 绘制对话框卡片
+    this.drawCard(dialogX, dialogY, dialogWidth, dialogHeight);
+
+    // 绘制标题
+    ctx.fillStyle = config.textColor;
+    ctx.font = 'bold 18px -apple-system';
     ctx.textAlign = 'center';
-    ctx.fillText('鱼缸空空如也，快去画一条鱼吧！', config.screenWidth / 2, config.screenHeight / 2);
+    ctx.fillText('给你的鱼起个名字', dialogX + dialogWidth / 2, dialogY + 40);
+
+    // 绘制输入框背景
+    ctx.fillStyle = '#F8F9FA';
+    this.drawRoundedRect(dialogX + 20, dialogY + 70, dialogWidth - 40, 40, 8, true, false);
+    ctx.strokeStyle = config.borderColor;
+    ctx.lineWidth = 1;
+    this.drawRoundedRect(dialogX + 20, dialogY + 70, dialogWidth - 40, 40, 8, false, true);
+
+    // 绘制输入文本
+    ctx.fillStyle = config.textColor;
+    ctx.font = '16px -apple-system';
+    ctx.textAlign = 'left';
+    const text = eventHandler.fishNameInput || '';
+
+    // 文本过长时截断显示
+    let displayText = text;
+    const maxTextWidth = dialogWidth - 60;
+    const textWidth = ctx.measureText(text).width;
+    if (textWidth > maxTextWidth) {
+      // 计算可以显示的字符数
+      let visibleChars = text.length;
+      while (visibleChars > 0 && ctx.measureText(text.substring(0, visibleChars) + '...').width > maxTextWidth) {
+        visibleChars--;
+      }
+      displayText = text.substring(0, visibleChars) + '...';
+    }
+
+    ctx.fillText(displayText, dialogX + 30, dialogY + 95);
+
+    // 绘制光标（如果文本为空）
+    if (!text) {
+      ctx.fillStyle = config.primaryColor;
+      ctx.fillRect(dialogX + 30, dialogY + 80, 2, 20);
+    }
+
+    // 绘制取消按钮
+    this.drawModernButton(
+      dialogX + 20,
+      dialogY + dialogHeight - 110,
+      dialogWidth - 40,
+      40,
+      '取消',
+      false,
+      false
+    );
+
+    // 绘制确认按钮
+    this.drawModernButton(
+      dialogX + 20,
+      dialogY + dialogHeight - 60,
+      dialogWidth - 40,
+      40,
+      '确认',
+      false,
+      true
+    );
+
     ctx.textAlign = 'left';
   }
-}
+
   // 绘制完整UI
   drawGameUI(gameState) {
+    // 新增：检查是否显示命名对话框
+    if (this.eventHandler && this.eventHandler.isDialogVisible) {
+      this.drawNameInputDialog(this.eventHandler);
+      return;
+    }
+
     // 新增：检查是否显示游泳界面
     if (this.eventHandler && this.eventHandler.isSwimInterfaceVisible) {
       this.drawSwimInterface(gameState, this.eventHandler.swimInterfaceData);

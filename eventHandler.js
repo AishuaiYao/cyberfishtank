@@ -19,6 +19,11 @@ class EventHandler {
     this.animationId = null;
     this.lastAnimationTime = 0;
 
+    // 新增：对话框状态
+    this.isDialogVisible = false;
+    this.dialogData = null;
+    this.fishNameInput = '';
+
     this.bindEvents();
   }
 
@@ -30,6 +35,12 @@ class EventHandler {
   }
 
   handleTouchStart(e) {
+    // 如果对话框可见，优先处理对话框的点击
+    if (this.isDialogVisible) {
+      this.handleDialogTouch(e);
+      return;
+    }
+
     // 如果游泳界面可见，优先处理游泳界面的点击
     if (this.isSwimInterfaceVisible) {
       this.handleSwimInterfaceTouch(e);
@@ -286,31 +297,12 @@ class EventHandler {
       console.log('缩放图尺寸:', scaledImage.width, scaledImage.height);
 
       wx.hideLoading();
-      wx.showToast({
-        title: '处理完成！',
-        icon: 'success',
-        duration: 1500
-      });
 
-      // 更新游戏状态
+      // 保存缩放后的图像到游戏状态
       this.gameState.scaledFishImage = scaledImage;
 
-      // 新增：创建鱼缸并添加鱼
-      if (!this.fishTank) {
-        this.fishTank = new FishTank(this.ctx, config.screenWidth, config.screenHeight);
-      }
-
-      // 添加用户画的鱼到鱼缸
-      const fish = new Fish(
-        scaledImage.canvas,
-        Math.random() * (config.screenWidth - scaledImage.width),
-        Math.random() * (config.screenHeight - scaledImage.height),
-        Math.random() < 0.5 ? -1 : 1
-      );
-      this.fishTank.addFish(fish);
-
-      // 显示游泳界面（现在统一为公共鱼缸）
-      this.showSwimInterface();
+      // 新增：显示命名对话框
+      this.showNameInputDialog(scaledImage);
 
     } catch (error) {
       wx.hideLoading();
@@ -321,6 +313,189 @@ class EventHandler {
         duration: 2000
       });
     }
+  }
+
+  // 新增：显示命名对话框
+  showNameInputDialog(scaledImage) {
+    this.isDialogVisible = true;
+    this.dialogData = {
+      scaledImage: scaledImage
+    };
+    // 设置默认名字
+    this.fishNameInput = `小鱼${Math.floor(Math.random() * 1000)}`;
+
+    // 重绘UI以显示对话框
+    this.uiManager.drawGameUI(this.gameState);
+
+    // 使用微信小游戏的输入框API
+    this.showKeyboardInput();
+  }
+
+  // 新增：显示键盘输入
+  showKeyboardInput() {
+    wx.showKeyboard({
+      defaultValue: this.fishNameInput,
+      maxLength: 20,
+      multiple: false,
+      confirmHold: false,
+      confirmType: 'done',
+      success: (res) => {
+        console.log('键盘显示成功');
+      },
+      fail: (err) => {
+        console.error('键盘显示失败:', err);
+        // 如果键盘显示失败，使用默认名字
+        this.confirmFishName();
+      }
+    });
+
+    // 监听键盘输入事件
+    wx.onKeyboardInput((res) => {
+      this.fishNameInput = res.value;
+      // 实时更新UI显示
+      this.uiManager.drawGameUI(this.gameState);
+    });
+
+    // 监听键盘确认事件
+    wx.onKeyboardConfirm((res) => {
+      this.fishNameInput = res.value;
+      this.confirmFishName();
+    });
+
+    // 监听键盘关闭事件
+    wx.onKeyboardComplete((res) => {
+      // 如果用户直接关闭键盘，使用当前输入的值
+      if (this.fishNameInput) {
+        this.confirmFishName();
+      } else {
+        this.hideNameInputDialog();
+      }
+    });
+  }
+
+  // 新增：隐藏命名对话框
+  hideNameInputDialog() {
+    this.isDialogVisible = false;
+    this.dialogData = null;
+    this.fishNameInput = '';
+
+    // 移除键盘监听
+    wx.offKeyboardInput();
+    wx.offKeyboardConfirm();
+    wx.offKeyboardComplete();
+    
+    // 隐藏键盘
+    wx.hideKeyboard();
+
+    // 重绘UI以隐藏对话框
+    this.uiManager.drawGameUI(this.gameState);
+  }
+
+  // 新增：处理对话框触摸事件
+  handleDialogTouch(e) {
+    const touch = e.touches[0];
+    const x = touch.clientX;
+    const y = touch.clientY;
+
+    const dialogWidth = config.screenWidth - 80;
+    const dialogHeight = 220;
+    const dialogX = 40;
+    const dialogY = (config.screenHeight - dialogHeight) / 2;
+
+    // 检查确认按钮点击
+    const confirmButtonX = dialogX + 20;
+    const confirmButtonY = dialogY + dialogHeight - 60;
+    const confirmButtonWidth = dialogWidth - 40;
+    const confirmButtonHeight = 40;
+
+    if (x >= confirmButtonX && x <= confirmButtonX + confirmButtonWidth &&
+        y >= confirmButtonY && y <= confirmButtonY + confirmButtonHeight) {
+      this.confirmFishName();
+      return;
+    }
+
+    // 检查取消按钮点击
+    const cancelButtonX = dialogX + 20;
+    const cancelButtonY = dialogY + dialogHeight - 110;
+    const cancelButtonWidth = dialogWidth - 40;
+    const cancelButtonHeight = 40;
+
+    if (x >= cancelButtonX && x <= cancelButtonX + cancelButtonWidth &&
+        y >= cancelButtonY && y <= cancelButtonY + cancelButtonHeight) {
+      this.hideNameInputDialog();
+      return;
+    }
+
+    // 点击输入框区域也触发键盘
+    const inputBoxX = dialogX + 20;
+    const inputBoxY = dialogY + 70;
+    const inputBoxWidth = dialogWidth - 40;
+    const inputBoxHeight = 40;
+
+    if (x >= inputBoxX && x <= inputBoxX + inputBoxWidth &&
+        y >= inputBoxY && y <= inputBoxY + inputBoxHeight) {
+      this.showKeyboardInput();
+      return;
+    }
+  }
+
+  // 新增：确认鱼名字
+  confirmFishName() {
+    // 修复：检查 dialogData 是否存在
+    if (!this.dialogData || !this.dialogData.scaledImage) {
+      console.error('对话框数据异常，使用游戏状态中的图像');
+      // 如果对话框数据异常，尝试使用游戏状态中的图像
+      if (!this.gameState.scaledFishImage) {
+        wx.showToast({
+          title: '处理失败，请重试',
+          icon: 'none',
+          duration: 2000
+        });
+        this.hideNameInputDialog();
+        return;
+      }
+    }
+
+    const scaledImage = this.dialogData ? this.dialogData.scaledImage : this.gameState.scaledFishImage;
+
+    if (!this.fishNameInput || !this.fishNameInput.trim()) {
+      wx.showToast({
+        title: '请输入鱼的名字',
+        icon: 'none',
+        duration: 1500
+      });
+      return;
+    }
+
+    const finalName = this.fishNameInput.trim();
+
+    // 隐藏对话框
+    this.hideNameInputDialog();
+
+    // 显示成功提示
+    wx.showToast({
+      title: `${finalName} 加入鱼缸！`,
+      icon: 'success',
+      duration: 1500
+    });
+
+    // 创建鱼缸并添加鱼
+    if (!this.fishTank) {
+      this.fishTank = new FishTank(this.ctx, config.screenWidth, config.screenHeight);
+    }
+
+    // 添加用户画的鱼到鱼缸
+    const fish = new Fish(
+      scaledImage.canvas,
+      Math.random() * (config.screenWidth - scaledImage.width),
+      Math.random() * (config.screenHeight - scaledImage.height),
+      Math.random() < 0.5 ? -1 : 1,
+      finalName // 传递鱼名字
+    );
+    this.fishTank.addFish(fish);
+
+    // 显示游泳界面（现在统一为公共鱼缸）
+    this.showSwimInterface();
   }
 
   // 新增：显示游泳界面（现在统一为公共鱼缸）
@@ -505,13 +680,14 @@ class EventHandler {
   }
 }
 
-// 新增：鱼类定义
+// 修改：鱼类定义，添加名字属性
 class Fish {
-  constructor(image, x, y, direction = 1) {
+  constructor(image, x, y, direction = 1, name = '未命名') {
     this.image = image;
     this.x = x;
     this.y = y;
     this.direction = direction;
+    this.name = name; // 新增：鱼名字
     this.phase = Math.random() * Math.PI * 2;
     this.amplitude = 8; // 减小振幅
     this.speed = 0.5 + Math.random() * 1; // 随机速度
