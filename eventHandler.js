@@ -1,3 +1,4 @@
+
 const { config, getAreaPositions } = require('./config.js');
 const AIService = require('./aiService.js');
 
@@ -28,6 +29,10 @@ class EventHandler {
     this.isDialogVisible = false;
     this.dialogData = null;
     this.fishNameInput = '';
+
+    // 新增：数据库鱼数据缓存
+    this.databaseFishes = [];
+    this.isLoadingDatabaseFishes = false;
 
     this.bindEvents();
   }
@@ -71,6 +76,195 @@ class EventHandler {
     } catch (error) {
       console.warn('数据库连接测试失败，集合可能不存在:', error);
       // 这里可以添加创建集合的逻辑，或者只是记录警告
+    }
+  }
+
+  // 新增：从数据库随机获取鱼数据
+  async getRandomFishesFromDatabase(count = 20) {
+    if (!this.isCloudDbInitialized || !this.cloudDb) {
+      console.warn('云数据库未初始化，无法获取数据');
+      return [];
+    }
+
+    try {
+      console.log('开始从数据库获取随机鱼数据...');
+      
+      // 首先获取总数量
+      const countResult = await this.cloudDb.collection('fishes').count();
+      const totalCount = countResult.total;
+      
+      console.log(`数据库中共有 ${totalCount} 条鱼数据`);
+
+      if (totalCount === 0) {
+        console.log('数据库中没有鱼数据');
+        return [];
+      }
+
+      // 如果总数小于需要的数量，直接获取所有
+      const actualCount = Math.min(count, totalCount);
+      
+      // 随机跳过一些记录来模拟随机获取
+      const skipCount = totalCount > actualCount ? 
+        Math.floor(Math.random() * (totalCount - actualCount)) : 0;
+
+      console.log(`随机跳过 ${skipCount} 条记录，获取 ${actualCount} 条鱼数据`);
+
+      // 获取随机鱼数据
+      const result = await this.cloudDb.collection('fishes')
+        .skip(skipCount)
+        .limit(actualCount)
+        .get();
+
+      console.log(`成功获取 ${result.data.length} 条鱼数据`);
+
+      // 过滤掉没有base64数据的记录
+      const validFishes = result.data.filter(fish => 
+        fish.base64 && fish.base64.length > 0
+      );
+
+      console.log(`其中 ${validFishes.length} 条有有效的base64数据`);
+
+      return validFishes;
+    } catch (error) {
+      console.error('从数据库获取鱼数据失败:', error);
+      return [];
+    }
+  }
+
+  // 新增：将base64数据转换为canvas图像
+  base64ToCanvas(base64Data) {
+    return new Promise((resolve, reject) => {
+      try {
+        // 创建Image对象
+        const image = wx.createImage();
+        
+        image.onload = () => {
+          // 创建canvas来绘制图像
+          const canvas = wx.createCanvas();
+          canvas.width = image.width;
+          canvas.height = image.height;
+          
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(image, 0, 0);
+          
+          resolve({
+            canvas: canvas,
+            width: image.width,
+            height: image.height
+          });
+        };
+        
+        image.onerror = (error) => {
+          reject(new Error('图片加载失败: ' + error));
+        };
+        
+        // 添加base64前缀
+        const base64WithPrefix = `data:image/png;base64,${base64Data}`;
+        image.src = base64WithPrefix;
+        
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  // 新增：从数据库鱼数据创建鱼对象
+  async createFishFromDatabaseData(fishData) {
+    try {
+      if (!fishData.base64) {
+        console.warn('鱼数据没有base64字段，跳过创建');
+        return null;
+      }
+
+      console.log(`为鱼 "${fishData.fishid || fishData.fish_name || '未命名'}" 创建图像...`);
+
+      // 将base64转换为canvas图像
+      const fishImage = await this.base64ToCanvas(fishData.base64);
+      
+      // 创建鱼对象
+      const fish = new Fish(
+        fishImage.canvas,
+        Math.random() * (config.screenWidth - fishImage.width),
+        Math.random() * (config.screenHeight - fishImage.height),
+        Math.random() < 0.5 ? -1 : 1,
+        fishData.fishid || fishData.fish_name || `数据库鱼_${Date.now()}`
+      );
+
+      console.log(`成功创建鱼: ${fish.name}`);
+      return fish;
+    } catch (error) {
+      console.error('从数据库数据创建鱼对象失败:', error);
+      return null;
+    }
+  }
+
+  // 新增：加载并显示数据库中的鱼
+  async loadAndShowDatabaseFishes() {
+    if (this.isLoadingDatabaseFishes) {
+      console.log('正在加载数据库鱼数据，请稍候...');
+      return;
+    }
+
+    this.isLoadingDatabaseFishes = true;
+
+    try {
+      console.log('开始加载数据库中的鱼...');
+      
+      // 显示加载提示
+      wx.showLoading({ title: '加载鱼缸中...', mask: true });
+
+      // 从数据库获取随机鱼数据
+      const databaseFishes = await this.getRandomFishesFromDatabase(20);
+      
+      if (databaseFishes.length === 0) {
+        console.log('没有从数据库获取到鱼数据');
+        wx.hideLoading();
+        this.isLoadingDatabaseFishes = false;
+        return;
+      }
+
+      console.log(`开始创建 ${databaseFishes.length} 条数据库鱼...`);
+
+      // 批量创建鱼对象
+      const fishCreationPromises = databaseFishes.map(fishData => 
+        this.createFishFromDatabaseData(fishData)
+      );
+
+      const createdFishes = await Promise.all(fishCreationPromises);
+      
+      // 过滤掉创建失败的对象
+      const validFishes = createdFishes.filter(fish => fish !== null);
+      
+      console.log(`成功创建 ${validFishes.length} 条数据库鱼`);
+
+      // 添加到鱼缸
+      validFishes.forEach(fish => {
+        this.fishTank.addFish(fish);
+      });
+
+      // 缓存数据库鱼数据
+      this.databaseFishes = validFishes;
+
+      wx.hideLoading();
+      
+      if (validFishes.length > 0) {
+        wx.showToast({
+          title: `已加载 ${validFishes.length} 条鱼`,
+          icon: 'success',
+          duration: 1500
+        });
+      }
+
+    } catch (error) {
+      console.error('加载数据库鱼数据失败:', error);
+      wx.hideLoading();
+      wx.showToast({
+        title: '加载鱼缸数据失败',
+        icon: 'none',
+        duration: 2000
+      });
+    } finally {
+      this.isLoadingDatabaseFishes = false;
     }
   }
 
@@ -414,30 +608,35 @@ class EventHandler {
     }
   }
 
-  // 新增：处理鱼缸功能
-  handleFishTank() {
-    if (!this.fishTank || this.fishTank.fishes.length === 0) {
-      wx.showToast({
-        title: '请先画一条鱼并让它游起来',
-        icon: 'none',
-        duration: 2000
-      });
-      return;
-    }
-
+  // 修改：处理鱼缸功能 - 现在会加载数据库中的鱼
+  async handleFishTank() {
     // 显示鱼缸界面
-    this.showFishTankInterface();
+    await this.showFishTankInterface();
   }
 
-  // 新增：显示鱼缸界面
-  showFishTankInterface() {
+  // 修改：显示鱼缸界面 - 现在会加载数据库中的鱼
+  async showFishTankInterface() {
     this.isSwimInterfaceVisible = true;
     this.swimInterfaceData = {
       mode: 'fishTank'
     };
 
+    // 确保鱼缸实例存在
+    if (!this.fishTank) {
+      this.fishTank = new FishTank(this.ctx, config.screenWidth, config.screenHeight);
+    }
+
+    // 清空现有鱼（除了当前用户画的鱼）
+    const currentUserFish = this.fishTank.fishes.filter(fish => 
+      !this.databaseFishes.includes(fish)
+    );
+    this.fishTank.fishes = currentUserFish;
+
+    // 加载数据库中的鱼
+    await this.loadAndShowDatabaseFishes();
+
     this.startAnimationLoop();
-    console.log('鱼缸界面已显示');
+    console.log('鱼缸界面已显示，包含数据库鱼和用户鱼');
   }
 
   async handleMakeItSwim() {
@@ -623,7 +822,7 @@ class EventHandler {
     }
   }
 
-  // 新增：确认鱼名字
+  // 修改：确认鱼名字 - 现在会同时显示数据库鱼和用户鱼
   async confirmFishName() {
     // 修复：检查 dialogData 是否存在
     if (!this.dialogData || !this.dialogData.scaledImage) {
@@ -704,17 +903,20 @@ class EventHandler {
     this.showSwimInterface();
   }
 
-  // 新增：显示游泳界面（现在统一为公共鱼缸）
-  showSwimInterface() {
+  // 修改：显示游泳界面 - 现在会加载数据库中的鱼
+  async showSwimInterface() {
     this.isSwimInterfaceVisible = true;
     this.swimInterfaceData = {
       mode: 'fishTank' // 统一使用鱼缸模式
     };
 
+    // 加载数据库中的鱼
+    await this.loadAndShowDatabaseFishes();
+
     // 启动动画循环
     this.startAnimationLoop();
 
-    console.log('公共鱼缸界面已显示');
+    console.log('公共鱼缸界面已显示，包含数据库鱼和用户鱼');
   }
 
   // 新增：启动动画循环
