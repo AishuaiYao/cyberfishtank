@@ -1,3 +1,4 @@
+
 const { config } = require('./config.js');
 
 class GameState {
@@ -16,6 +17,7 @@ class GameState {
     this.drawingPaths = [];
     this.currentPath = null;
     this.isScoring = false;
+    this.scaledFishImage = null; // 新增：存储缩放后的鱼图像
   }
 
   startNewPath(x, y) {
@@ -52,6 +54,7 @@ class GameState {
   clear() {
     this.drawingPaths = [];
     this.score = 0;
+    this.scaledFishImage = null; // 清空时也清除缩放图
   }
 
   toggleEraser() {
