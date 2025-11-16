@@ -62,49 +62,6 @@ canvasGetImageData
 
 
 
-初始化 SDK
-通过 npm 引入
-微信开发者工具使用 npm 指引
-
-在小程序 package.json 所在的目录（一般是 miniprogram 目录）执行命令安装 npm 包：
-
-npm install @cloudbase/wx-cloud-client-sdk --save
-然后点击微信开发者工具工具栏上的“工具” -> “构建 npm”。
-
-在 app.js 中加入如下代码：
-
-const { init } = require("@cloudbase/wx-cloud-client-sdk");
-
-// 指定云开发环境 ID
-wx.cloud.init({
-  env: "cloud1-8gy356s2a34a0890", // 当前的云开发环境 ID
-});
-
-const client = init(wx.cloud);
-const db = client.mysql();
-创建单条数据
-const { data, error } = await db.from('fishes')
-  .insert({
-      uid: 12345, // int
-      createdAt: '2024-01-01 12:00:00', // timestamp
-      fishid: '示例字符串', // varchar
-      score: '示例字符串', // varchar
-      star: '示例字符串', // varchar
-      unstar: '示例字符串', // varchar
-    })
-  .select(); // 注意：仅当表中只有一个主键，且该主键为自增类型时，".select()" 方法才会返回插入的行
-
-console.log(data, error)
-
-
-
-
-
-
-
-
-
-
 
 
 

@@ -75,7 +75,7 @@ class EventHandler {
   }
 
   // 新增：向数据库插入鱼数据
-  async insertFishToDatabase(fishName) {
+  async insertFishToDatabase(fishName, scaledImage) {
     if (!this.isCloudDbInitialized || !this.cloudDb) {
       console.warn('云数据库未初始化，跳过数据插入');
       return false;
@@ -85,6 +85,16 @@ class EventHandler {
       // 获取当前时间
       const now = new Date();
 
+      // 新增：将鱼的图片转换为base64
+      let base64Data = '';
+      try {
+        base64Data = await this.canvasToBase64(scaledImage.canvas);
+        console.log('Base64数据生成成功，长度:', base64Data.length);
+      } catch (base64Error) {
+        console.warn('Base64转换失败，使用空字符串:', base64Error);
+        base64Data = '';
+      }
+
       // 准备插入的数据
       const fishData = {
         uid: 12345, // int 默认的
@@ -93,15 +103,19 @@ class EventHandler {
         score: this.gameState.score.toString(), // varchar 当前评分
         star: '0', // varchar 默认
         unstar: '0', // varchar 默认
+        base64: base64Data, // 新增：鱼的base64图片数据
         // 添加一些额外信息
-        imageWidth: this.gameState.scaledFishImage ? this.gameState.scaledFishImage.width : 0,
-        imageHeight: this.gameState.scaledFishImage ? this.gameState.scaledFishImage.height : 0,
+        imageWidth: scaledImage ? scaledImage.width : 0,
+        imageHeight: scaledImage ? scaledImage.height : 0,
         createTimestamp: Date.now(), // 时间戳
         // 添加用户信息（如果有）
         userInfo: this.getUserInfo()
       };
 
-      console.log('准备插入鱼数据:', fishData);
+      console.log('准备插入鱼数据:', {
+        ...fishData,
+        base64: `base64数据长度: ${base64Data.length}`
+      });
 
       // 使用微信云开发数据库API
       const result = await this.cloudDb.collection('fishes').add({
@@ -116,16 +130,41 @@ class EventHandler {
       // 如果是集合不存在的错误，尝试创建集合
       if (error.errCode === -502005) {
         console.log('检测到集合不存在，尝试使用备用方案...');
-        return await this.insertWithBackupMethod(fishName);
+        return await this.insertWithBackupMethod(fishName, scaledImage);
       }
 
       return false;
     }
   }
 
+  // 新增：将canvas转换为base64
+  canvasToBase64(canvas) {
+    return new Promise((resolve, reject) => {
+      try {
+        // 微信小游戏环境使用toDataURL
+        const base64 = canvas.toDataURL();
+        // 移除data:image/png;base64,前缀，只保留纯base64数据
+        const pureBase64 = base64.split(',')[1];
+        resolve(pureBase64);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
   // 新增：备用插入方法（使用更简单的数据结构）
-  async insertWithBackupMethod(fishName) {
+  async insertWithBackupMethod(fishName, scaledImage) {
     try {
+      // 新增：将鱼的图片转换为base64
+      let base64Data = '';
+      try {
+        base64Data = await this.canvasToBase64(scaledImage.canvas);
+        console.log('备用方案Base64数据生成成功，长度:', base64Data.length);
+      } catch (base64Error) {
+        console.warn('备用方案Base64转换失败:', base64Error);
+        base64Data = '';
+      }
+
       // 使用更简单的数据结构，避免字段类型问题
       const simpleFishData = {
         uid: 12345,
@@ -133,11 +172,15 @@ class EventHandler {
         score: this.gameState.score.toString(),
         star_count: '0',
         unstar_count: '0',
+        base64: base64Data, // 新增：鱼的base64图片数据
         create_time: new Date(),
         timestamp: Date.now()
       };
 
-      console.log('使用备用方案插入数据:', simpleFishData);
+      console.log('使用备用方案插入数据:', {
+        ...simpleFishData,
+        base64: `base64数据长度: ${base64Data.length}`
+      });
 
       const result = await this.cloudDb.collection('fishes').add({
         data: simpleFishData
@@ -617,7 +660,7 @@ class EventHandler {
     wx.showLoading({ title: '保存中...', mask: true });
 
     try {
-      const insertSuccess = await this.insertFishToDatabase(finalName);
+      const insertSuccess = await this.insertFishToDatabase(finalName, scaledImage);
       wx.hideLoading();
 
       if (insertSuccess) {
