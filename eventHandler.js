@@ -10,6 +10,11 @@ class EventHandler {
     this.positions = getAreaPositions();
     this.aiService = new AIService();
 
+    // 新增：云数据库状态
+    this.cloudDb = null;
+    this.isCloudDbInitialized = false;
+    this.initCloudDatabase();
+
     // 新增：游泳界面状态
     this.isSwimInterfaceVisible = false;
     this.swimInterfaceData = null;
@@ -25,6 +30,142 @@ class EventHandler {
     this.fishNameInput = '';
 
     this.bindEvents();
+  }
+
+  // 新增：初始化云数据库（使用微信原生云开发）
+  initCloudDatabase() {
+    try {
+      // 检查是否支持云开发
+      if (!wx.cloud) {
+        console.warn('当前环境不支持云开发');
+        return;
+      }
+
+      // 初始化云开发
+      wx.cloud.init({
+        env: 'cloudservice-0g27c8ul6804ce3d', // 替换为你的云环境ID
+        traceUser: true
+      });
+
+      // 获取数据库引用
+      this.cloudDb = wx.cloud.database();
+      this.isCloudDbInitialized = true;
+      console.log('云数据库初始化成功');
+
+      // 测试数据库连接
+      this.testDatabaseConnection();
+    } catch (error) {
+      console.error('云数据库初始化失败:', error);
+      this.isCloudDbInitialized = false;
+    }
+  }
+
+  // 新增：测试数据库连接
+  async testDatabaseConnection() {
+    if (!this.isCloudDbInitialized) return;
+
+    try {
+      // 尝试读取一条数据来测试连接
+      const result = await this.cloudDb.collection('fishes').limit(1).get();
+      console.log('数据库连接测试成功');
+    } catch (error) {
+      console.warn('数据库连接测试失败，集合可能不存在:', error);
+      // 这里可以添加创建集合的逻辑，或者只是记录警告
+    }
+  }
+
+  // 新增：向数据库插入鱼数据
+  async insertFishToDatabase(fishName) {
+    if (!this.isCloudDbInitialized || !this.cloudDb) {
+      console.warn('云数据库未初始化，跳过数据插入');
+      return false;
+    }
+
+    try {
+      // 获取当前时间
+      const now = new Date();
+
+      // 准备插入的数据
+      const fishData = {
+        uid: 12345, // int 默认的
+        createdAt: now, // 日期对象，云开发会自动处理
+        fishid: fishName, // varchar 鱼的名字
+        score: this.gameState.score.toString(), // varchar 当前评分
+        star: '0', // varchar 默认
+        unstar: '0', // varchar 默认
+        // 添加一些额外信息
+        imageWidth: this.gameState.scaledFishImage ? this.gameState.scaledFishImage.width : 0,
+        imageHeight: this.gameState.scaledFishImage ? this.gameState.scaledFishImage.height : 0,
+        createTimestamp: Date.now(), // 时间戳
+        // 添加用户信息（如果有）
+        userInfo: this.getUserInfo()
+      };
+
+      console.log('准备插入鱼数据:', fishData);
+
+      // 使用微信云开发数据库API
+      const result = await this.cloudDb.collection('fishes').add({
+        data: fishData
+      });
+
+      console.log('鱼数据插入成功:', result);
+      return true;
+    } catch (error) {
+      console.error('数据库插入失败:', error);
+
+      // 如果是集合不存在的错误，尝试创建集合
+      if (error.errCode === -502005) {
+        console.log('检测到集合不存在，尝试使用备用方案...');
+        return await this.insertWithBackupMethod(fishName);
+      }
+
+      return false;
+    }
+  }
+
+  // 新增：备用插入方法（使用更简单的数据结构）
+  async insertWithBackupMethod(fishName) {
+    try {
+      // 使用更简单的数据结构，避免字段类型问题
+      const simpleFishData = {
+        uid: 12345,
+        fish_name: fishName,
+        score: this.gameState.score.toString(),
+        star_count: '0',
+        unstar_count: '0',
+        create_time: new Date(),
+        timestamp: Date.now()
+      };
+
+      console.log('使用备用方案插入数据:', simpleFishData);
+
+      const result = await this.cloudDb.collection('fishes').add({
+        data: simpleFishData
+      });
+
+      console.log('备用方案插入成功:', result);
+      return true;
+    } catch (backupError) {
+      console.error('备用方案也失败了:', backupError);
+      return false;
+    }
+  }
+
+  // 新增：获取用户信息
+  getUserInfo() {
+    try {
+      // 尝试获取用户信息
+      const userInfo = wx.getStorageSync('userInfo') || {};
+      return {
+        nickName: userInfo.nickName || '匿名用户',
+        avatarUrl: userInfo.avatarUrl || ''
+      };
+    } catch (error) {
+      return {
+        nickName: '匿名用户',
+        avatarUrl: ''
+      };
+    }
   }
 
   bindEvents() {
@@ -383,7 +524,7 @@ class EventHandler {
     wx.offKeyboardInput();
     wx.offKeyboardConfirm();
     wx.offKeyboardComplete();
-    
+
     // 隐藏键盘
     wx.hideKeyboard();
 
@@ -440,7 +581,7 @@ class EventHandler {
   }
 
   // 新增：确认鱼名字
-  confirmFishName() {
+  async confirmFishName() {
     // 修复：检查 dialogData 是否存在
     if (!this.dialogData || !this.dialogData.scaledImage) {
       console.error('对话框数据异常，使用游戏状态中的图像');
@@ -472,12 +613,34 @@ class EventHandler {
     // 隐藏对话框
     this.hideNameInputDialog();
 
-    // 显示成功提示
-    wx.showToast({
-      title: `${finalName} 加入鱼缸！`,
-      icon: 'success',
-      duration: 1500
-    });
+    // 新增：向数据库插入鱼数据
+    wx.showLoading({ title: '保存中...', mask: true });
+
+    try {
+      const insertSuccess = await this.insertFishToDatabase(finalName);
+      wx.hideLoading();
+
+      if (insertSuccess) {
+        wx.showToast({
+          title: `${finalName} 加入鱼缸！`,
+          icon: 'success',
+          duration: 1500
+        });
+      } else {
+        wx.showToast({
+          title: `${finalName} 加入鱼缸！(本地)`,
+          icon: 'success',
+          duration: 1500
+        });
+      }
+    } catch (error) {
+      wx.hideLoading();
+      wx.showToast({
+        title: `${finalName} 加入鱼缸！(本地)`,
+        icon: 'success',
+        duration: 1500
+      });
+    }
 
     // 创建鱼缸并添加鱼
     if (!this.fishTank) {

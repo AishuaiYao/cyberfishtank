@@ -60,175 +60,41 @@ canvasGetImageData
 在名字为“🚀 让它游起来！”的button对应的现有事件后面增加新事件，新事件为弹出新界面，新界面背景整体为水蓝色
 
 
-const FISH_CONFIG = {
-  width: 80,
-  height: 48,
-  speed: 2,
-  amplitude: 24,
-  peduncle: 0.4
-};
-
-class Fish {
-  constructor(image, x, y, direction = 1) {
-    this.image = image;
-    this.x = x;
-    this.y = y;
-    this.direction = direction;
-    this.phase = Math.random() * Math.PI * 2;
-    this.amplitude = FISH_CONFIG.amplitude;
-    this.speed = FISH_CONFIG.speed;
-    this.vx = this.speed * this.direction * 0.1;
-    this.vy = (Math.random() - 0.5) * 0.5;
-    this.width = FISH_CONFIG.width;
-    this.height = FISH_CONFIG.height;
-    this.peduncle = FISH_CONFIG.peduncle;
-    this.tailEnd = Math.floor(this.width * this.peduncle);
-  }
-
-  update(canvasWidth, canvasHeight) {
-    this.x += this.vx;
-    this.y += this.vy;
-
-    if (this.x <= 0) {
-      this.x = 0;
-      this.direction = 1;
-      this.vx = Math.abs(this.vx);
-    } else if (this.x >= canvasWidth - this.width) {
-      this.x = canvasWidth - this.width;
-      this.direction = -1;
-      this.vx = -Math.abs(this.vx);
-    }
-
-    if (this.y <= 0) {
-      this.y = 0;
-      this.vy = Math.abs(this.vy) * 0.5;
-    } else if (this.y >= canvasHeight - this.height) {
-      this.y = canvasHeight - this.height;
-      this.vy = -Math.abs(this.vy) * 0.5;
-    }
-
-    this.vx *= 0.85;
-    this.vy *= 0.85;
-
-    if (Math.abs(this.vx) < 0.1) {
-      this.vx = this.speed * this.direction * 0.1;
-    }
-  }
-
-  draw(ctx, time) {
-    const swimY = this.y + Math.sin(time + this.phase) * this.amplitude;
-    this.drawWigglingFish(ctx, this.x, swimY, this.direction, time);
-  }
-
-  drawWigglingFish(ctx, x, y, direction, time) {
-    const w = this.width;
-    const h = this.height;
-
-    for (let i = 0; i < w; i++) {
-      let isTail, t, wiggle, drawCol, drawX;
-
-      if (direction === 1) {
-        isTail = i < this.tailEnd;
-        t = isTail ? (this.tailEnd - i - 1) / (this.tailEnd - 1) : 0;
-        wiggle = isTail ? Math.sin(time * 3 + this.phase + t * 2) * t * 12 : 0;
-        drawCol = i;
-        drawX = x + i + wiggle;
-      } else {
-        isTail = i >= w - this.tailEnd;
-        t = isTail ? (i - (w - this.tailEnd)) / (this.tailEnd - 1) : 0;
-        wiggle = isTail ? Math.sin(time * 3 + this.phase + t * 2) * t * 12 : 0;
-        drawCol = w - i - 1;
-        drawX = x + i - wiggle;
-      }
-
-      ctx.save();
-      ctx.translate(drawX, y);
-      ctx.drawImage(this.image, drawCol, 0, 2, h, 0, 0, 2, h);
-      ctx.restore();
-    }
-  }
-}
-
-class FishTank {
-  constructor() {
-    this.fishes = [];
-    this.canvas = null;
-    this.ctx = null;
-    this.fishImage = null;
-  }
-
-  init() {
-    this.canvas = wx.createCanvas();
-    this.ctx = this.canvas.getContext('2d');
-    this.loadFishImage();
-  }
-
-  loadFishImage() {
-    this.fishImage = wx.createImage();
-    this.fishImage.src = 'images/test.png';
-
-    this.fishImage.onload = () => {
-      this.createFishes(5);
-      this.startAnimation();
-    };
-
-    this.fishImage.onerror = () => {
-      this.createFishes(3);
-      this.startAnimation();
-    };
-  }
-
-  createFishes(count) {
-    for (let i = 0; i < count; i++) {
-      this.createFish();
-    }
-  }
-
-  createFish() {
-    const maxX = Math.max(0, this.canvas.width - FISH_CONFIG.width);
-    const maxY = Math.max(0, this.canvas.height - FISH_CONFIG.height);
-    const x = Math.floor(Math.random() * maxX);
-    const y = Math.floor(Math.random() * maxY);
-    const direction = Math.random() < 0.5 ? -1 : 1;
-
-    const fish = new Fish(this.fishImage, x, y, direction);
-    this.fishes.push(fish);
-  }
-
-  startAnimation() {
-    const animate = (timestamp) => {
-      this.update();
-      this.render();
-      requestAnimationFrame(animate);
-    };
-    requestAnimationFrame(animate);
-  }
-
-  update() {
-    const time = Date.now() / 500;
-    this.fishes.forEach(fish => {
-      fish.update(this.canvas.width, this.canvas.height);
-    });
-  }
-
-  render() {
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.ctx.fillStyle = '#87CEEB';
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-
-    const time = Date.now() / 500;
-    this.fishes.forEach(fish => {
-      fish.draw(this.ctx, time);
-    });
-  }
-}
-
-const fishTank = new FishTank();
-fishTank.init();
 
 
+初始化 SDK
+通过 npm 引入
+微信开发者工具使用 npm 指引
 
+在小程序 package.json 所在的目录（一般是 miniprogram 目录）执行命令安装 npm 包：
 
+npm install @cloudbase/wx-cloud-client-sdk --save
+然后点击微信开发者工具工具栏上的“工具” -> “构建 npm”。
+
+在 app.js 中加入如下代码：
+
+const { init } = require("@cloudbase/wx-cloud-client-sdk");
+
+// 指定云开发环境 ID
+wx.cloud.init({
+  env: "cloud1-8gy356s2a34a0890", // 当前的云开发环境 ID
+});
+
+const client = init(wx.cloud);
+const db = client.mysql();
+创建单条数据
+const { data, error } = await db.from('fishes')
+  .insert({
+      uid: 12345, // int
+      createdAt: '2024-01-01 12:00:00', // timestamp
+      fishid: '示例字符串', // varchar
+      score: '示例字符串', // varchar
+      star: '示例字符串', // varchar
+      unstar: '示例字符串', // varchar
+    })
+  .select(); // 注意：仅当表中只有一个主键，且该主键为自增类型时，".select()" 方法才会返回插入的行
+
+console.log(data, error)
 
 
 
