@@ -412,43 +412,74 @@ class UIManager {
     }
   }
 
-  // 新增：绘制鱼详情界面
+  // 修改：绘制鱼详情界面 - 优化显示效果
   drawFishDetailInterface() {
     const ctx = this.ctx;
     const fishData = this.eventHandler.selectedFishData.fishData;
 
-    // 绘制半透明背景遮罩
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    // 修改：先绘制鱼缸背景，再添加半透明遮罩
+    this.drawFishTankInterface(this.eventHandler.swimInterfaceData);
+
+    // 修改：使用更浅的半透明遮罩，让鱼缸背景可见
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
     ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
 
-    const detailWidth = config.screenWidth - 80;
-    const detailHeight = 400;
-    const detailX = 40;
+    const detailWidth = config.screenWidth - 60; // 稍微加宽对话框
+    const detailHeight = 380; // 调整高度
+    const detailX = 30;
     const detailY = (config.screenHeight - detailHeight) / 2;
 
-    // 绘制详情卡片
+    // 绘制详情卡片 - 添加阴影效果
+    ctx.shadowColor = 'rgba(0,0,0,0.2)';
+    ctx.shadowBlur = 20;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 5;
+
     this.drawCard(detailX, detailY, detailWidth, detailHeight);
+
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
 
     // 绘制关闭按钮（右上角X）
     ctx.fillStyle = config.lightTextColor;
-    ctx.font = '20px Arial';
+    ctx.font = '24px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('×', detailX + detailWidth - 25, detailY + 25);
+    ctx.fillText('×', detailX + detailWidth - 25, detailY + 30);
 
-    // 绘制鱼图片
+    // 修改：绘制鱼图片 - 等比例缩放到距离边界5像素
     const fishImage = this.eventHandler.selectedFishData.fish.image;
-    const imageWidth = Math.min(fishImage.width, detailWidth - 60);
-    const imageHeight = Math.min(fishImage.height, 150);
+    const maxImageWidth = detailWidth - 10; // 左右各5像素 = 10像素
+    const maxImageHeight = 180; // 限制最大高度
+
+    // 计算等比例缩放尺寸
+    let imageWidth = fishImage.width;
+    let imageHeight = fishImage.height;
+
+    if (imageWidth > maxImageWidth) {
+      const scale = maxImageWidth / imageWidth;
+      imageWidth = maxImageWidth;
+      imageHeight = imageHeight * scale;
+    }
+
+    if (imageHeight > maxImageHeight) {
+      const scale = maxImageHeight / imageHeight;
+      imageHeight = maxImageHeight;
+      imageWidth = imageWidth * scale;
+    }
+
     const imageX = detailX + (detailWidth - imageWidth) / 2;
     const imageY = detailY + 50;
 
     ctx.drawImage(fishImage, imageX, imageY, imageWidth, imageHeight);
 
+    // 修改：调整文本位置，使其更紧凑
+    const textStartY = imageY + imageHeight + 20;
+
     // 绘制鱼名字
     ctx.fillStyle = config.textColor;
     ctx.font = 'bold 18px -apple-system';
     ctx.textAlign = 'center';
-    ctx.fillText(fishData.fishName || '未命名', detailX + detailWidth / 2, imageY + imageHeight + 30);
+    ctx.fillText(fishData.fishName || '未命名', detailX + detailWidth / 2, textStartY);
 
     // 绘制创作时间
     ctx.fillStyle = config.lightTextColor;
@@ -458,24 +489,24 @@ class UIManager {
       const date = new Date(fishData.createdAt);
       createTime = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
     }
-    ctx.fillText(`创作时间: ${createTime}`, detailX + detailWidth / 2, imageY + imageHeight + 55);
+    ctx.fillText(`创作时间: ${createTime}`, detailX + detailWidth / 2, textStartY + 25);
 
-    // 绘制评分
+    // 修改：绘制评分 - 调整位置使其更紧凑
     ctx.fillStyle = config.primaryColor;
     ctx.font = 'bold 16px -apple-system';
     const score = fishData.score || 0;
-    ctx.fillText(`评分: ${score}`, detailX + detailWidth / 2, imageY + imageHeight + 80);
+    ctx.fillText(`评分: ${score}`, detailX + detailWidth / 2, textStartY + 50);
 
-    // 绘制点赞和点踩按钮
+    // 修改：绘制点赞和点踩按钮 - 调整位置使其紧挨着评分
     const buttonWidth = (detailWidth - 60) / 2;
-    const buttonY = detailY + detailHeight - 60;
+    const buttonY = textStartY + 75; // 紧挨着评分下方
 
     // 点赞按钮
     this.drawModernButton(
       detailX + 20,
       buttonY,
       buttonWidth,
-      40,
+      36, // 稍微减小按钮高度
       `👍 ${fishData.star || 0}`,
       false,
       false
@@ -486,7 +517,7 @@ class UIManager {
       detailX + buttonWidth + 40,
       buttonY,
       buttonWidth,
-      40,
+      36, // 稍微减小按钮高度
       `👎 ${fishData.unstar || 0}`,
       false,
       false
