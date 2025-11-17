@@ -390,7 +390,7 @@ class UIManager {
     ctx.fillStyle = config.textColor;
     ctx.font = 'bold 20px -apple-system';
     ctx.textAlign = 'center';
-    ctx.fillText('公共鱼缸', config.screenWidth / 2, 100);
+    ctx.fillText('赛博鱼缸', config.screenWidth / 2, 100);
 
     // 绘制鱼的数量
     ctx.fillStyle = config.lightTextColor;
@@ -410,6 +410,89 @@ class UIManager {
       ctx.fillText('鱼缸空空如也，快去画一条鱼吧！', config.screenWidth / 2, config.screenHeight / 2);
       ctx.textAlign = 'left';
     }
+  }
+
+  // 新增：绘制鱼详情界面
+  drawFishDetailInterface() {
+    const ctx = this.ctx;
+    const fishData = this.eventHandler.selectedFishData.fishData;
+
+    // 绘制半透明背景遮罩
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
+
+    const detailWidth = config.screenWidth - 80;
+    const detailHeight = 400;
+    const detailX = 40;
+    const detailY = (config.screenHeight - detailHeight) / 2;
+
+    // 绘制详情卡片
+    this.drawCard(detailX, detailY, detailWidth, detailHeight);
+
+    // 绘制关闭按钮（右上角X）
+    ctx.fillStyle = config.lightTextColor;
+    ctx.font = '20px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('×', detailX + detailWidth - 25, detailY + 25);
+
+    // 绘制鱼图片
+    const fishImage = this.eventHandler.selectedFishData.fish.image;
+    const imageWidth = Math.min(fishImage.width, detailWidth - 60);
+    const imageHeight = Math.min(fishImage.height, 150);
+    const imageX = detailX + (detailWidth - imageWidth) / 2;
+    const imageY = detailY + 50;
+
+    ctx.drawImage(fishImage, imageX, imageY, imageWidth, imageHeight);
+
+    // 绘制鱼名字
+    ctx.fillStyle = config.textColor;
+    ctx.font = 'bold 18px -apple-system';
+    ctx.textAlign = 'center';
+    ctx.fillText(fishData.fishName || '未命名', detailX + detailWidth / 2, imageY + imageHeight + 30);
+
+    // 绘制创作时间
+    ctx.fillStyle = config.lightTextColor;
+    ctx.font = '14px -apple-system';
+    let createTime = '未知时间';
+    if (fishData.createdAt) {
+      const date = new Date(fishData.createdAt);
+      createTime = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+    }
+    ctx.fillText(`创作时间: ${createTime}`, detailX + detailWidth / 2, imageY + imageHeight + 55);
+
+    // 绘制评分
+    ctx.fillStyle = config.primaryColor;
+    ctx.font = 'bold 16px -apple-system';
+    const score = fishData.score || 0;
+    ctx.fillText(`评分: ${score}`, detailX + detailWidth / 2, imageY + imageHeight + 80);
+
+    // 绘制点赞和点踩按钮
+    const buttonWidth = (detailWidth - 60) / 2;
+    const buttonY = detailY + detailHeight - 60;
+
+    // 点赞按钮
+    this.drawModernButton(
+      detailX + 20,
+      buttonY,
+      buttonWidth,
+      40,
+      `👍 ${fishData.star || 0}`,
+      false,
+      false
+    );
+
+    // 点踩按钮
+    this.drawModernButton(
+      detailX + buttonWidth + 40,
+      buttonY,
+      buttonWidth,
+      40,
+      `👎 ${fishData.unstar || 0}`,
+      false,
+      false
+    );
+
+    ctx.textAlign = 'left';
   }
 
   // 绘制命名对话框
@@ -498,6 +581,12 @@ class UIManager {
 
   // 绘制完整UI
   drawGameUI(gameState) {
+    // 新增：检查是否显示鱼详情界面
+    if (this.eventHandler && this.eventHandler.isFishDetailVisible) {
+      this.drawFishDetailInterface();
+      return;
+    }
+
     // 新增：检查是否显示命名对话框
     if (this.eventHandler && this.eventHandler.isDialogVisible) {
       this.drawNameInputDialog(this.eventHandler);
