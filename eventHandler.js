@@ -19,6 +19,11 @@ class EventHandler {
     this.isSwimInterfaceVisible = false;
     this.swimInterfaceData = null;
 
+    // 新增：排行榜界面状态
+    this.isRankingInterfaceVisible = false;
+    this.rankingData = null;
+    this.isLoadingRanking = false;
+
     // 新增：鱼缸实例和动画相关
     this.fishTank = null;
     this.animationId = null;
@@ -144,7 +149,214 @@ class EventHandler {
     }
   }
 
-  // 新增：将base64数据转换为canvas图像
+  // 新增：获取排行榜数据
+async getRankingData(limit = 20) {
+  if (!this.isCloudDbInitialized || !this.cloudDb) {
+    console.warn('云数据库未初始化，无法获取排行榜数据');
+    return [];
+  }
+
+  try {
+    console.log('开始获取排行榜数据...');
+
+    // 按score字段降序排列，获取前limit条数据
+    const result = await this.cloudDb.collection('fishes')
+      .orderBy('score', 'desc')
+      .limit(limit)
+      .field({
+        fishName: true,
+        createdAt: true,
+        score: true,
+        star: true,
+        unstar: true,
+        base64: true,
+        fishid: true,
+        _id: true
+      })
+      .get();
+
+    console.log(`成功获取 ${result.data.length} 条排行榜数据`);
+
+    // 过滤掉没有base64数据的记录
+    const validRankingData = result.data.filter(fish =>
+      fish.base64 && fish.base64.length > 0
+    );
+
+    console.log(`其中 ${validRankingData.length} 条有有效的base64数据`);
+
+    // 为每条鱼数据创建图像
+    const rankingFishes = [];
+    for (const fishData of validRankingData) {
+      try {
+        const fishImage = await this.base64ToCanvas(fishData.base64);
+        rankingFishes.push({
+          fishData: fishData,
+          fishImage: fishImage
+        });
+      } catch (error) {
+        console.warn('创建排行榜鱼图像失败:', error);
+      }
+    }
+
+    console.log(`成功创建 ${rankingFishes.length} 条排行榜鱼的图像`);
+    return rankingFishes;
+  } catch (error) {
+    console.error('获取排行榜数据失败:', error);
+    return [];
+  }
+}
+
+// 修改：显示排行榜界面
+async showRankingInterface() {
+  this.isRankingInterfaceVisible = true;
+  this.isLoadingRanking = true;
+
+  // 重绘UI显示加载状态
+  this.uiManager.drawGameUI(this.gameState);
+
+  try {
+    console.log('加载排行榜数据...');
+
+    // 获取排行榜数据（包含图像）
+    const rankingFishes = await this.getRankingData(20);
+
+    this.rankingData = {
+      fishes: rankingFishes,
+      lastUpdate: new Date()
+    };
+
+    console.log(`排行榜数据加载完成，共 ${rankingFishes.length} 条数据`);
+
+  } catch (error) {
+    console.error('加载排行榜数据失败:', error);
+    this.rankingData = {
+      fishes: [],
+      lastUpdate: new Date()
+    };
+  } finally {
+    this.isLoadingRanking = false;
+    // 重绘UI显示排行榜
+    this.uiManager.drawGameUI(this.gameState);
+  }
+}
+
+  // 新增：隐藏排行榜界面
+  hideRankingInterface() {
+    this.isRankingInterfaceVisible = false;
+    this.rankingData = null;
+    this.uiManager.drawGameUI(this.gameState);
+  }
+
+  // 新增：处理排行榜界面的触摸事件
+  handleRankingInterfaceTouch(e) {
+    const touch = e.touches[0];
+    const x = touch.clientX;
+    const y = touch.clientY;
+
+    // 检查是否点击了返回按钮区域（左上角：20,40 宽50高30）
+    if (x >= 20 && x <= 70 && // 20 + 50 = 70
+        y >= 40 && y <= 70) { // 40 + 30 = 70
+      this.hideRankingInterface();
+      return;
+    }
+
+    // 检查是否点击了刷新按钮区域（右上角）
+    const refreshButtonX = config.screenWidth - 70;
+    const refreshButtonY = 40;
+    const refreshButtonWidth = 50;
+    const refreshButtonHeight = 30;
+
+    if (x >= refreshButtonX && x <= refreshButtonX + refreshButtonWidth &&
+        y >= refreshButtonY && y <= refreshButtonY + refreshButtonHeight) {
+      this.showRankingInterface(); // 重新加载数据
+      return;
+    }
+
+    // 检查是否点击了鱼卡片
+    if (this.rankingData && this.rankingData.fishes.length > 0) {
+      const cardWidth = (config.screenWidth - 60) / 2; // 两列布局
+      const cardHeight = 120;
+      const startY = 150; // 标题下方开始位置
+
+      for (let i = 0; i < this.rankingData.fishes.length; i++) {
+        const fish = this.rankingData.fishes[i];
+        const row = Math.floor(i / 2);
+        const col = i % 2;
+
+        const cardX = 20 + col * (cardWidth + 20);
+        const cardY = startY + row * (cardHeight + 15);
+
+        if (x >= cardX && x <= cardX + cardWidth &&
+            y >= cardY && y <= cardY + cardHeight) {
+          console.log('点击了排行榜中的鱼:', fish.fishName);
+          // 这里可以添加点击卡片后的操作，比如显示详情
+          break;
+        }
+      }
+    }
+  }
+
+  // 修改：处理跳转按钮点击
+  handleJumpAction(buttonIndex) {
+    switch (buttonIndex) {
+      case 0: // 鱼缸
+        this.handleFishTank();
+        break;
+      case 1: // 让它游起来！
+        this.handleMakeItSwim();
+        break;
+      case 2: // 排行榜
+        this.handleRanking();
+        break;
+    }
+  }
+
+  // 新增：处理排行榜按钮点击
+  async handleRanking() {
+    await this.showRankingInterface();
+  }
+
+  // 修改：处理触摸开始事件 - 添加排行榜界面处理
+  handleTouchStart(e) {
+    // 如果排行榜界面可见，优先处理排行榜界面的点击
+    if (this.isRankingInterfaceVisible) {
+      this.handleRankingInterfaceTouch(e);
+      return;
+    }
+
+    // 如果鱼详情界面可见，优先处理详情界面的点击
+    if (this.isFishDetailVisible) {
+      this.handleFishDetailTouch(e);
+      return;
+    }
+
+    // 如果对话框可见，优先处理对话框的点击
+    if (this.isDialogVisible) {
+      this.handleDialogTouch(e);
+      return;
+    }
+
+    // 如果游泳界面可见，优先处理游泳界面的点击
+    if (this.isSwimInterfaceVisible) {
+      this.handleSwimInterfaceTouch(e);
+      return;
+    }
+
+    const touch = e.touches[0];
+    const x = touch.clientX;
+    const y = touch.clientY;
+
+    if (this.isInDrawingArea(x, y)) {
+      this.startDrawing(x, y);
+    } else {
+      this.handleFunctionAreaClick(x, y);
+    }
+  }
+
+  // 其他现有方法保持不变...
+  // [这里保留所有其他现有方法，包括base64ToCanvas, createFishFromDatabaseData, loadAndShowDatabaseFishes等]
+
+  // 修改：将base64数据转换为canvas图像
   base64ToCanvas(base64Data) {
     return new Promise((resolve, reject) => {
       try {
@@ -328,158 +540,124 @@ class EventHandler {
     this.uiManager.drawGameUI(this.gameState);
   }
 
-// 新增：处理鱼详情界面的触摸事件
-handleFishDetailTouch(e) {
-  const touch = e.touches[0];
-  const x = touch.clientX;
-  const y = touch.clientY;
+  // 新增：处理鱼详情界面的触摸事件
+  handleFishDetailTouch(e) {
+    const touch = e.touches[0];
+    const x = touch.clientX;
+    const y = touch.clientY;
 
-  if (!this.selectedFishData) return;
+    if (!this.selectedFishData) return;
 
-  const detailWidth = config.screenWidth - 60; // 与UI中保持一致
-  const detailHeight = 380; // 与UI中保持一致
-  const detailX = 30;
-  const detailY = (config.screenHeight - detailHeight) / 2;
+    const detailWidth = config.screenWidth - 60; // 与UI中保持一致
+    const detailHeight = 380; // 与UI中保持一致
+    const detailX = 30;
+    const detailY = (config.screenHeight - detailHeight) / 2;
 
-  // 检查关闭按钮点击（右上角X）
-  const closeButtonSize = 30;
-  const closeButtonX = detailX + detailWidth - closeButtonSize - 15; // 调整位置
-  const closeButtonY = detailY + 10;
+    // 检查关闭按钮点击（右上角X）
+    const closeButtonSize = 30;
+    const closeButtonX = detailX + detailWidth - closeButtonSize - 15; // 调整位置
+    const closeButtonY = detailY + 10;
 
-  if (x >= closeButtonX && x <= closeButtonX + closeButtonSize &&
-      y >= closeButtonY && y <= closeButtonY + closeButtonSize) {
+    if (x >= closeButtonX && x <= closeButtonX + closeButtonSize &&
+        y >= closeButtonY && y <= closeButtonY + closeButtonSize) {
+      this.hideFishDetail();
+      return;
+    }
+
+    // 计算文本起始位置（与UI中保持一致）
+    const fishImage = this.selectedFishData.fish.image;
+    const maxImageWidth = detailWidth - 10;
+    const maxImageHeight = 180;
+
+    let imageWidth = fishImage.width;
+    let imageHeight = fishImage.height;
+
+    if (imageWidth > maxImageWidth) {
+      const scale = maxImageWidth / imageWidth;
+      imageWidth = maxImageWidth;
+      imageHeight = imageHeight * scale;
+    }
+
+    if (imageHeight > maxImageHeight) {
+      const scale = maxImageHeight / imageHeight;
+      imageHeight = maxImageHeight;
+      imageWidth = imageWidth * scale;
+    }
+
+    const imageX = detailX + (detailWidth - imageWidth) / 2;
+    const imageY = detailY + 50;
+    const textStartY = imageY + imageHeight + 20;
+
+    // 检查点赞按钮点击
+    const buttonWidth = (detailWidth - 60) / 2;
+    const buttonY = textStartY + 75; // 与UI中保持一致
+    const buttonHeight = 36; // 与UI中保持一致
+
+    const likeButtonX = detailX + 20;
+    const likeButtonY = buttonY;
+
+    if (x >= likeButtonX && x <= likeButtonX + buttonWidth &&
+        y >= likeButtonY && y <= likeButtonY + buttonHeight) {
+      this.handleLikeAction();
+      return;
+    }
+
+    // 检查点踩按钮点击
+    const dislikeButtonX = detailX + buttonWidth + 40;
+    const dislikeButtonY = buttonY;
+
+    if (x >= dislikeButtonX && x <= dislikeButtonX + buttonWidth &&
+        y >= dislikeButtonY && y <= dislikeButtonY + buttonHeight) {
+      this.handleDislikeAction();
+      return;
+    }
+
+    // 如果点击了对话框其他区域，不执行任何操作（保持对话框打开）
+    if (x >= detailX && x <= detailX + detailWidth &&
+        y >= detailY && y <= detailY + detailHeight) {
+      return;
+    }
+
+    // 点击对话框外部区域，关闭对话框
     this.hideFishDetail();
-    return;
   }
 
-  // 计算文本起始位置（与UI中保持一致）
-  const fishImage = this.selectedFishData.fish.image;
-  const maxImageWidth = detailWidth - 10;
-  const maxImageHeight = 180;
+  // 修改：处理点赞动作 - 移除提示弹窗
+  async handleLikeAction() {
+    if (!this.selectedFishData) return;
 
-  let imageWidth = fishImage.width;
-  let imageHeight = fishImage.height;
+    const fishData = this.selectedFishData.fishData;
+    if (!fishData._id) {
+      console.warn('鱼数据没有ID，无法更新');
+      return;
+    }
 
-  if (imageWidth > maxImageWidth) {
-    const scale = maxImageWidth / imageWidth;
-    imageWidth = maxImageWidth;
-    imageHeight = imageHeight * scale;
+    // 更新本地数据
+    const newStarCount = (fishData.star || 0) + 1;
+    const newScore = newStarCount - (fishData.unstar || 0);
+
+    fishData.star = newStarCount;
+    fishData.score = newScore;
+
+    // 更新数据库
+    const updateSuccess = await this.updateFishScore(
+      fishData._id,
+      newScore,
+      newStarCount,
+      fishData.unstar || 0
+    );
+
+    if (updateSuccess) {
+      console.log('点赞成功');
+    } else {
+      console.warn('点赞失败，但已更新本地数据');
+    }
+
+    // 重绘UI以更新显示
+    this.uiManager.drawGameUI(this.gameState);
   }
 
-  if (imageHeight > maxImageHeight) {
-    const scale = maxImageHeight / imageHeight;
-    imageHeight = maxImageHeight;
-    imageWidth = imageWidth * scale;
-  }
-
-  const imageX = detailX + (detailWidth - imageWidth) / 2;
-  const imageY = detailY + 50;
-  const textStartY = imageY + imageHeight + 20;
-
-  // 检查点赞按钮点击
-  const buttonWidth = (detailWidth - 60) / 2;
-  const buttonY = textStartY + 75; // 与UI中保持一致
-  const buttonHeight = 36; // 与UI中保持一致
-
-  const likeButtonX = detailX + 20;
-  const likeButtonY = buttonY;
-
-  if (x >= likeButtonX && x <= likeButtonX + buttonWidth &&
-      y >= likeButtonY && y <= likeButtonY + buttonHeight) {
-    this.handleLikeAction();
-    return;
-  }
-
-  // 检查点踩按钮点击
-  const dislikeButtonX = detailX + buttonWidth + 40;
-  const dislikeButtonY = buttonY;
-
-  if (x >= dislikeButtonX && x <= dislikeButtonX + buttonWidth &&
-      y >= dislikeButtonY && y <= dislikeButtonY + buttonHeight) {
-    this.handleDislikeAction();
-    return;
-  }
-
-  // 如果点击了对话框其他区域，不执行任何操作（保持对话框打开）
-  if (x >= detailX && x <= detailX + detailWidth &&
-      y >= detailY && y <= detailY + detailHeight) {
-    return;
-  }
-
-  // 点击对话框外部区域，关闭对话框
-  this.hideFishDetail();
-}
-
-// 修改：处理点赞动作 - 移除提示弹窗
-async handleLikeAction() {
-  if (!this.selectedFishData) return;
-
-  const fishData = this.selectedFishData.fishData;
-  if (!fishData._id) {
-    console.warn('鱼数据没有ID，无法更新');
-    return;
-  }
-
-  // 更新本地数据
-  const newStarCount = (fishData.star || 0) + 1;
-  const newScore = newStarCount - (fishData.unstar || 0);
-
-  fishData.star = newStarCount;
-  fishData.score = newScore;
-
-  // 更新数据库
-  const updateSuccess = await this.updateFishScore(
-    fishData._id,
-    newScore,
-    newStarCount,
-    fishData.unstar || 0
-  );
-
-  if (updateSuccess) {
-    console.log('点赞成功');
-  } else {
-    console.warn('点赞失败，但已更新本地数据');
-  }
-
-  // 重绘UI以更新显示
-  this.uiManager.drawGameUI(this.gameState);
-}
-
-// 修改：处理点踩动作 - 移除提示弹窗
-async handleDislikeAction() {
-  if (!this.selectedFishData) return;
-
-  const fishData = this.selectedFishData.fishData;
-  if (!fishData._id) {
-    console.warn('鱼数据没有ID，无法更新');
-    return;
-  }
-
-  // 更新本地数据
-  const newUnstarCount = (fishData.unstar || 0) + 1;
-  const newScore = (fishData.star || 0) - newUnstarCount;
-
-  fishData.unstar = newUnstarCount;
-  fishData.score = newScore;
-
-  // 更新数据库
-  const updateSuccess = await this.updateFishScore(
-    fishData._id,
-    newScore,
-    fishData.star || 0,
-    newUnstarCount
-  );
-
-  if (updateSuccess) {
-    console.log('点踩成功');
-  } else {
-    console.warn('点踩失败，但已更新本地数据');
-  }
-
-  // 重绘UI以更新显示
-  this.uiManager.drawGameUI(this.gameState);
-}
-  // 新增：处理点踩动作
+  // 修改：处理点踩动作 - 移除提示弹窗
   async handleDislikeAction() {
     if (!this.selectedFishData) return;
 
@@ -504,6 +682,11 @@ async handleDislikeAction() {
       newUnstarCount
     );
 
+    if (updateSuccess) {
+      console.log('点踩成功');
+    } else {
+      console.warn('点踩失败，但已更新本地数据');
+    }
 
     // 重绘UI以更新显示
     this.uiManager.drawGameUI(this.gameState);
@@ -514,36 +697,6 @@ async handleDislikeAction() {
     wx.onTouchMove((e) => this.handleTouchMove(e));
     wx.onTouchEnd((e) => this.handleTouchEnd(e));
     wx.onTouchCancel((e) => this.handleTouchCancel(e));
-  }
-
-  handleTouchStart(e) {
-    // 如果鱼详情界面可见，优先处理详情界面的点击
-    if (this.isFishDetailVisible) {
-      this.handleFishDetailTouch(e);
-      return;
-    }
-
-    // 如果对话框可见，优先处理对话框的点击
-    if (this.isDialogVisible) {
-      this.handleDialogTouch(e);
-      return;
-    }
-
-    // 如果游泳界面可见，优先处理游泳界面的点击
-    if (this.isSwimInterfaceVisible) {
-      this.handleSwimInterfaceTouch(e);
-      return;
-    }
-
-    const touch = e.touches[0];
-    const x = touch.clientX;
-    const y = touch.clientY;
-
-    if (this.isInDrawingArea(x, y)) {
-      this.startDrawing(x, y);
-    } else {
-      this.handleFunctionAreaClick(x, y);
-    }
   }
 
   handleTouchMove(e) {
@@ -702,20 +855,6 @@ async handleDislikeAction() {
       }
     }
     return false;
-  }
-
-  handleJumpAction(buttonIndex) {
-    switch (buttonIndex) {
-      case 0: // 鱼缸
-        this.handleFishTank();
-        break;
-      case 1: // 让它游起来！
-        this.handleMakeItSwim();
-        break;
-      case 2: // 排行榜
-        wx.showToast({ title: '排行榜功能开发中', icon: 'none' });
-        break;
-    }
   }
 
   // 修改：处理鱼缸功能 - 现在会加载数据库中的鱼

@@ -23,7 +23,18 @@ const config = {
   backgroundColor: '#F8F9FA',
   textColor: '#1D1D1F',
   lightTextColor: '#8E8E93',
-  borderColor: '#E5E5EA'
+  borderColor: '#E5E5EA',
+
+  // 新增：排行榜配置
+  rankingCard: {
+    width: 0, // 动态计算
+    height: 200, // 增加高度以容纳更多内容
+    margin: 20,
+    image: {
+      maxWidth: 0, // 动态计算
+      maxHeight: 80
+    }
+  }
 };
 
 // 计算各区域位置
@@ -42,6 +53,16 @@ function getAreaPositions() {
     jumpAreaY
   };
 }
+
+// 新增：计算排行榜卡片尺寸
+function calculateRankingCardSize() {
+  const cardWidth = (config.screenWidth - 60) / 2;
+  config.rankingCard.width = cardWidth;
+  config.rankingCard.image.maxWidth = cardWidth - 20;
+}
+
+// 初始化计算
+calculateRankingCardSize();
 
 module.exports = {
   config,

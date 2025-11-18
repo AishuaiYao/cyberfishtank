@@ -412,6 +412,223 @@ class UIManager {
     }
   }
 
+  // 新增：绘制排行榜界面
+  drawRankingInterface() {
+    const ctx = this.ctx;
+
+    // 纯白色背景
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
+
+    // 绘制返回按钮
+    this.drawModernButton(
+      20, // 左上角x坐标
+      40, // 左上角y坐标
+      50, // 宽度
+      30, // 高度
+      '返回',
+      false,
+      true // 蓝色按钮
+    );
+
+    // 绘制刷新按钮
+    this.drawModernButton(
+      config.screenWidth - 70, // 右上角x坐标
+      40, // y坐标
+      50, // 宽度
+      30, // 高度
+      '刷新',
+      false,
+      false // 白色按钮
+    );
+
+    // 绘制标题
+    ctx.fillStyle = config.textColor;
+    ctx.font = 'bold 20px -apple-system';
+    ctx.textAlign = 'center';
+    ctx.fillText('排行榜', config.screenWidth / 2, 100);
+
+    // 绘制副标题
+    ctx.fillStyle = config.lightTextColor;
+    ctx.font = '16px -apple-system';
+    ctx.fillText('按评分从高到低排列', config.screenWidth / 2, 130);
+    ctx.textAlign = 'left';
+
+    // 检查是否正在加载
+    if (this.eventHandler.isLoadingRanking) {
+      ctx.fillStyle = config.lightTextColor;
+      ctx.font = '16px -apple-system';
+      ctx.textAlign = 'center';
+      ctx.fillText('加载中...', config.screenWidth / 2, config.screenHeight / 2);
+      ctx.textAlign = 'left';
+      return;
+    }
+
+    // 检查是否有排行榜数据
+    if (!this.eventHandler.rankingData || this.eventHandler.rankingData.fishes.length === 0) {
+      ctx.fillStyle = config.lightTextColor;
+      ctx.font = '16px -apple-system';
+      ctx.textAlign = 'center';
+      ctx.fillText('暂无排行榜数据', config.screenWidth / 2, config.screenHeight / 2);
+      ctx.textAlign = 'left';
+      return;
+    }
+
+    // 绘制排行榜卡片 - 使用与鱼详情相同的样式
+    this.drawRankingCards();
+  }
+
+  // 新增：绘制排行榜卡片 - 与鱼详情对话框相同的UI
+  drawRankingCards() {
+    const ctx = this.ctx;
+    const rankingFishes = this.eventHandler.rankingData.fishes;
+
+    const cardWidth = (config.screenWidth - 60) / 2; // 两列布局
+    const cardHeight = 200; // 增加高度以容纳更多内容
+    const startY = 150; // 标题下方开始位置
+
+    for (let i = 0; i < rankingFishes.length; i++) {
+      const { fishData, fishImage } = rankingFishes[i];
+      const row = Math.floor(i / 2);
+      const col = i % 2;
+
+      const cardX = 20 + col * (cardWidth + 20);
+      const cardY = startY + row * (cardHeight + 15);
+
+      // 绘制卡片背景 - 与鱼详情相同的卡片样式
+      this.drawRankingCard(cardX, cardY, cardWidth, cardHeight, fishData, fishImage, i + 1);
+    }
+  }
+
+  // 新增：绘制单个排行榜卡片 - 复制鱼详情对话框的样式
+  drawRankingCard(x, y, width, height, fishData, fishImage, rank) {
+    const ctx = this.ctx;
+
+    // 绘制卡片背景 - 与鱼详情相同的阴影效果
+    ctx.shadowColor = 'rgba(0,0,0,0.2)';
+    ctx.shadowBlur = 20;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 5;
+
+    this.drawCard(x, y, width, height);
+
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+
+    // 绘制排名徽章
+    this.drawRankBadge(x + 10, y + 10, rank);
+
+    // 绘制鱼图片 - 与鱼详情相同的缩放逻辑
+    const maxImageWidth = width - 20; // 左右各10像素边距
+    const maxImageHeight = 80; // 限制图片高度
+
+    let imageWidth = fishImage.width;
+    let imageHeight = fishImage.height;
+
+    if (imageWidth > maxImageWidth) {
+      const scale = maxImageWidth / imageWidth;
+      imageWidth = maxImageWidth;
+      imageHeight = imageHeight * scale;
+    }
+
+    if (imageHeight > maxImageHeight) {
+      const scale = maxImageHeight / imageHeight;
+      imageHeight = maxImageHeight;
+      imageWidth = imageWidth * scale;
+    }
+
+    const imageX = x + (width - imageWidth) / 2;
+    const imageY = y + 40;
+
+    ctx.drawImage(fishImage.canvas, imageX, imageY, imageWidth, imageHeight);
+
+    // 计算文本起始位置
+    const textStartY = imageY + imageHeight + 15;
+
+    // 绘制鱼名字 - 与鱼详情相同的样式
+    ctx.fillStyle = config.textColor;
+    ctx.font = 'bold 16px -apple-system';
+    ctx.textAlign = 'center';
+    let fishName = fishData.fishName || '未命名';
+    // 截断过长的名字
+    if (fishName.length > 8) {
+      fishName = fishName.substring(0, 8) + '...';
+    }
+    ctx.fillText(fishName, x + width / 2, textStartY);
+
+    // 绘制创作时间 - 与鱼详情相同的样式
+    ctx.fillStyle = config.lightTextColor;
+    ctx.font = '12px -apple-system';
+    let createTime = '未知时间';
+    if (fishData.createdAt) {
+      const date = new Date(fishData.createdAt);
+      createTime = `${date.getMonth() + 1}/${date.getDate()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+    }
+    ctx.fillText(createTime, x + width / 2, textStartY + 20);
+
+    // 绘制评分 - 与鱼详情相同的样式
+    ctx.fillStyle = this.getScoreColor(fishData.score || 0);
+    ctx.font = 'bold 14px -apple-system';
+    const score = fishData.score || 0;
+    ctx.fillText(`评分: ${score}`, x + width / 2, textStartY + 40);
+
+    // 绘制点赞和点踩信息 - 与鱼详情相同的样式但更紧凑
+    const infoStartY = textStartY + 60;
+
+    // 点赞信息
+    ctx.fillStyle = config.lightTextColor;
+    ctx.font = '12px -apple-system';
+    ctx.textAlign = 'left';
+    ctx.fillText(`👍 ${fishData.star || 0}`, x + 15, infoStartY);
+
+    // 点踩信息
+    ctx.textAlign = 'right';
+    ctx.fillText(`👎 ${fishData.unstar || 0}`, x + width - 15, infoStartY);
+
+    ctx.textAlign = 'left';
+  }
+
+  // 新增：绘制排名徽章
+  drawRankBadge(x, y, rank) {
+    const ctx = this.ctx;
+
+    // 前3名使用特殊颜色
+    let badgeColor;
+    if (rank === 1) {
+      badgeColor = '#FFD700'; // 金色
+    } else if (rank === 2) {
+      badgeColor = '#C0C0C0'; // 银色
+    } else if (rank === 3) {
+      badgeColor = '#CD7F32'; // 铜色
+    } else {
+      badgeColor = config.primaryColor; // 蓝色
+    }
+
+    // 绘制徽章背景
+    ctx.fillStyle = badgeColor;
+    ctx.beginPath();
+    ctx.arc(x + 15, y + 15, 15, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 绘制排名数字
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 12px -apple-system';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(rank.toString(), x + 15, y + 15);
+
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+  }
+
+  // 新增：根据评分获取颜色 - 与鱼详情保持一致
+  getScoreColor(score) {
+    if (score >= 80) return '#4CD964'; // 绿色
+    if (score >= 60) return '#FFCC00'; // 黄色
+    if (score >= 40) return '#FF9500'; // 橙色
+    return '#FF3B30'; // 红色
+  }
+
   // 修改：绘制鱼详情界面 - 优化显示效果
   drawFishDetailInterface() {
     const ctx = this.ctx;
@@ -612,6 +829,12 @@ class UIManager {
 
   // 绘制完整UI
   drawGameUI(gameState) {
+    // 新增：检查是否显示排行榜界面
+    if (this.eventHandler && this.eventHandler.isRankingInterfaceVisible) {
+      this.drawRankingInterface();
+      return;
+    }
+
     // 新增：检查是否显示鱼详情界面
     if (this.eventHandler && this.eventHandler.isFishDetailVisible) {
       this.drawFishDetailInterface();
