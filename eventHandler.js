@@ -19,10 +19,14 @@ class EventHandler {
     this.isSwimInterfaceVisible = false;
     this.swimInterfaceData = null;
 
-    // 新增：排行榜界面状态
+    // 修改：排行榜界面状态 - 添加滚动相关状态
     this.isRankingInterfaceVisible = false;
     this.rankingData = null;
     this.isLoadingRanking = false;
+    this.rankingScrollTop = 0; // 新增：滚动位置
+    this.isRankingScrolling = false; // 新增：是否正在滚动
+    this.rankingScrollStartY = 0; // 新增：滚动起始Y坐标
+    this.rankingScrollStartTop = 0; // 新增：滚动起始滚动位置
 
     // 新增：鱼缸实例和动画相关
     this.fishTank = null;
@@ -149,105 +153,107 @@ class EventHandler {
     }
   }
 
-  // 新增：获取排行榜数据
-async getRankingData(limit = 20) {
-  if (!this.isCloudDbInitialized || !this.cloudDb) {
-    console.warn('云数据库未初始化，无法获取排行榜数据');
-    return [];
-  }
-
-  try {
-    console.log('开始获取排行榜数据...');
-
-    // 按score字段降序排列，获取前limit条数据
-    const result = await this.cloudDb.collection('fishes')
-      .orderBy('score', 'desc')
-      .limit(limit)
-      .field({
-        fishName: true,
-        createdAt: true,
-        score: true,
-        star: true,
-        unstar: true,
-        base64: true,
-        fishid: true,
-        _id: true
-      })
-      .get();
-
-    console.log(`成功获取 ${result.data.length} 条排行榜数据`);
-
-    // 过滤掉没有base64数据的记录
-    const validRankingData = result.data.filter(fish =>
-      fish.base64 && fish.base64.length > 0
-    );
-
-    console.log(`其中 ${validRankingData.length} 条有有效的base64数据`);
-
-    // 为每条鱼数据创建图像
-    const rankingFishes = [];
-    for (const fishData of validRankingData) {
-      try {
-        const fishImage = await this.base64ToCanvas(fishData.base64);
-        rankingFishes.push({
-          fishData: fishData,
-          fishImage: fishImage
-        });
-      } catch (error) {
-        console.warn('创建排行榜鱼图像失败:', error);
-      }
+  // 修改：获取排行榜数据 - 限制为top100
+  async getRankingData(limit = config.rankingLimit) {
+    if (!this.isCloudDbInitialized || !this.cloudDb) {
+      console.warn('云数据库未初始化，无法获取排行榜数据');
+      return [];
     }
 
-    console.log(`成功创建 ${rankingFishes.length} 条排行榜鱼的图像`);
-    return rankingFishes;
-  } catch (error) {
-    console.error('获取排行榜数据失败:', error);
-    return [];
+    try {
+      console.log(`开始获取排行榜数据，限制 ${limit} 条...`);
+
+      // 按score字段降序排列，获取前limit条数据
+      const result = await this.cloudDb.collection('fishes')
+        .orderBy('score', 'desc')
+        .limit(limit)
+        .field({
+          fishName: true,
+          createdAt: true,
+          score: true,
+          star: true,
+          unstar: true,
+          base64: true,
+          fishid: true,
+          _id: true
+        })
+        .get();
+
+      console.log(`成功获取 ${result.data.length} 条排行榜数据`);
+
+      // 过滤掉没有base64数据的记录
+      const validRankingData = result.data.filter(fish =>
+        fish.base64 && fish.base64.length > 0
+      );
+
+      console.log(`其中 ${validRankingData.length} 条有有效的base64数据`);
+
+      // 为每条鱼数据创建图像
+      const rankingFishes = [];
+      for (const fishData of validRankingData) {
+        try {
+          const fishImage = await this.base64ToCanvas(fishData.base64);
+          rankingFishes.push({
+            fishData: fishData,
+            fishImage: fishImage
+          });
+        } catch (error) {
+          console.warn('创建排行榜鱼图像失败:', error);
+        }
+      }
+
+      console.log(`成功创建 ${rankingFishes.length} 条排行榜鱼的图像`);
+      return rankingFishes;
+    } catch (error) {
+      console.error('获取排行榜数据失败:', error);
+      return [];
+    }
   }
-}
 
-// 修改：显示排行榜界面
-async showRankingInterface() {
-  this.isRankingInterfaceVisible = true;
-  this.isLoadingRanking = true;
+  // 修改：显示排行榜界面 - 重置滚动位置
+  async showRankingInterface() {
+    this.isRankingInterfaceVisible = true;
+    this.isLoadingRanking = true;
+    this.rankingScrollTop = 0; // 重置滚动位置
 
-  // 重绘UI显示加载状态
-  this.uiManager.drawGameUI(this.gameState);
-
-  try {
-    console.log('加载排行榜数据...');
-
-    // 获取排行榜数据（包含图像）
-    const rankingFishes = await this.getRankingData(20);
-
-    this.rankingData = {
-      fishes: rankingFishes,
-      lastUpdate: new Date()
-    };
-
-    console.log(`排行榜数据加载完成，共 ${rankingFishes.length} 条数据`);
-
-  } catch (error) {
-    console.error('加载排行榜数据失败:', error);
-    this.rankingData = {
-      fishes: [],
-      lastUpdate: new Date()
-    };
-  } finally {
-    this.isLoadingRanking = false;
-    // 重绘UI显示排行榜
+    // 重绘UI显示加载状态
     this.uiManager.drawGameUI(this.gameState);
+
+    try {
+      console.log('加载排行榜数据...');
+
+      // 获取排行榜数据（包含图像）
+      const rankingFishes = await this.getRankingData(config.rankingLimit);
+
+      this.rankingData = {
+        fishes: rankingFishes,
+        lastUpdate: new Date()
+      };
+
+      console.log(`排行榜数据加载完成，共 ${rankingFishes.length} 条数据`);
+
+    } catch (error) {
+      console.error('加载排行榜数据失败:', error);
+      this.rankingData = {
+        fishes: [],
+        lastUpdate: new Date()
+      };
+    } finally {
+      this.isLoadingRanking = false;
+      // 重绘UI显示排行榜
+      this.uiManager.drawGameUI(this.gameState);
+    }
   }
-}
 
   // 新增：隐藏排行榜界面
   hideRankingInterface() {
     this.isRankingInterfaceVisible = false;
     this.rankingData = null;
+    this.rankingScrollTop = 0; // 重置滚动位置
     this.uiManager.drawGameUI(this.gameState);
   }
 
-  // 新增：处理排行榜界面的触摸事件
+  // 修改：处理排行榜界面的触摸事件 - 添加滚动处理
   handleRankingInterfaceTouch(e) {
     const touch = e.touches[0];
     const x = touch.clientX;
@@ -272,11 +278,11 @@ async showRankingInterface() {
       return;
     }
 
-    // 检查是否点击了鱼卡片
+    // 检查是否点击了鱼卡片（考虑滚动偏移）
     if (this.rankingData && this.rankingData.fishes.length > 0) {
       const cardWidth = (config.screenWidth - 60) / 2; // 两列布局
-      const cardHeight = 120;
-      const startY = 150; // 标题下方开始位置
+      const cardHeight = 200;
+      const startY = config.rankingCard.scrollView.top - this.rankingScrollTop;
 
       for (let i = 0; i < this.rankingData.fishes.length; i++) {
         const fish = this.rankingData.fishes[i];
@@ -286,9 +292,12 @@ async showRankingInterface() {
         const cardX = 20 + col * (cardWidth + 20);
         const cardY = startY + row * (cardHeight + 15);
 
-        if (x >= cardX && x <= cardX + cardWidth &&
+        // 检查卡片是否在可见区域内
+        const isCardVisible = cardY + cardHeight >= 0 && cardY <= config.screenHeight;
+
+        if (isCardVisible && x >= cardX && x <= cardX + cardWidth &&
             y >= cardY && y <= cardY + cardHeight) {
-          console.log('点击了排行榜中的鱼:', fish.fishName);
+          console.log('点击了排行榜中的鱼:', fish.fishData.fishName);
           // 这里可以添加点击卡片后的操作，比如显示详情
           break;
         }
@@ -296,31 +305,14 @@ async showRankingInterface() {
     }
   }
 
-  // 修改：处理跳转按钮点击
-  handleJumpAction(buttonIndex) {
-    switch (buttonIndex) {
-      case 0: // 鱼缸
-        this.handleFishTank();
-        break;
-      case 1: // 让它游起来！
-        this.handleMakeItSwim();
-        break;
-      case 2: // 排行榜
-        this.handleRanking();
-        break;
-    }
-  }
-
-  // 新增：处理排行榜按钮点击
-  async handleRanking() {
-    await this.showRankingInterface();
-  }
-
-  // 修改：处理触摸开始事件 - 添加排行榜界面处理
+  // 新增：处理触摸开始事件 - 记录滚动起始位置
   handleTouchStart(e) {
-    // 如果排行榜界面可见，优先处理排行榜界面的点击
+    // 如果排行榜界面可见，记录滚动起始位置
     if (this.isRankingInterfaceVisible) {
-      this.handleRankingInterfaceTouch(e);
+      const touch = e.touches[0];
+      this.rankingScrollStartY = touch.clientY;
+      this.rankingScrollStartTop = this.rankingScrollTop;
+      this.isRankingScrolling = false;
       return;
     }
 
@@ -353,8 +345,92 @@ async showRankingInterface() {
     }
   }
 
-  // 其他现有方法保持不变...
-  // [这里保留所有其他现有方法，包括base64ToCanvas, createFishFromDatabaseData, loadAndShowDatabaseFishes等]
+  // 新增：处理触摸移动事件 - 实现滚动
+  handleTouchMove(e) {
+    // 如果正在排行榜界面，处理滚动
+    if (this.isRankingInterfaceVisible) {
+      const touch = e.touches[0];
+      const deltaY = touch.clientY - this.rankingScrollStartY;
+
+      // 如果移动距离超过阈值，认为是滚动操作
+      if (Math.abs(deltaY) > 5) {
+        this.isRankingScrolling = true;
+
+        // 计算新的滚动位置
+        let newScrollTop = this.rankingScrollStartTop - deltaY;
+
+        // 计算最大滚动距离
+        const cardHeight = 200;
+        const cardMargin = 15;
+        const rows = Math.ceil(this.rankingData.fishes.length / 2);
+        const totalContentHeight = rows * (cardHeight + cardMargin);
+        const maxScroll = Math.max(0, totalContentHeight - config.rankingCard.scrollView.height);
+
+        // 限制滚动范围
+        newScrollTop = Math.max(0, Math.min(maxScroll, newScrollTop));
+
+        // 更新滚动位置
+        this.rankingScrollTop = newScrollTop;
+
+        // 立即重绘
+        this.uiManager.drawGameUI(this.gameState);
+      }
+      return;
+    }
+
+    // 如果正在滚动，不处理绘画
+    if (this.isRankingScrolling) {
+      return;
+    }
+
+    if (!this.gameState.isDrawing) return;
+
+    const touch = e.touches[0];
+    const x = touch.clientX;
+    const y = touch.clientY;
+
+    if (this.isInDrawingArea(x, y)) {
+      this.continueDrawing(x, y);
+    }
+  }
+
+  // 新增：处理触摸结束事件 - 重置滚动状态
+  handleTouchEnd(e) {
+    // 如果是排行榜滚动，重置状态
+    if (this.isRankingInterfaceVisible && this.isRankingScrolling) {
+      this.isRankingScrolling = false;
+      return;
+    }
+
+    if (this.gameState.isDrawing) {
+      this.finishDrawing();
+    }
+  }
+
+  handleTouchCancel(e) {
+    this.gameState.isDrawing = false;
+    this.isRankingScrolling = false;
+  }
+
+  // 修改：处理跳转按钮点击
+  handleJumpAction(buttonIndex) {
+    switch (buttonIndex) {
+      case 0: // 鱼缸
+        this.handleFishTank();
+        break;
+      case 1: // 让它游起来！
+        this.handleMakeItSwim();
+        break;
+      case 2: // 排行榜
+        this.handleRanking();
+        break;
+    }
+  }
+
+  // 新增：处理排行榜按钮点击
+  async handleRanking() {
+    await this.showRankingInterface();
+  }
 
   // 修改：将base64数据转换为canvas图像
   base64ToCanvas(base64Data) {
@@ -697,28 +773,6 @@ async showRankingInterface() {
     wx.onTouchMove((e) => this.handleTouchMove(e));
     wx.onTouchEnd((e) => this.handleTouchEnd(e));
     wx.onTouchCancel((e) => this.handleTouchCancel(e));
-  }
-
-  handleTouchMove(e) {
-    if (!this.gameState.isDrawing) return;
-
-    const touch = e.touches[0];
-    const x = touch.clientX;
-    const y = touch.clientY;
-
-    if (this.isInDrawingArea(x, y)) {
-      this.continueDrawing(x, y);
-    }
-  }
-
-  handleTouchEnd(e) {
-    if (this.gameState.isDrawing) {
-      this.finishDrawing();
-    }
-  }
-
-  handleTouchCancel(e) {
-    this.gameState.isDrawing = false;
   }
 
   isInDrawingArea(x, y) {

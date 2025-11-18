@@ -25,7 +25,7 @@ const config = {
   lightTextColor: '#8E8E93',
   borderColor: '#E5E5EA',
 
-  // 新增：排行榜配置
+  // 修改：排行榜配置 - 添加滚动相关配置
   rankingCard: {
     width: 0, // 动态计算
     height: 200, // 增加高度以容纳更多内容
@@ -33,8 +33,15 @@ const config = {
     image: {
       maxWidth: 0, // 动态计算
       maxHeight: 80
+    },
+    scrollView: {
+      height: 0, // 动态计算
+      top: 150 // 标题下方开始位置
     }
-  }
+  },
+
+  // 新增：排行榜显示限制
+  rankingLimit: 100 // 只显示top100的作品
 };
 
 // 计算各区域位置
@@ -54,11 +61,14 @@ function getAreaPositions() {
   };
 }
 
-// 新增：计算排行榜卡片尺寸
+// 修改：计算排行榜卡片尺寸和滚动区域
 function calculateRankingCardSize() {
   const cardWidth = (config.screenWidth - 60) / 2;
   config.rankingCard.width = cardWidth;
   config.rankingCard.image.maxWidth = cardWidth - 20;
+
+  // 计算滚动区域高度（屏幕高度减去标题区域）
+  config.rankingCard.scrollView.height = config.screenHeight - config.rankingCard.scrollView.top - 20;
 }
 
 // 初始化计算

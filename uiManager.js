@@ -412,7 +412,7 @@ class UIManager {
     }
   }
 
-  // 新增：绘制排行榜界面
+  // 修改：绘制排行榜界面 - 支持滚动
   drawRankingInterface() {
     const ctx = this.ctx;
 
@@ -451,7 +451,7 @@ class UIManager {
     // 绘制副标题
     ctx.fillStyle = config.lightTextColor;
     ctx.font = '16px -apple-system';
-    ctx.fillText('按评分从高到低排列', config.screenWidth / 2, 130);
+    ctx.fillText(`Top ${config.rankingLimit} - 按评分从高到低排列`, config.screenWidth / 2, 130);
     ctx.textAlign = 'left';
 
     // 检查是否正在加载
@@ -474,18 +474,26 @@ class UIManager {
       return;
     }
 
-    // 绘制排行榜卡片 - 使用与鱼详情相同的样式
+    // 绘制滚动区域背景（可选）
+    ctx.fillStyle = '#F8F9FA';
+    ctx.fillRect(0, config.rankingCard.scrollView.top, config.screenWidth, config.rankingCard.scrollView.height);
+
+    // 绘制排行榜卡片 - 支持滚动
     this.drawRankingCards();
+
+    // 绘制滚动指示器（如果有内容需要滚动）
+    this.drawScrollIndicator();
   }
 
-  // 新增：绘制排行榜卡片 - 与鱼详情对话框相同的UI
+  // 修改：绘制排行榜卡片 - 支持滚动
   drawRankingCards() {
     const ctx = this.ctx;
     const rankingFishes = this.eventHandler.rankingData.fishes;
+    const scrollTop = this.eventHandler.rankingScrollTop;
 
     const cardWidth = (config.screenWidth - 60) / 2; // 两列布局
     const cardHeight = 200; // 增加高度以容纳更多内容
-    const startY = 150; // 标题下方开始位置
+    const startY = config.rankingCard.scrollView.top - scrollTop; // 考虑滚动偏移
 
     for (let i = 0; i < rankingFishes.length; i++) {
       const { fishData, fishImage } = rankingFishes[i];
@@ -495,12 +503,68 @@ class UIManager {
       const cardX = 20 + col * (cardWidth + 20);
       const cardY = startY + row * (cardHeight + 15);
 
-      // 绘制卡片背景 - 与鱼详情相同的卡片样式
-      this.drawRankingCard(cardX, cardY, cardWidth, cardHeight, fishData, fishImage, i + 1);
+      // 检查卡片是否在可见区域内（性能优化）
+      const isCardVisible = cardY + cardHeight >= 0 && cardY <= config.screenHeight;
+
+      if (isCardVisible) {
+        // 绘制卡片背景 - 与鱼详情相同的卡片样式
+        this.drawRankingCard(cardX, cardY, cardWidth, cardHeight, fishData, fishImage, i + 1);
+      }
     }
   }
 
-  // 新增：绘制单个排行榜卡片 - 复制鱼详情对话框的样式
+  // 修改：绘制滚动指示器
+  drawScrollIndicator() {
+    const ctx = this.ctx;
+    const scrollTop = this.eventHandler.rankingScrollTop;
+    const totalItems = this.eventHandler.rankingData.fishes.length;
+
+    // 计算总内容高度
+    const cardHeight = 200;
+    const cardMargin = 15;
+    const rows = Math.ceil(totalItems / 2);
+    const totalContentHeight = rows * (cardHeight + cardMargin);
+
+    // 如果内容高度小于滚动区域高度，不需要滚动指示器
+    if (totalContentHeight <= config.rankingCard.scrollView.height) {
+      return;
+    }
+
+    // 计算滚动指示器参数
+    const indicatorWidth = 6;
+    const indicatorRightMargin = 10;
+    const indicatorTop = config.rankingCard.scrollView.top + 10;
+    const indicatorHeight = config.rankingCard.scrollView.height - 20;
+
+    // 计算滚动比例
+    const maxScroll = Math.max(0, totalContentHeight - config.rankingCard.scrollView.height);
+    const scrollRatio = maxScroll > 0 ? scrollTop / maxScroll : 0;
+
+    // 计算滑块位置和高度
+    const visibleRatio = config.rankingCard.scrollView.height / totalContentHeight;
+    const sliderHeight = Math.max(30, indicatorHeight * visibleRatio);
+    const sliderY = indicatorTop + (indicatorHeight - sliderHeight) * scrollRatio;
+
+    // 绘制滚动条轨道
+    ctx.fillStyle = 'rgba(0,0,0,0.1)';
+    ctx.fillRect(
+      config.screenWidth - indicatorRightMargin - indicatorWidth,
+      indicatorTop,
+      indicatorWidth,
+      indicatorHeight
+    );
+
+    // 绘制滚动条滑块
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.fillRect(
+      config.screenWidth - indicatorRightMargin - indicatorWidth,
+      sliderY,
+      indicatorWidth,
+      sliderHeight
+    );
+  }
+
+  // 修改：绘制单个排行榜卡片 - 复制鱼详情对话框的样式
   drawRankingCard(x, y, width, height, fishData, fishImage, rank) {
     const ctx = this.ctx;
 
