@@ -1,9 +1,13 @@
+// uiManager.js - 优化后的UI管理器
 const { config, getAreaPositions } = require('./config.js');
+const InterfaceRenderer = require('./interfaceRenderer.js');
+const Utils = require('./utils.js');
 
 class UIManager {
   constructor(ctx) {
     this.ctx = ctx;
     this.eventHandler = null;
+    this.interfaceRenderer = new InterfaceRenderer(ctx);
   }
 
   // 设置事件处理器引用
@@ -11,382 +15,18 @@ class UIManager {
     this.eventHandler = eventHandler;
   }
 
-  // 绘制圆角矩形
-  drawRoundedRect(x, y, width, height, radius, fill, stroke) {
-    const ctx = this.ctx;
-    ctx.beginPath();
-    ctx.moveTo(x + radius, y);
-    ctx.lineTo(x + width - radius, y);
-    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-    ctx.lineTo(x + width, y + height - radius);
-    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-    ctx.lineTo(x + radius, y + height);
-    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-    ctx.lineTo(x, y + radius);
-    ctx.quadraticCurveTo(x, y, x + radius, y);
-    ctx.closePath();
-
-    if (fill) ctx.fill();
-    if (stroke) ctx.stroke();
-  }
-
-  // 绘制卡片
-  drawCard(x, y, width, height, radius = config.borderRadius) {
-    const ctx = this.ctx;
-
-    ctx.shadowColor = 'rgba(0,0,0,0.1)';
-    ctx.shadowBlur = config.shadowBlur;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 2;
-
-    ctx.fillStyle = '#FFFFFF';
-    this.drawRoundedRect(x, y, width, height, radius, true, false);
-
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-
-    ctx.strokeStyle = config.borderColor;
-    ctx.lineWidth = 1;
-    this.drawRoundedRect(x, y, width, height, radius, false, true);
-  }
-
-  // 绘制现代按钮
-  drawModernButton(x, y, width, height, text, isActive = false, isPrimary = false) {
-    const ctx = this.ctx;
-
-    ctx.fillStyle = isActive ? config.primaryColor :
-                    isPrimary ? config.primaryColor : '#FFFFFF';
-    this.drawRoundedRect(x, y, width, height, config.borderRadius, true, false);
-
-    ctx.strokeStyle = isActive ? config.primaryColor : config.borderColor;
-    ctx.lineWidth = isActive ? 0 : 1;
-    this.drawRoundedRect(x, y, width, height, config.borderRadius, false, true);
-
-    ctx.fillStyle = isActive ? '#FFFFFF' :
-                    isPrimary ? '#FFFFFF' : config.textColor;
-    ctx.font = '15px -apple-system, "PingFang SC", "Helvetica Neue"';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(text, x + width / 2, y + height / 2);
-
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'alphabetic';
-  }
-
-  // 绘制背景
-  drawBackground() {
-    const ctx = this.ctx;
-    const gradient = ctx.createLinearGradient(0, 0, config.screenWidth, config.screenHeight);
-    gradient.addColorStop(0, '#F8F9FA');
-    gradient.addColorStop(1, '#FFFFFF');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
-  }
-
-  // 绘制功能区
-  drawFunctionArea(gameState) {
-    const positions = getAreaPositions();
-    const startY = positions.functionAreaY;
-
-    // 颜色选择
-    this.drawCard(15, startY, config.screenWidth - 30, config.partHeight - 10);
-    this.drawColorButtons(startY + 20, gameState);
-
-    // 画笔大小调节
-    this.drawCard(15, startY + config.partHeight, config.screenWidth - 30, config.partHeight - 10);
-    this.drawBrushSizeControl(startY + config.partHeight + 25, gameState);
-
-    // 工具按钮
-    this.drawCard(15, startY + config.partHeight * 2, config.screenWidth - 30, config.partHeight - 10);
-    this.drawToolButtons(startY + config.partHeight * 2 + 15, gameState);
-  }
-
-  // 绘制颜色按钮
-  drawColorButtons(startY, gameState) {
-    const ctx = this.ctx;
-    const totalWidth = config.colorButtonSize * 7 + 18 * 6;
-    const startX = (config.screenWidth - totalWidth) / 2;
-
-    for (let i = 0; i < 7; i++) {
-      const x = startX + i * (config.colorButtonSize + 18);
-      const isSelected = config.colors[i] === gameState.currentColor && !gameState.isEraser;
-
-      ctx.shadowColor = 'rgba(0,0,0,0.15)';
-      ctx.shadowBlur = 4;
-      ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 2;
-
-      ctx.beginPath();
-      ctx.arc(x + config.colorButtonSize/2, startY + config.colorButtonSize/2,
-              config.colorButtonSize/2, 0, Math.PI * 2);
-      ctx.fillStyle = config.colors[i];
-      ctx.fill();
-
-      ctx.shadowColor = 'transparent';
-      ctx.shadowBlur = 0;
-
-      ctx.strokeStyle = config.colors[i] === '#FFFFFF' ? config.borderColor : 'transparent';
-      ctx.lineWidth = config.colors[i] === '#FFFFFF' ? 1 : 0;
-      ctx.stroke();
-
-      // 选中状态
-      if (isSelected) {
-        ctx.beginPath();
-        ctx.arc(x + config.colorButtonSize/2, startY + config.colorButtonSize/2,
-                config.colorButtonSize/2 + 4, 0, Math.PI * 2);
-        ctx.strokeStyle = config.primaryColor;
-        ctx.lineWidth = 3;
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.arc(x + config.colorButtonSize/2, startY + config.colorButtonSize/2,
-                config.colorButtonSize/2 - 2, 0, Math.PI * 2);
-        ctx.strokeStyle = '#FFFFFF';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      }
-    }
-  }
-
-  // 绘制画笔大小控制
-  drawBrushSizeControl(startY, gameState) {
-    const ctx = this.ctx;
-
-    ctx.fillStyle = config.textColor;
-    ctx.font = '16px -apple-system, "PingFang SC"';
-    ctx.fillText('画笔大小:', 25, startY);
-
-    const sliderX = 100;
-    const sliderWidth = config.screenWidth - 140;
-    const progressWidth = (gameState.brushSize / 20) * sliderWidth;
-
-    // 滑动条轨道
-    ctx.fillStyle = '#E5E5EA';
-    this.drawRoundedRect(sliderX, startY - 6, sliderWidth, 4, 2, true, false);
-
-    // 进度填充
-    const gradient = ctx.createLinearGradient(sliderX, 0, sliderX + progressWidth, 0);
-    gradient.addColorStop(0, config.primaryColor);
-    gradient.addColorStop(1, config.secondaryColor);
-    ctx.fillStyle = gradient;
-    this.drawRoundedRect(sliderX, startY - 6, progressWidth, 4, 2, true, false);
-
-    // 滑动块
-    const sliderPos = sliderX + progressWidth;
-    ctx.shadowColor = 'rgba(0,122,255,0.3)';
-    ctx.shadowBlur = 6;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 2;
-
-    ctx.fillStyle = config.primaryColor;
-    ctx.beginPath();
-    ctx.arc(sliderPos, startY - 6, 12, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.shadowColor = 'transparent';
-    ctx.fillStyle = '#FFFFFF';
-    ctx.beginPath();
-    ctx.arc(sliderPos, startY - 6, 4, 0, Math.PI * 2);
-    ctx.fill();
-
-    // 大小显示
-    ctx.fillStyle = config.primaryColor;
-    ctx.font = 'bold 16px -apple-system';
-    ctx.textAlign = 'right';
-    ctx.fillText(`${gameState.brushSize}px`, config.screenWidth - 25, startY);
-    ctx.textAlign = 'left';
-  }
-
-  // 绘制工具按钮
-  drawToolButtons(startY, gameState) {
-    const toolButtons = [
-      { name: '橡皮', icon: '◻' },
-      { name: '撤销', icon: '↶' },
-      { name: '清空', icon: '×' },
-      { name: '翻转', icon: '⇄' }
-    ];
-    const toolWidth = (config.screenWidth - 50) / 4;
-
-    for (let i = 0; i < toolButtons.length; i++) {
-      const x = 20 + i * toolWidth;
-      const isActive = (i === 0 && gameState.isEraser);
-
-      this.drawModernButton(x, startY, toolWidth - 10, config.buttonHeight,
-                          `${toolButtons[i].icon} ${toolButtons[i].name}`,
-                          isActive, false);
-    }
-  }
-
-  // 绘制指示区
-  drawIndicatorArea() {
-    const positions = getAreaPositions();
-    const startY = positions.indicatorAreaY;
-
-    this.drawCard(15, startY, config.screenWidth - 30, config.indicatorHeight - 10);
-
-    const ctx = this.ctx;
-    ctx.fillStyle = config.textColor;
-    ctx.font = 'bold 18px -apple-system, "PingFang SC"';
-    ctx.textAlign = 'center';
-
-    ctx.fillStyle = config.primaryColor;
-    ctx.font = '24px Arial';
-    ctx.fillText('🎨', config.screenWidth / 2, startY + 28);
-
-    ctx.fillStyle = config.textColor;
-    ctx.font = 'bold 18px -apple-system';
-    ctx.fillText('画一条鱼吧!', config.screenWidth / 2, startY + 55);
-
-    ctx.fillStyle = config.lightTextColor;
-    ctx.font = '15px -apple-system';
-    ctx.fillText('鱼头请朝右', config.screenWidth / 2, startY + 78);
-
-    ctx.textAlign = 'left';
-  }
-
-  // 绘制绘画区
-  drawDrawingArea(gameState) {
-    const positions = getAreaPositions();
-    const startY = positions.drawingAreaY;
-
-    // 绘画区域卡片
-    this.ctx.shadowColor = 'rgba(0,0,0,0.08)';
-    this.ctx.shadowBlur = 12;
-    this.ctx.shadowOffsetX = 0;
-    this.ctx.shadowOffsetY = 4;
-
-    this.ctx.fillStyle = '#FFFFFF';
-    this.drawRoundedRect(12, startY, config.screenWidth - 24, config.drawingAreaHeight, config.borderRadius, true, false);
-
-    this.ctx.shadowColor = 'transparent';
-    this.ctx.strokeStyle = config.borderColor;
-    this.ctx.lineWidth = 1;
-    this.drawRoundedRect(12, startY, config.screenWidth - 24, config.drawingAreaHeight, config.borderRadius, false, true);
-
-    // 网格背景
-    this.ctx.strokeStyle = '#F8F9FA';
-    this.ctx.lineWidth = 0.8;
-
-    for (let i = 1; i < 4; i++) {
-      this.ctx.beginPath();
-      this.ctx.moveTo(12, startY + i * (config.drawingAreaHeight / 4));
-      this.ctx.lineTo(config.screenWidth - 12, startY + i * (config.drawingAreaHeight / 4));
-      this.ctx.stroke();
-    }
-
-    for (let i = 1; i < 4; i++) {
-      this.ctx.beginPath();
-      this.ctx.moveTo(12 + i * ((config.screenWidth - 24) / 4), startY);
-      this.ctx.lineTo(12 + i * ((config.screenWidth - 24) / 4), startY + config.drawingAreaHeight);
-      this.ctx.stroke();
-    }
-
-    // 绘制路径
-    this.redrawAllPaths(gameState, startY);
-  }
-
-  // 重新绘制所有路径
-  redrawAllPaths(gameState, drawingAreaY) {
-    const ctx = this.ctx;
-
-    gameState.drawingPaths.forEach(path => {
-      if (path.points.length > 0) {
-        ctx.beginPath();
-        ctx.moveTo(path.points[0].x, path.points[0].y);
-
-        for (let i = 1; i < path.points.length; i++) {
-          ctx.lineTo(path.points[i].x, path.points[i].y);
-        }
-
-        ctx.strokeStyle = path.color;
-        ctx.lineWidth = path.size;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.stroke();
-      }
-    });
-  }
-
-  // 绘制得分区
-  drawScoreArea(gameState) {
-    const positions = getAreaPositions();
-    const startY = positions.scoreAreaY;
-
-    this.drawCard(15, startY, config.screenWidth - 30, config.scoreHeight - 10);
-
-    const ctx = this.ctx;
-    ctx.textAlign = 'center';
-
-    let scoreText = `AI评分：${gameState.score}`;
-    let scoreColor = config.textColor;
-
-    if (gameState.isScoring) {
-      scoreText = 'AI评分中...';
-      scoreColor = config.primaryColor;
-    } else if (gameState.score > 0) {
-      if (gameState.score >= 80) scoreColor = '#4CD964';
-      else if (gameState.score >= 60) scoreColor = '#FFCC00';
-      else scoreColor = '#FF3B30';
-    }
-
-    ctx.fillStyle = config.primaryColor;
-    ctx.font = '20px Arial';
-    ctx.fillText('', config.screenWidth / 2 - 50, startY + 22);
-
-    ctx.fillStyle = scoreColor;
-    ctx.font = gameState.isScoring ? '16px -apple-system' : 'bold 18px -apple-system';
-    ctx.fillText(scoreText, config.screenWidth / 2, startY + 35);
-
-    ctx.textAlign = 'left';
-  }
-
-  // 绘制跳转区
-  drawJumpArea() {
-    const positions = getAreaPositions();
-    const startY = positions.jumpAreaY;
-
-    this.drawCard(15, startY, config.screenWidth - 30, config.jumpHeight - 10);
-
-    const jumpButtons = ['🐠 鱼缸', '🚀 让它游起来！', '🏆 排行榜'];
-    const buttonWidth = (config.screenWidth - 50) / 3;
-
-    for (let i = 0; i < jumpButtons.length; i++) {
-      const x = 20 + i * buttonWidth;
-      const isPrimary = i === 1;
-
-      this.drawModernButton(x, startY + 13, buttonWidth - 10, config.buttonHeight,
-                          jumpButtons[i], false, isPrimary);
-    }
-  }
-
-  // 绘制游泳界面（现在统一为公共鱼缸）
-  drawSwimInterface(gameState, swimInterfaceData) {
-    const ctx = this.ctx;
-
-    // 统一使用鱼缸模式
-    this.drawFishTankInterface(swimInterfaceData);
-  }
-
   // 绘制鱼缸界面
-  drawFishTankInterface(swimInterfaceData) {
+  drawFishTankInterface() {
     const ctx = this.ctx;
 
     // 纯白色背景
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
 
-    // 先绘制返回按钮（必须在鱼绘制之前）
-    this.drawModernButton(
-      20, // 左上角x坐标
-      40, // 左上角y坐标
-      50, // 宽度
-      30, // 高度
-      '返回',
-      false,
-      true // 蓝色按钮
-    );
+    // 绘制返回按钮
+    Utils.drawModernButton(ctx, 20, 40, 50, 30, '返回', false, true);
 
-    // 绘制标题 - 改为"公共鱼缸"
+    // 绘制标题
     ctx.fillStyle = config.textColor;
     ctx.font = 'bold 20px -apple-system';
     ctx.textAlign = 'center';
@@ -403,7 +43,6 @@ class UIManager {
     if (this.eventHandler.fishTank) {
       this.eventHandler.fishTank.draw();
     } else {
-      // 如果没有鱼缸，显示提示
       ctx.fillStyle = config.lightTextColor;
       ctx.font = '16px -apple-system';
       ctx.textAlign = 'center';
@@ -416,31 +55,14 @@ class UIManager {
   drawRankingInterface() {
     const ctx = this.ctx;
 
-    // 纯白色背景
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
 
     // 绘制返回按钮
-    this.drawModernButton(
-      20, // 左上角x坐标
-      40, // 左上角y坐标
-      50, // 宽度
-      30, // 高度
-      '返回',
-      false,
-      true // 蓝色按钮
-    );
+    Utils.drawModernButton(ctx, 20, 40, 50, 30, '返回', false, true);
 
     // 绘制刷新按钮
-    this.drawModernButton(
-      config.screenWidth - 70, // 右上角x坐标
-      40, // y坐标
-      50, // 宽度
-      30, // 高度
-      '刷新',
-      false,
-      false // 白色按钮
-    );
+    Utils.drawModernButton(ctx, config.screenWidth - 70, 40, 50, 30, '刷新', false, false);
 
     // 绘制标题
     ctx.fillStyle = config.textColor;
@@ -454,38 +76,40 @@ class UIManager {
     ctx.fillText('按评分从高到低排列', config.screenWidth / 2, 130);
     ctx.textAlign = 'left';
 
-    // 检查是否正在加载
+    // 检查加载状态
     if (this.eventHandler.isLoadingRanking) {
-      ctx.fillStyle = config.lightTextColor;
-      ctx.font = '16px -apple-system';
-      ctx.textAlign = 'center';
-      ctx.fillText('加载中...', config.screenWidth / 2, config.screenHeight / 2);
-      ctx.textAlign = 'left';
+      this.drawLoadingMessage('加载中...');
       return;
     }
 
-    // 检查是否有排行榜数据
+    // 检查数据
     if (!this.eventHandler.rankingData || this.eventHandler.rankingData.fishes.length === 0) {
-      ctx.fillStyle = config.lightTextColor;
-      ctx.font = '16px -apple-system';
-      ctx.textAlign = 'center';
-      ctx.fillText('暂无排行榜数据', config.screenWidth / 2, config.screenHeight / 2);
-      ctx.textAlign = 'left';
+      this.drawLoadingMessage('暂无排行榜数据');
       return;
     }
 
-    // 绘制排行榜卡片 - 使用与鱼详情相同的样式
+    // 绘制排行榜卡片
     this.drawRankingCards();
   }
 
-  // 绘制排行榜卡片 - 与鱼详情对话框相同的UI
+  // 绘制加载消息
+  drawLoadingMessage(message) {
+    const ctx = this.ctx;
+    ctx.fillStyle = config.lightTextColor;
+    ctx.font = '16px -apple-system';
+    ctx.textAlign = 'center';
+    ctx.fillText(message, config.screenWidth / 2, config.screenHeight / 2);
+    ctx.textAlign = 'left';
+  }
+
+  // 绘制排行榜卡片
   drawRankingCards() {
     const ctx = this.ctx;
     const rankingFishes = this.eventHandler.rankingData.fishes;
 
-    const cardWidth = (config.screenWidth - 60) / 2; // 两列布局
-    const cardHeight = 200; // 增加高度以容纳更多内容
-    const startY = 150; // 标题下方开始位置
+    const cardWidth = (config.screenWidth - 60) / 2;
+    const cardHeight = 200;
+    const startY = 150;
 
     for (let i = 0; i < rankingFishes.length; i++) {
       const { fishData, fishImage } = rankingFishes[i];
@@ -495,22 +119,21 @@ class UIManager {
       const cardX = 20 + col * (cardWidth + 20);
       const cardY = startY + row * (cardHeight + 15);
 
-      // 绘制卡片背景 - 与鱼详情相同的卡片样式
       this.drawRankingCard(cardX, cardY, cardWidth, cardHeight, fishData, fishImage, i + 1);
     }
   }
 
-  // 绘制单个排行榜卡片 - 复制鱼详情对话框的样式
+  // 绘制单个排行榜卡片
   drawRankingCard(x, y, width, height, fishData, fishImage, rank) {
     const ctx = this.ctx;
 
-    // 绘制卡片背景 - 与鱼详情相同的阴影效果
+    // 绘制卡片背景
     ctx.shadowColor = 'rgba(0,0,0,0.2)';
     ctx.shadowBlur = 20;
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 5;
 
-    this.drawCard(x, y, width, height);
+    Utils.drawCard(ctx, x, y, width, height);
 
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
@@ -518,9 +141,9 @@ class UIManager {
     // 绘制排名徽章
     this.drawRankBadge(x + 10, y + 10, rank);
 
-    // 绘制鱼图片 - 与鱼详情相同的缩放逻辑
-    const maxImageWidth = width - 20; // 左右各10像素边距
-    const maxImageHeight = 80; // 限制图片高度
+    // 绘制鱼图片
+    const maxImageWidth = width - 20;
+    const maxImageHeight = 80;
 
     let imageWidth = fishImage.width;
     let imageHeight = fishImage.height;
@@ -542,46 +165,36 @@ class UIManager {
 
     ctx.drawImage(fishImage.canvas, imageX, imageY, imageWidth, imageHeight);
 
-    // 计算文本起始位置
+    // 绘制文本信息
     const textStartY = imageY + imageHeight + 15;
 
-    // 绘制鱼名字 - 与鱼详情相同的样式
+    // 鱼名字
     ctx.fillStyle = config.textColor;
     ctx.font = 'bold 16px -apple-system';
     ctx.textAlign = 'center';
-    let fishName = fishData.fishName || '未命名';
-    // 截断过长的名字
-    if (fishName.length > 8) {
-      fishName = fishName.substring(0, 8) + '...';
-    }
+    let fishName = Utils.truncateText(fishData.fishName || '未命名', 8);
     ctx.fillText(fishName, x + width / 2, textStartY);
 
-    // 绘制创作时间 - 与鱼详情相同的样式
+    // 创作时间
     ctx.fillStyle = config.lightTextColor;
     ctx.font = '12px -apple-system';
-    let createTime = '未知时间';
-    if (fishData.createdAt) {
-      const date = new Date(fishData.createdAt);
-      createTime = `${date.getMonth() + 1}/${date.getDate()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-    }
+    const createTime = Utils.formatTime(fishData.createdAt);
     ctx.fillText(createTime, x + width / 2, textStartY + 20);
 
-    // 绘制评分 - 与鱼详情相同的样式
-    ctx.fillStyle = this.getScoreColor(fishData.score || 0);
+    // 评分
+    ctx.fillStyle = Utils.getScoreColor(fishData.score || 0);
     ctx.font = 'bold 14px -apple-system';
     const score = fishData.score || 0;
     ctx.fillText(`评分: ${score}`, x + width / 2, textStartY + 40);
 
-    // 绘制点赞和点踩信息 - 与鱼详情相同的样式但更紧凑
+    // 点赞和点踩信息
     const infoStartY = textStartY + 60;
 
-    // 点赞信息
     ctx.fillStyle = config.lightTextColor;
     ctx.font = '12px -apple-system';
     ctx.textAlign = 'left';
     ctx.fillText(`👍 ${fishData.star || 0}`, x + 15, infoStartY);
 
-    // 点踩信息
     ctx.textAlign = 'right';
     ctx.fillText(`👎 ${fishData.unstar || 0}`, x + width - 15, infoStartY);
 
@@ -595,13 +208,13 @@ class UIManager {
     // 前3名使用特殊颜色
     let badgeColor;
     if (rank === 1) {
-      badgeColor = '#FFD700'; // 金色
+      badgeColor = '#FFD700';
     } else if (rank === 2) {
-      badgeColor = '#C0C0C0'; // 银色
+      badgeColor = '#C0C0C0';
     } else if (rank === 3) {
-      badgeColor = '#CD7F32'; // 铜色
+      badgeColor = '#CD7F32';
     } else {
-      badgeColor = config.primaryColor; // 蓝色
+      badgeColor = config.primaryColor;
     }
 
     // 绘制徽章背景
@@ -621,54 +234,43 @@ class UIManager {
     ctx.textBaseline = 'alphabetic';
   }
 
-  // 根据评分获取颜色 - 与鱼详情保持一致
-  getScoreColor(score) {
-    if (score >= 80) return '#4CD964'; // 绿色
-    if (score >= 60) return '#FFCC00'; // 黄色
-    if (score >= 40) return '#FF9500'; // 橙色
-    return '#FF3B30'; // 红色
-  }
-
-  // 绘制鱼详情界面 - 优化显示效果
+  // 绘制鱼详情界面
   drawFishDetailInterface() {
     const ctx = this.ctx;
     const fishData = this.eventHandler.selectedFishData.fishData;
 
-    // 修改：先绘制鱼缸背景，再添加半透明遮罩
-    this.drawFishTankInterface(this.eventHandler.swimInterfaceData);
-
-    // 修改：使用更浅的半透明遮罩，让鱼缸背景可见
+    // 先绘制鱼缸背景，再添加半透明遮罩
+    this.drawFishTankInterface();
     ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
     ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
 
-    const detailWidth = config.screenWidth - 60; // 稍微加宽对话框
-    const detailHeight = 380; // 调整高度
+    const detailWidth = config.screenWidth - 60;
+    const detailHeight = 380;
     const detailX = 30;
     const detailY = (config.screenHeight - detailHeight) / 2;
 
-    // 绘制详情卡片 - 添加阴影效果
+    // 绘制详情卡片
     ctx.shadowColor = 'rgba(0,0,0,0.2)';
     ctx.shadowBlur = 20;
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 5;
 
-    this.drawCard(detailX, detailY, detailWidth, detailHeight);
+    Utils.drawCard(ctx, detailX, detailY, detailWidth, detailHeight);
 
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
 
-    // 绘制关闭按钮（右上角X）
+    // 绘制关闭按钮
     ctx.fillStyle = config.lightTextColor;
     ctx.font = '24px Arial';
     ctx.textAlign = 'center';
     ctx.fillText('×', detailX + detailWidth - 25, detailY + 30);
 
-    // 修改：绘制鱼图片 - 等比例缩放到距离边界5像素
+    // 绘制鱼图片
     const fishImage = this.eventHandler.selectedFishData.fish.image;
-    const maxImageWidth = detailWidth - 10; // 左右各5像素 = 10像素
-    const maxImageHeight = 180; // 限制最大高度
+    const maxImageWidth = detailWidth - 10;
+    const maxImageHeight = 180;
 
-    // 计算等比例缩放尺寸
     let imageWidth = fishImage.width;
     let imageHeight = fishImage.height;
 
@@ -689,16 +291,16 @@ class UIManager {
 
     ctx.drawImage(fishImage, imageX, imageY, imageWidth, imageHeight);
 
-    // 修改：调整文本位置，使其更紧凑
+    // 绘制文本信息
     const textStartY = imageY + imageHeight + 20;
 
-    // 绘制鱼名字
+    // 鱼名字
     ctx.fillStyle = config.textColor;
     ctx.font = 'bold 18px -apple-system';
     ctx.textAlign = 'center';
     ctx.fillText(fishData.fishName || '未命名', detailX + detailWidth / 2, textStartY);
 
-    // 绘制创作时间
+    // 创作时间
     ctx.fillStyle = config.lightTextColor;
     ctx.font = '14px -apple-system';
     let createTime = '未知时间';
@@ -708,33 +310,35 @@ class UIManager {
     }
     ctx.fillText(`创作时间: ${createTime}`, detailX + detailWidth / 2, textStartY + 25);
 
-    // 修改：绘制评分 - 调整位置使其更紧凑
+    // 评分
     ctx.fillStyle = config.primaryColor;
     ctx.font = 'bold 16px -apple-system';
     const score = fishData.score || 0;
     ctx.fillText(`评分: ${score}`, detailX + detailWidth / 2, textStartY + 50);
 
-    // 修改：绘制点赞和点踩按钮 - 调整位置使其紧挨着评分
+    // 绘制点赞和点踩按钮
     const buttonWidth = (detailWidth - 60) / 2;
-    const buttonY = textStartY + 75; // 紧挨着评分下方
+    const buttonY = textStartY + 75;
 
     // 点赞按钮
-    this.drawModernButton(
+    Utils.drawModernButton(
+      ctx,
       detailX + 20,
       buttonY,
       buttonWidth,
-      36, // 稍微减小按钮高度
+      36,
       `👍 ${fishData.star || 0}`,
       false,
       false
     );
 
     // 点踩按钮
-    this.drawModernButton(
+    Utils.drawModernButton(
+      ctx,
       detailX + buttonWidth + 40,
       buttonY,
       buttonWidth,
-      36, // 稍微减小按钮高度
+      36,
       `👎 ${fishData.unstar || 0}`,
       false,
       false
@@ -744,11 +348,12 @@ class UIManager {
   }
 
   // 绘制命名对话框
-  drawNameInputDialog(eventHandler) {
+  drawNameInputDialog() {
     const ctx = this.ctx;
+    const eventHandler = this.eventHandler;
 
-    // 关键修复：先清除整个画布并绘制背景
-    this.drawBackground();
+    // 清除画布并绘制背景
+    this.interfaceRenderer.drawBackground();
 
     const dialogWidth = config.screenWidth - 80;
     const dialogHeight = 220;
@@ -760,7 +365,7 @@ class UIManager {
     ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
 
     // 绘制对话框卡片
-    this.drawCard(dialogX, dialogY, dialogWidth, dialogHeight);
+    Utils.drawCard(ctx, dialogX, dialogY, dialogWidth, dialogHeight);
 
     // 绘制标题
     ctx.fillStyle = config.textColor;
@@ -770,10 +375,10 @@ class UIManager {
 
     // 绘制输入框背景
     ctx.fillStyle = '#F8F9FA';
-    this.drawRoundedRect(dialogX + 20, dialogY + 70, dialogWidth - 40, 40, 8, true, false);
+    Utils.drawRoundedRect(ctx, dialogX + 20, dialogY + 70, dialogWidth - 40, 40, 8, true, false);
     ctx.strokeStyle = config.borderColor;
     ctx.lineWidth = 1;
-    this.drawRoundedRect(dialogX + 20, dialogY + 70, dialogWidth - 40, 40, 8, false, true);
+    Utils.drawRoundedRect(ctx, dialogX + 20, dialogY + 70, dialogWidth - 40, 40, 8, false, true);
 
     // 绘制输入文本
     ctx.fillStyle = config.textColor;
@@ -782,18 +387,7 @@ class UIManager {
     const text = eventHandler.fishNameInput || '';
 
     // 文本过长时截断显示
-    let displayText = text;
-    const maxTextWidth = dialogWidth - 60;
-    const textWidth = ctx.measureText(text).width;
-    if (textWidth > maxTextWidth) {
-      // 计算可以显示的字符数
-      let visibleChars = text.length;
-      while (visibleChars > 0 && ctx.measureText(text.substring(0, visibleChars) + '...').width > maxTextWidth) {
-        visibleChars--;
-      }
-      displayText = text.substring(0, visibleChars) + '...';
-    }
-
+    let displayText = Utils.truncateText(text, 20);
     ctx.fillText(displayText, dialogX + 30, dialogY + 95);
 
     // 绘制光标（如果文本为空）
@@ -803,7 +397,8 @@ class UIManager {
     }
 
     // 绘制取消按钮
-    this.drawModernButton(
+    Utils.drawModernButton(
+      ctx,
       dialogX + 20,
       dialogY + dialogHeight - 110,
       dialogWidth - 40,
@@ -814,7 +409,8 @@ class UIManager {
     );
 
     // 绘制确认按钮
-    this.drawModernButton(
+    Utils.drawModernButton(
+      ctx,
       dialogX + 20,
       dialogY + dialogHeight - 60,
       dialogWidth - 40,
@@ -829,36 +425,38 @@ class UIManager {
 
   // 绘制完整UI
   drawGameUI(gameState) {
-    // 新增：检查是否显示排行榜界面
-    if (this.eventHandler && this.eventHandler.isRankingInterfaceVisible) {
-      this.drawRankingInterface();
-      return;
+    const positions = getAreaPositions();
+
+    // 检查特殊界面状态
+    if (this.eventHandler) {
+      if (this.eventHandler.isRankingInterfaceVisible) {
+        this.drawRankingInterface();
+        return;
+      }
+
+      if (this.eventHandler.isFishDetailVisible) {
+        this.drawFishDetailInterface();
+        return;
+      }
+
+      if (this.eventHandler.isDialogVisible) {
+        this.drawNameInputDialog();
+        return;
+      }
+
+      if (this.eventHandler.isSwimInterfaceVisible) {
+        this.drawFishTankInterface();
+        return;
+      }
     }
 
-    // 新增：检查是否显示鱼详情界面
-    if (this.eventHandler && this.eventHandler.isFishDetailVisible) {
-      this.drawFishDetailInterface();
-      return;
-    }
-
-    // 新增：检查是否显示命名对话框
-    if (this.eventHandler && this.eventHandler.isDialogVisible) {
-      this.drawNameInputDialog(this.eventHandler);
-      return;
-    }
-
-    // 新增：检查是否显示游泳界面
-    if (this.eventHandler && this.eventHandler.isSwimInterfaceVisible) {
-      this.drawSwimInterface(gameState, this.eventHandler.swimInterfaceData);
-      return;
-    }
-    
-    this.drawBackground();
-    this.drawFunctionArea(gameState);
-    this.drawIndicatorArea();
-    this.drawDrawingArea(gameState);
-    this.drawScoreArea(gameState);
-    this.drawJumpArea();
+    // 绘制主游戏界面
+    this.interfaceRenderer.drawBackground();
+    this.interfaceRenderer.drawFunctionArea(gameState, positions);
+    this.interfaceRenderer.drawIndicatorArea(positions);
+    this.interfaceRenderer.drawDrawingArea(gameState, positions);
+    this.interfaceRenderer.drawScoreArea(gameState, positions);
+    this.interfaceRenderer.drawJumpArea(positions);
   }
 }
 
