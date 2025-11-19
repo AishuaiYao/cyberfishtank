@@ -64,16 +64,33 @@ class UIManager {
     // 绘制刷新按钮
     Utils.drawModernButton(ctx, config.screenWidth - 70, 40, 50, 30, '刷新', false, false);
 
-    // 绘制标题
+    // 绘制标题 - 上移50像素
     ctx.fillStyle = config.textColor;
     ctx.font = 'bold 20px -apple-system';
     ctx.textAlign = 'center';
-    ctx.fillText('排行榜', config.screenWidth / 2, 100);
+    ctx.fillText('排行榜', config.screenWidth / 2, 50); // 从100改为50
 
-    // 绘制副标题
+    // 绘制副标题 - 上移50像素
     ctx.fillStyle = config.lightTextColor;
     ctx.font = '16px -apple-system';
-    ctx.fillText('按评分从高到低排列', config.screenWidth / 2, 130);
+    ctx.fillText('按评分从高到低排列', config.screenWidth / 2, 80); // 从130改为80
+
+    // 如果有滚动，显示滚动提示 - 上移50像素
+    const scrollOffset = this.eventHandler.touchHandlers.ranking.getScrollOffset();
+    const maxScrollY = this.eventHandler.touchHandlers.ranking.getMaxScrollY();
+
+    if (maxScrollY > 0) {
+      ctx.fillStyle = config.primaryColor;
+      ctx.font = '14px -apple-system';
+      if (scrollOffset === 0) {
+        ctx.fillText('↓ 向下滑动查看更多 ↓', config.screenWidth / 2, 100); // 从150改为100
+      } else if (scrollOffset >= maxScrollY) {
+        ctx.fillText('↑ 向上滑动返回顶部 ↑', config.screenWidth / 2, 100); // 从150改为100
+      } else {
+        ctx.fillText('↑ 可上下滑动查看 ↑', config.screenWidth / 2, 100); // 从150改为100
+      }
+    }
+
     ctx.textAlign = 'left';
 
     // 检查加载状态
@@ -88,7 +105,7 @@ class UIManager {
       return;
     }
 
-    // 绘制排行榜卡片
+    // 绘制排行榜卡片（带滚动效果）
     this.drawRankingCards();
   }
 
@@ -102,14 +119,21 @@ class UIManager {
     ctx.textAlign = 'left';
   }
 
-  // 绘制排行榜卡片
+  // 绘制排行榜卡片（更新版）
   drawRankingCards() {
     const ctx = this.ctx;
     const rankingFishes = this.eventHandler.rankingData.fishes;
+    const scrollOffset = this.eventHandler.touchHandlers.ranking.getScrollOffset();
 
     const cardWidth = (config.screenWidth - 60) / 2;
     const cardHeight = 200;
-    const startY = 150;
+    const startY = 100 - scrollOffset; // 调整起始位置，从150改为100
+
+    // 设置裁剪区域，防止卡片绘制到界面外
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 100, config.screenWidth, config.screenHeight - 100); // 从150改为100
+    ctx.clip();
 
     for (let i = 0; i < rankingFishes.length; i++) {
       const { fishData, fishImage } = rankingFishes[i];
@@ -119,8 +143,44 @@ class UIManager {
       const cardX = 20 + col * (cardWidth + 20);
       const cardY = startY + row * (cardHeight + 15);
 
-      this.drawRankingCard(cardX, cardY, cardWidth, cardHeight, fishData, fishImage, i + 1);
+      // 只绘制在可见区域内的卡片
+      if (cardY + cardHeight > 100 && cardY < config.screenHeight) { // 从150改为100
+        this.drawRankingCard(cardX, cardY, cardWidth, cardHeight, fishData, fishImage, i + 1);
+      }
     }
+
+    ctx.restore();
+
+    // 绘制滚动条指示器（如果有滚动）
+    if (scrollOffset > 0) {
+      this.drawScrollIndicator(scrollOffset);
+    }
+  }
+
+  // 绘制滚动条指示器
+  drawScrollIndicator(scrollOffset) {
+    const ctx = this.ctx;
+    const maxScrollY = this.eventHandler.touchHandlers.ranking.getMaxScrollY();
+
+    if (maxScrollY <= 0) return;
+
+    const indicatorWidth = 6;
+    const indicatorRight = config.screenWidth - 12;
+    const indicatorTop = 100; // 从150改为100
+    const indicatorHeight = config.screenHeight - 100 - 20; // 从150改为100
+
+    // 计算滑块位置和大小
+    const scrollRatio = scrollOffset / maxScrollY;
+    const sliderHeight = Math.max(40, indicatorHeight * 0.2);
+    const sliderY = indicatorTop + (indicatorHeight - sliderHeight) * scrollRatio;
+
+    // 绘制轨道
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+    Utils.drawRoundedRect(ctx, indicatorRight - indicatorWidth, indicatorTop, indicatorWidth, indicatorHeight, 3, true, false);
+
+    // 绘制滑块
+    ctx.fillStyle = 'rgba(0, 122, 255, 0.6)';
+    Utils.drawRoundedRect(ctx, indicatorRight - indicatorWidth, sliderY, indicatorWidth, sliderHeight, 3, true, false);
   }
 
   // 绘制单个排行榜卡片

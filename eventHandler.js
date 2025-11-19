@@ -81,8 +81,18 @@ class EventHandler {
     const x = touch.clientX;
     const y = touch.clientY;
 
+    console.log('触摸开始:', x, y, '界面状态:', {
+      ranking: this.isRankingInterfaceVisible,
+      fishDetail: this.isFishDetailVisible,
+      dialog: this.isDialogVisible,
+      swim: this.isSwimInterfaceVisible
+    });
+
     // 根据当前界面状态路由到对应的触摸处理器
     if (this.isRankingInterfaceVisible) {
+      console.log('路由到排行榜处理器');
+      this.touchHandlers.ranking.handleTouchStart(x, y);
+      // 立即处理触摸，因为返回按钮需要响应点击
       this.touchHandlers.ranking.handleTouch(x, y);
     } else if (this.isFishDetailVisible) {
       this.touchHandlers.fishDetail.handleTouch(x, y);
@@ -98,32 +108,49 @@ class EventHandler {
 
   handleTouchMove(e) {
     if (!e.touches || e.touches.length === 0) return;
-    
+
     const touch = e.touches[0];
     const x = touch.clientX;
     const y = touch.clientY;
 
-    // 只有主界面需要处理触摸移动
-    if (!this.isRankingInterfaceVisible && 
-        !this.isFishDetailVisible && 
-        !this.isDialogVisible && 
-        !this.isSwimInterfaceVisible) {
+    // 根据界面状态路由
+    if (this.isRankingInterfaceVisible) {
+      this.touchHandlers.ranking.handleTouchMove(x, y);
+    } else if (this.isFishDetailVisible) {
+      // 鱼详情界面不需要处理移动
+    } else if (this.isDialogVisible) {
+      // 对话框界面不需要处理移动
+    } else if (this.isSwimInterfaceVisible) {
+      // 游泳界面不需要处理移动
+    } else {
+      // 主界面
       this.touchHandlers.main.handleTouchMove(x, y);
     }
   }
 
   handleTouchEnd(e) {
-    // 触摸结束事件不需要坐标，直接调用完成绘画
-    if (!this.isRankingInterfaceVisible && 
-        !this.isFishDetailVisible && 
-        !this.isDialogVisible && 
-        !this.isSwimInterfaceVisible) {
+    console.log('触摸结束');
+
+    // 触摸结束事件
+    if (this.isRankingInterfaceVisible) {
+      this.touchHandlers.ranking.handleTouchEnd();
+    } else if (this.isFishDetailVisible) {
+      // 鱼详情界面不需要处理触摸结束
+    } else if (this.isDialogVisible) {
+      // 对话框界面不需要处理触摸结束
+    } else if (this.isSwimInterfaceVisible) {
+      // 游泳界面不需要处理触摸结束
+    } else {
+      // 主界面
       this.touchHandlers.main.finishDrawing();
     }
   }
 
   handleTouchCancel(e) {
     this.gameState.isDrawing = false;
+    if (this.isRankingInterfaceVisible) {
+      this.touchHandlers.ranking.handleTouchEnd();
+    }
   }
 
   // 鱼缸功能
@@ -168,6 +195,10 @@ class EventHandler {
   async showRankingInterface() {
     this.isRankingInterfaceVisible = true;
     this.isLoadingRanking = true;
+
+    // 重置滚动位置
+    this.touchHandlers.ranking.resetScroll();
+
     this.uiManager.drawGameUI(this.gameState);
 
     try {
@@ -193,7 +224,10 @@ class EventHandler {
   hideRankingInterface() {
     this.isRankingInterfaceVisible = false;
     this.rankingData = null;
+    // 重置滚动位置
+    this.touchHandlers.ranking.resetScroll();
     this.uiManager.drawGameUI(this.gameState);
+    console.log('排行榜界面已隐藏');
   }
 
   // 游泳功能
