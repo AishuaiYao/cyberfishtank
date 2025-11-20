@@ -14,7 +14,7 @@ const FishAnimator = require('./fishManager/fishAnimator.js');
 const FishDataManager = require('./fishManager/fishDataManager.js');
 
 
-const { Fish, FishTank } = require('./fishManager.js');
+const { Fish, FishTank } = require('./fishCore.js');
 
 
 class EventHandler {
@@ -163,7 +163,7 @@ class EventHandler {
     this.swimInterfaceData = { mode: 'fishTank' };
 
     if (!this.fishTank) {
-      const { FishTank } = require('./fishManager.js');
+      const { FishTank } = require('./fishCore.js');
       this.fishTank = new FishTank(this.ctx, config.screenWidth, config.screenHeight);
     }
 
@@ -374,11 +374,11 @@ class EventHandler {
     }
 
     if (!this.fishTank) {
-      const { Fish, FishTank } = require('./fishManager.js');
+      const { Fish, FishTank } = require('./fishCore.js');
       this.fishTank = new FishTank(this.ctx, config.screenWidth, config.screenHeight);
     }
 
-    const { Fish } = require('./fishManager.js');
+    const { Fish } = require('./fishCore.js');
     const fish = new Fish(
       scaledImage.canvas,
       Math.random() * (config.screenWidth - scaledImage.width),

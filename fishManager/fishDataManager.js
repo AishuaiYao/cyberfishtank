@@ -1,5 +1,5 @@
 // fishManager/fishDataManager.js - 修复 Fish 类导入问题
-const { Fish } = require('../fishManager.js');
+const { Fish } = require('../fishCore.js');
 
 class FishDataManager {
   constructor(eventHandler) {
