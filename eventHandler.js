@@ -76,7 +76,7 @@ class EventHandler {
   // 修复：分别处理不同的触摸事件
   handleTouchStart(e) {
     if (!e.touches || e.touches.length === 0) return;
-    
+
     const touch = e.touches[0];
     const x = touch.clientX;
     const y = touch.clientY;

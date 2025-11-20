@@ -4,11 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="base：重构代码2">
+    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="base：排名界面基本正常">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/eventHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/eventHandler.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/touchHandlers/rankingTouchHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/rankingTouchHandler.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uiManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/uiManager.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fishManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/fishManager.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/touchHandlers/swimTouchHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/swimTouchHandler.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -298,7 +299,15 @@
       <option name="project" value="LOCAL" />
       <updated>1763563914613</updated>
     </task>
-    <option name="localTasksCounter" value="29" />
+    <task id="LOCAL-00029" summary="base：排名界面基本正常">
+      <option name="closed" value="true" />
+      <created>1763564803327</created>
+      <option name="number" value="00029" />
+      <option name="presentableId" value="LOCAL-00029" />
+      <option name="project" value="LOCAL" />
+      <updated>1763564803327</updated>
+    </task>
+    <option name="localTasksCounter" value="30" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -323,6 +332,7 @@
     <MESSAGE value="base：不能滑动,未完全解决" />
     <MESSAGE value="base：重构代码" />
     <MESSAGE value="base：重构代码2" />
-    <option name="LAST_COMMIT_MESSAGE" value="base：重构代码2" />
+    <MESSAGE value="base：排名界面基本正常" />
+    <option name="LAST_COMMIT_MESSAGE" value="base：排名界面基本正常" />
   </component>
 </project>

@@ -1,5 +1,75 @@
 const { config } = require('./config.js');
 
+// 鱼粮类
+class FishFood {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.radius = 4;
+    this.color = '#8C8C8C'; // 改为土灰色
+    this.speed = 0.5;
+    this.isEaten = false;
+    this.alpha = 1;
+    this.fadeSpeed = 0.02;
+  }
+
+  update(deltaTime) {
+    if (this.isEaten) {
+      this.alpha -= this.fadeSpeed;
+      if (this.alpha <= 0) {
+        return true; // 需要移除
+      }
+    } else {
+      // 缓慢下落
+      this.y += this.speed * (deltaTime / 16);
+
+      // 检查是否超出屏幕底部
+      if (this.y > this.canvasHeight + 10) {
+        return true; // 需要移除
+      }
+    }
+    return false; // 不需要移除
+  }
+
+  draw(ctx) {
+    ctx.save();
+    ctx.globalAlpha = this.alpha;
+
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 添加一点高光效果
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.beginPath();
+    ctx.arc(this.x - 1, this.y - 1, this.radius * 0.4, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  setCanvasSize(width, height) {
+    this.canvasWidth = width;
+    this.canvasHeight = height;
+  }
+
+  // 检查是否被鱼吃到
+  checkCollision(fish) {
+    if (this.isEaten) return false;
+
+    const fishCenterX = fish.x + fish.width / 2;
+    const fishCenterY = fish.y + fish.height / 2;
+
+    const distance = Math.sqrt(
+      Math.pow(fishCenterX - this.x, 2) +
+      Math.pow(fishCenterY - this.y, 2)
+    );
+
+    return distance < (fish.width / 2 + this.radius);
+  }
+}
+
 // 鱼类定义
 class Fish {
   constructor(image, x, y, direction = 1, name = '未命名', fishData = null) {
@@ -11,7 +81,7 @@ class Fish {
     this.fishData = fishData;
     this.phase = Math.random() * Math.PI * 2;
     this.amplitude = 8;
-    this.speed = 0.5 + Math.random() * 1;
+    this.speed = 0.8 + Math.random() * 1.2; // 提高基础速度
     this.vx = this.speed * this.direction;
     this.vy = (Math.random() - 0.5) * 0.5;
     this.width = image.width;
@@ -20,6 +90,14 @@ class Fish {
     this.tailEnd = Math.floor(this.width * this.peduncle);
     this.time = 0;
     this.tankPadding = 20;
+
+    // 鱼粮相关属性
+    this.targetFood = null;
+    this.isEating = false;
+    this.eatCooldown = 0;
+    this.hunger = Math.random() * 100; // 饥饿度
+    this.maxHunger = 100;
+    this.foodDetectionRange = 400; // 增加检测范围
 
     this.transparentImage = this.createTransparentFishImage(image);
   }
@@ -50,12 +128,111 @@ class Fish {
     return tempCanvas;
   }
 
-  update(deltaTime) {
+  update(deltaTime, fishFoods = []) {
     this.time += deltaTime / 1000;
+    this.hunger += 0.1 * (deltaTime / 16); // 缓慢增加饥饿度
+
+    // 冷却时间更新
+    if (this.eatCooldown > 0) {
+      this.eatCooldown -= deltaTime;
+    }
+
+    // 寻找鱼粮逻辑
+    if (!this.isEating && this.eatCooldown <= 0) {
+      this.findFood(fishFoods);
+    }
+
+    // 如果有目标鱼粮，朝目标移动
+    if (this.targetFood && !this.targetFood.isEaten) {
+      this.moveToFood();
+    } else {
+      // 正常游动
+      this.normalSwim();
+    }
+
+    // 边界检查
+    this.checkBoundaries();
+
+    // 随机行为
+    if (Math.random() < 0.02 && !this.targetFood) {
+      this.vy += (Math.random() - 0.5) * 0.3;
+    }
+
+    this.vx = Math.max(-3, Math.min(3, this.vx)); // 提高速度限制
+    this.vy = Math.max(-1.5, Math.min(1.5, this.vy)); // 提高速度限制
+  }
+
+  // 寻找最近的鱼粮
+  findFood(fishFoods) {
+    let closestFood = null;
+    let closestDistance = Infinity;
+
+    for (const food of fishFoods) {
+      if (food.isEaten) continue;
+
+      const distance = Math.sqrt(
+        Math.pow(this.x + this.width / 2 - food.x, 2) +
+        Math.pow(this.y + this.height / 2 - food.y, 2)
+      );
+
+      // 增加检测范围到400像素，让鱼更容易发现鱼粮
+      if (distance < closestDistance && distance < this.foodDetectionRange) {
+        closestDistance = distance;
+        closestFood = food;
+      }
+    }
+
+    this.targetFood = closestFood;
+  }
+
+  // 朝鱼粮移动
+  moveToFood() {
+    if (!this.targetFood) return;
+
+    const targetX = this.targetFood.x;
+    const targetY = this.targetFood.y;
+    const fishCenterX = this.x + this.width / 2;
+    const fishCenterY = this.y + this.height / 2;
+
+    // 计算方向
+    const dx = targetX - fishCenterX;
+    const dy = targetY - fishCenterY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    if (distance < 8) { // 减小到达距离，让鱼更容易吃到
+      this.isEating = true;
+      return;
+    }
+
+    // 归一化方向向量
+    const dirX = dx / distance;
+    const dirY = dy / distance;
+
+    // 根据饥饿度调整速度（越饿越快），提高速度系数
+    const hungerFactor = 1.2 + (this.hunger / this.maxHunger) * 1.0; // 提高饥饿影响
+
+    this.vx = dirX * this.speed * hungerFactor;
+    this.vy = dirY * this.speed * hungerFactor;
+
+    // 更新方向
+    this.direction = this.vx >= 0 ? 1 : -1;
 
     this.x += this.vx;
     this.y += this.vy;
+  }
 
+  // 正常游动
+  normalSwim() {
+    this.x += this.vx;
+    this.y += this.vy;
+
+    // 随机摆动
+    const swimY = Math.sin(this.time * 2 + this.phase) * this.amplitude;
+    this.y += swimY * 0.1;
+  }
+
+  // 检查边界
+  checkBoundaries() {
     const minX = this.tankPadding;
     const maxX = this.canvasWidth - this.width - this.tankPadding;
     const minY = this.tankPadding + 150;
@@ -78,13 +255,24 @@ class Fish {
       this.y = maxY;
       this.vy = -Math.abs(this.vy) * 0.5;
     }
+  }
 
-    if (Math.random() < 0.02) {
-      this.vy += (Math.random() - 0.5) * 0.3;
+  // 吃鱼粮
+  eatFood() {
+    if (this.targetFood && !this.targetFood.isEaten) {
+      this.targetFood.isEaten = true;
+      this.hunger = Math.max(0, this.hunger - 30); // 减少饥饿度
+      this.isEating = false;
+      this.targetFood = null;
+      this.eatCooldown = 800; // 稍微减少冷却时间
+
+      // 吃食后随机游动
+      this.vx = (Math.random() - 0.5) * 2;
+      this.vy = (Math.random() - 0.5) * 1;
+
+      return true;
     }
-
-    this.vx = Math.max(-2, Math.min(2, this.vx));
-    this.vy = Math.max(-1, Math.min(1, this.vy));
+    return false;
   }
 
   setCanvasSize(width, height) {
@@ -95,6 +283,26 @@ class Fish {
   draw(ctx) {
     const swimY = this.y + Math.sin(this.time * 2 + this.phase) * this.amplitude;
     this.drawWigglingFish(ctx, this.x, swimY, this.direction, this.time);
+
+    // 调试：显示饥饿度（可选）
+    // this.drawHungerBar(ctx);
+  }
+
+  // 绘制饥饿度条（调试用）
+  drawHungerBar(ctx) {
+    const barWidth = 30;
+    const barHeight = 4;
+    const barX = this.x + (this.width - barWidth) / 2;
+    const barY = this.y - 10;
+
+    // 背景
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+    ctx.fillRect(barX, barY, barWidth, barHeight);
+
+    // 饥饿度
+    const hungerPercent = this.hunger / this.maxHunger;
+    ctx.fillStyle = hungerPercent > 0.7 ? '#FF3B30' : hungerPercent > 0.3 ? '#FFCC00' : '#4CD964';
+    ctx.fillRect(barX, barY, barWidth * hungerPercent, barHeight);
   }
 
   drawWigglingFish(ctx, x, y, direction, time) {
@@ -138,10 +346,12 @@ class Fish {
 class FishTank {
   constructor(ctx, width, height) {
     this.fishes = [];
+    this.fishFoods = []; // 鱼粮数组
     this.ctx = ctx;
     this.width = width;
     this.height = height;
     this.tankPadding = 20;
+    this.lastFoodSpawnTime = 0;
   }
 
   addFish(fish) {
@@ -149,10 +359,46 @@ class FishTank {
     this.fishes.push(fish);
   }
 
+  // 生成鱼粮
+  spawnFishFood(x, y, count = 10) {
+    for (let i = 0; i < count; i++) {
+      const offsetX = (Math.random() - 0.5) * 40; // 随机散布
+      const offsetY = (Math.random() - 0.5) * 40;
+      const food = new FishFood(x + offsetX, y + offsetY);
+      food.setCanvasSize(this.width, this.height);
+      this.fishFoods.push(food);
+    }
+    console.log(`生成了 ${count} 个鱼粮`);
+  }
+
   update(deltaTime) {
+    // 更新鱼
     this.fishes.forEach(fish => {
-      fish.update(deltaTime);
+      fish.update(deltaTime, this.fishFoods);
     });
+
+    // 更新鱼粮并检查碰撞
+    for (let i = this.fishFoods.length - 1; i >= 0; i--) {
+      const food = this.fishFoods[i];
+
+      // 更新鱼粮位置
+      const shouldRemove = food.update(deltaTime);
+
+      // 检查每条鱼是否吃到这个鱼粮
+      if (!food.isEaten) {
+        for (const fish of this.fishes) {
+          if (food.checkCollision(fish)) {
+            fish.eatFood();
+            break; // 一个鱼粮只能被一条鱼吃
+          }
+        }
+      }
+
+      // 移除需要删除的鱼粮
+      if (shouldRemove) {
+        this.fishFoods.splice(i, 1);
+      }
+    }
   }
 
   draw() {
@@ -174,6 +420,12 @@ class FishTank {
     ctx.strokeRect(tankX, tankY, tankWidth, tankHeight);
     ctx.setLineDash([]);
 
+    // 先绘制鱼粮
+    this.fishFoods.forEach(food => {
+      food.draw(ctx);
+    });
+
+    // 再绘制鱼（鱼在鱼粮上面）
     this.fishes.forEach(fish => {
       fish.draw(ctx);
     });
@@ -186,5 +438,6 @@ class FishTank {
 
 module.exports = {
   Fish,
-  FishTank
+  FishTank,
+  FishFood
 };
