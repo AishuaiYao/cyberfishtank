@@ -323,6 +323,27 @@ class EventHandler {
     this.uiManager.drawGameUI(this.gameState);
   }
 
+  // 检查鱼名是否重复
+  async checkFishNameExists(fishName) {
+    if (!this.databaseManager.isCloudDbInitialized || !this.databaseManager.cloudDb) {
+      console.warn('云数据库未初始化，跳过名称检查');
+      return false;
+    }
+
+    try {
+      const result = await this.databaseManager.cloudDb.collection('fishes')
+        .where({
+          fishName: fishName
+        })
+        .get();
+
+      return result.data.length > 0;
+    } catch (error) {
+      console.error('检查鱼名失败:', error);
+      return false;
+    }
+  }
+
   async confirmFishName() {
     if (!this.dialogData || !this.dialogData.scaledImage) {
       if (!this.gameState.scaledFishImage) {
@@ -340,8 +361,30 @@ class EventHandler {
     }
 
     const finalName = this.fishNameInput.trim();
-    this.hideNameInputDialog();
 
+    // 检查名称是否已存在
+    wx.showLoading({ title: '检查名称...', mask: true });
+
+    try {
+      const nameExists = await this.checkFishNameExists(finalName);
+      wx.hideLoading();
+
+      if (nameExists) {
+        wx.showToast({
+          title: `名称"${finalName}"已存在，请换一个`,
+          icon: 'none',
+          duration: 2000
+        });
+        return; // 名称重复，不继续后续逻辑
+      }
+    } catch (error) {
+      wx.hideLoading();
+      console.warn('名称检查失败，继续保存流程:', error);
+      // 检查失败时继续流程，不阻止用户
+    }
+
+    // 名称可用，继续保存流程
+    this.hideNameInputDialog();
     wx.showLoading({ title: '保存中...', mask: true });
 
     try {
