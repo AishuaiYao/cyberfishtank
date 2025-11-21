@@ -246,7 +246,7 @@ class EventHandler {
     await this.fishManager.processor.processFishImage();
   }
 
-  // 获取排行榜数据（带图片）
+  // 获取排行榜数据（带图片）- 修改：按照最终评分（点赞-点踩）由大到小排序
   async getRankingDataWithImages() {
     const rankingData = await this.databaseManager.getRankingData(20);
     const rankingFishes = [];
@@ -263,7 +263,15 @@ class EventHandler {
       }
     }
 
-    console.log(`成功创建 ${rankingFishes.length} 条排行榜鱼的图像`);
+    // 修改：按照最终评分（点赞数-点踩数）由大到小排序
+    rankingFishes.sort((a, b) => {
+      // 计算最终评分：点赞数 - 点踩数
+      const finalScoreA = (a.fishData.star || 0) - (a.fishData.unstar || 0);
+      const finalScoreB = (b.fishData.star || 0) - (b.fishData.unstar || 0);
+      return finalScoreB - finalScoreA; // 降序排列
+    });
+
+    console.log(`成功创建 ${rankingFishes.length} 条排行榜鱼的图像，已按最终评分（点赞-点踩）降序排列`);
     return rankingFishes;
   }
 
