@@ -1,4 +1,4 @@
-// eventHandler.js - 修复触摸事件处理
+// eventHandler.js - 彻底修复重复添加鱼和数据库鱼显示问题
 const { config, getAreaPositions } = require('./config.js');
 const AIService = require('./aiService.js');
 const DatabaseManager = require('./databaseManager.js');
@@ -13,9 +13,7 @@ const FishProcessor = require('./fishManager/fishProcessor.js');
 const FishAnimator = require('./fishManager/fishAnimator.js');
 const FishDataManager = require('./fishManager/fishDataManager.js');
 
-
 const { Fish, FishTank } = require('./fishCore.js');
-
 
 class EventHandler {
   constructor(canvas, ctx, gameState, uiManager) {
@@ -55,13 +53,21 @@ class EventHandler {
     this.dialogData = null;
     this.fishNameInput = '';
 
-    // 动画相关
-    this.fishTank = null;
+    // 动画相关 - 统一管理鱼缸
+    this.fishTank = new FishTank(this.ctx, config.screenWidth, config.screenHeight);
     this.databaseFishes = [];
+    this.userFishes = []; // 专门存储用户鱼
 
     // 加载状态
     this.isLoadingRanking = false;
     this.isLoadingDatabaseFishes = false;
+
+    // 防止重复提交的标志
+    this.isProcessingFishSubmission = false;
+    this.currentUserFishName = null;
+
+    // 鱼缸初始化标志
+    this.isFishTankInitialized = false;
 
     this.bindEvents();
   }
@@ -153,7 +159,7 @@ class EventHandler {
     }
   }
 
-  // 鱼缸功能
+  // 鱼缸功能 - 修复重复初始化和只显示本次绘制鱼的问题
   async handleFishTank() {
     await this.showFishTankInterface();
   }
@@ -162,21 +168,89 @@ class EventHandler {
     this.isSwimInterfaceVisible = true;
     this.swimInterfaceData = { mode: 'fishTank' };
 
-    if (!this.fishTank) {
-      const { FishTank } = require('./fishCore.js');
-      this.fishTank = new FishTank(this.ctx, config.screenWidth, config.screenHeight);
+    console.log('显示鱼缸界面，当前状态:', {
+      userFishes: this.userFishes.length,
+      databaseFishes: this.databaseFishes.length,
+      isInitialized: this.isFishTankInitialized
+    });
+
+    // 如果鱼缸未初始化，先初始化
+    if (!this.isFishTankInitialized) {
+      this.initializeFishTank();
+      this.isFishTankInitialized = true;
+    } else {
+      // 如果已经初始化，确保所有鱼都在鱼缸中
+      this.syncFishTank();
     }
 
-    // 清空当前鱼缸，只保留用户鱼
-    const currentUserFish = this.fishTank.fishes.filter(fish =>
-      !this.databaseFishes.includes(fish)
-    );
-    this.fishTank.fishes = currentUserFish;
-
-    await this.fishManager.data.loadAndShowDatabaseFishes();
+    // 加载数据库鱼（如果还没有加载过或需要重新加载）
+    if (this.databaseFishes.length === 0) {
+      console.log('数据库鱼为空，开始加载数据库鱼...');
+      await this.fishManager.data.loadAndShowDatabaseFishes();
+    } else {
+      console.log(`已有 ${this.databaseFishes.length} 条数据库鱼，跳过重新加载`);
+    }
 
     this.fishManager.animator.startAnimationLoop();
-    console.log('鱼缸界面已显示，包含数据库鱼和用户鱼');
+    console.log('鱼缸界面已显示，用户鱼数量:', this.userFishes.length, '数据库鱼数量:', this.databaseFishes.length, '鱼缸总鱼数:', this.fishTank.fishes.length);
+  }
+
+  // 修复：统一初始化鱼缸 - 不要清空现有鱼
+  initializeFishTank() {
+    console.log('初始化鱼缸...');
+
+    // 清空鱼缸，然后重新添加所有鱼
+    this.fishTank.fishes = [];
+
+    // 添加用户鱼
+    this.userFishes.forEach((fish, index) => {
+      console.log(`添加用户鱼 ${index + 1}: ${fish.name}`);
+      this.fishTank.addFish(fish);
+    });
+
+    // 添加数据库鱼
+    this.databaseFishes.forEach((fish, index) => {
+      console.log(`添加数据库鱼 ${index + 1}: ${fish.name}`);
+      this.fishTank.addFish(fish);
+    });
+
+    console.log('鱼缸初始化完成，总鱼数:', this.fishTank.fishes.length);
+  }
+
+  // 新增：同步鱼缸状态，确保所有鱼都在鱼缸中
+  syncFishTank() {
+    console.log('同步鱼缸状态...');
+
+    // 获取当前鱼缸中的所有鱼
+    const currentTankFishes = [...this.fishTank.fishes];
+
+    // 检查用户鱼是否都在鱼缸中
+    this.userFishes.forEach(userFish => {
+      const existsInTank = currentTankFishes.some(tankFish =>
+        tankFish.name === userFish.name &&
+        tankFish.fishData === userFish.fishData
+      );
+
+      if (!existsInTank) {
+        console.log(`添加缺失的用户鱼: ${userFish.name}`);
+        this.fishTank.addFish(userFish);
+      }
+    });
+
+    // 检查数据库鱼是否都在鱼缸中
+    this.databaseFishes.forEach(dbFish => {
+      const existsInTank = currentTankFishes.some(tankFish =>
+        tankFish.name === dbFish.name &&
+        tankFish.fishData?._id === dbFish.fishData?._id
+      );
+
+      if (!existsInTank) {
+        console.log(`添加缺失的数据库鱼: ${dbFish.name}`);
+        this.fishTank.addFish(dbFish);
+      }
+    });
+
+    console.log('鱼缸同步完成，当前鱼数:', this.fishTank.fishes.length);
   }
 
   hideSwimInterface() {
@@ -230,8 +304,14 @@ class EventHandler {
     console.log('排行榜界面已隐藏');
   }
 
-  // 游泳功能
+  // 游泳功能 - 修复重复调用
   async handleMakeItSwim() {
+    // 防止重复点击
+    if (this.isProcessingFishSubmission) {
+      console.log('正在处理鱼提交，请稍候...');
+      return;
+    }
+
     if (this.gameState.score < 60) {
       wx.showToast({ title: 'AI评分小于60，这鱼画的太抽象', icon: 'none', duration: 2000 });
       return;
@@ -242,7 +322,14 @@ class EventHandler {
       return;
     }
 
-    await this.fishManager.processor.processFishImage();
+    this.isProcessingFishSubmission = true;
+
+    try {
+      await this.fishManager.processor.processFishImage();
+    } catch (error) {
+      console.error('处理鱼图像失败:', error);
+      this.isProcessingFishSubmission = false;
+    }
   }
 
   // 获取排行榜数据（带图片）
@@ -268,6 +355,10 @@ class EventHandler {
 
   // 对话框功能
   showNameInputDialog(scaledImage) {
+    // 重置处理状态
+    this.isProcessingFishSubmission = false;
+    this.currentUserFishName = null;
+
     this.isDialogVisible = true;
     this.dialogData = { scaledImage: scaledImage };
     this.fishNameInput = `小鱼${Math.floor(Math.random() * 1000)}`;
@@ -276,6 +367,9 @@ class EventHandler {
   }
 
   showKeyboardInput() {
+    // 先清理之前的事件监听器
+    this.cleanupKeyboardListeners();
+
     wx.showKeyboard({
       defaultValue: this.fishNameInput,
       maxLength: 20,
@@ -287,27 +381,49 @@ class EventHandler {
       },
       fail: (err) => {
         console.error('键盘显示失败:', err);
+        // 键盘显示失败时直接使用当前输入
         this.confirmFishName();
       }
     });
 
-    wx.onKeyboardInput((res) => {
+    // 绑定新的事件监听器
+    this.keyboardInputCallback = (res) => {
       this.fishNameInput = res.value;
       this.uiManager.drawGameUI(this.gameState);
-    });
+    };
 
-    wx.onKeyboardConfirm((res) => {
+    this.keyboardConfirmCallback = (res) => {
       this.fishNameInput = res.value;
       this.confirmFishName();
-    });
+    };
 
-    wx.onKeyboardComplete((res) => {
+    this.keyboardCompleteCallback = (res) => {
       if (this.fishNameInput) {
         this.confirmFishName();
       } else {
         this.hideNameInputDialog();
       }
-    });
+    };
+
+    wx.onKeyboardInput(this.keyboardInputCallback);
+    wx.onKeyboardConfirm(this.keyboardConfirmCallback);
+    wx.onKeyboardComplete(this.keyboardCompleteCallback);
+  }
+
+  // 清理键盘事件监听器
+  cleanupKeyboardListeners() {
+    if (this.keyboardInputCallback) {
+      wx.offKeyboardInput(this.keyboardInputCallback);
+      this.keyboardInputCallback = null;
+    }
+    if (this.keyboardConfirmCallback) {
+      wx.offKeyboardConfirm(this.keyboardConfirmCallback);
+      this.keyboardConfirmCallback = null;
+    }
+    if (this.keyboardCompleteCallback) {
+      wx.offKeyboardComplete(this.keyboardCompleteCallback);
+      this.keyboardCompleteCallback = null;
+    }
   }
 
   hideNameInputDialog() {
@@ -315,9 +431,7 @@ class EventHandler {
     this.dialogData = null;
     this.fishNameInput = '';
 
-    wx.offKeyboardInput();
-    wx.offKeyboardConfirm();
-    wx.offKeyboardComplete();
+    this.cleanupKeyboardListeners();
     wx.hideKeyboard();
 
     this.uiManager.drawGameUI(this.gameState);
@@ -344,7 +458,14 @@ class EventHandler {
     }
   }
 
+  // 确认鱼名 - 修复鱼添加逻辑
   async confirmFishName() {
+    // 防止重复提交
+    if (this.isProcessingFishSubmission) {
+      console.log('正在处理鱼提交，请勿重复操作');
+      return;
+    }
+
     if (!this.dialogData || !this.dialogData.scaledImage) {
       if (!this.gameState.scaledFishImage) {
         wx.showToast({ title: '处理失败，请重试', icon: 'none', duration: 2000 });
@@ -362,7 +483,28 @@ class EventHandler {
 
     const finalName = this.fishNameInput.trim();
 
-    // 检查名称是否已存在
+    // 检查是否正在处理同一条鱼
+    if (this.currentUserFishName === finalName) {
+      console.log('正在处理同一条鱼，跳过重复提交');
+      return;
+    }
+
+    // 检查是否已经存在同名的用户鱼
+    const existingFish = this.userFishes.find(fish => fish.name === finalName);
+    if (existingFish) {
+      wx.showToast({
+        title: `名称"${finalName}"已存在`,
+        icon: 'none',
+        duration: 2000
+      });
+      return;
+    }
+
+    // 设置处理状态
+    this.isProcessingFishSubmission = true;
+    this.currentUserFishName = finalName;
+
+    // 检查名称是否已存在（数据库）
     wx.showLoading({ title: '检查名称...', mask: true });
 
     try {
@@ -375,12 +517,14 @@ class EventHandler {
           icon: 'none',
           duration: 2000
         });
-        return; // 名称重复，不继续后续逻辑
+        // 重置处理状态
+        this.isProcessingFishSubmission = false;
+        this.currentUserFishName = null;
+        return;
       }
     } catch (error) {
       wx.hideLoading();
       console.warn('名称检查失败，继续保存流程:', error);
-      // 检查失败时继续流程，不阻止用户
     }
 
     // 名称可用，继续保存流程
@@ -393,7 +537,7 @@ class EventHandler {
         uid: 12345,
         createdAt: new Date(),
         fishName: finalName,
-        score: 0,
+        score: this.gameState.score || 0,
         star: 0,
         unstar: 0,
         base64: base64Data,
@@ -411,35 +555,90 @@ class EventHandler {
       } else {
         wx.showToast({ title: `${finalName} 加入鱼缸！(本地)`, icon: 'success', duration: 1500 });
       }
+
+      // 添加到本地鱼缸
+      await this.addFishToLocalTank(scaledImage, finalName, fishData);
+
     } catch (error) {
       wx.hideLoading();
+      console.error('保存鱼数据失败:', error);
       wx.showToast({ title: `${finalName} 加入鱼缸！(本地)`, icon: 'success', duration: 1500 });
+
+      // 即使保存失败，也添加到本地鱼缸
+      await this.addFishToLocalTank(scaledImage, finalName, null);
+    } finally {
+      // 重置处理状态
+      this.isProcessingFishSubmission = false;
+      this.currentUserFishName = null;
+    }
+  }
+
+  // 修复：添加到本地鱼缸的逻辑
+  async addFishToLocalTank(scaledImage, fishName, fishData = null) {
+    // 再次检查是否已经存在同名的用户鱼
+    const existingFish = this.userFishes.find(fish => fish.name === fishName);
+    if (existingFish) {
+      console.log(`鱼 "${fishName}" 已经存在，跳过添加`);
+      await this.showSwimInterface();
+      return;
     }
 
-    if (!this.fishTank) {
-      const { Fish, FishTank } = require('./fishCore.js');
-      this.fishTank = new FishTank(this.ctx, config.screenWidth, config.screenHeight);
-    }
-
-    const { Fish } = require('./fishCore.js');
+    // 创建鱼对象
     const fish = new Fish(
       scaledImage.canvas,
       Math.random() * (config.screenWidth - scaledImage.width),
       Math.random() * (config.screenHeight - scaledImage.height),
       Math.random() < 0.5 ? -1 : 1,
-      finalName
+      fishName,
+      fishData
     );
-    this.fishTank.addFish(fish);
 
+    // 添加到用户鱼列表
+    this.userFishes.push(fish);
+
+    console.log(`成功添加鱼 "${fishName}" 到用户鱼列表，当前用户鱼数量: ${this.userFishes.length}`);
+
+    // 如果鱼缸已经初始化，直接添加到鱼缸
+    if (this.isFishTankInitialized) {
+      this.fishTank.addFish(fish);
+      console.log(`直接添加到鱼缸，当前鱼缸鱼数: ${this.fishTank.fishes.length}`);
+    }
+
+    // 显示游泳界面 - 这里会确保数据库鱼也被加载
     await this.showSwimInterface();
   }
 
+  // 修复：showSwimInterface 方法，确保数据库鱼正确加载
   async showSwimInterface() {
     this.isSwimInterfaceVisible = true;
     this.swimInterfaceData = { mode: 'fishTank' };
-    await this.fishManager.data.loadAndShowDatabaseFishes();
+
+    console.log('显示游泳界面，当前状态:', {
+      userFishes: this.userFishes.length,
+      databaseFishes: this.databaseFishes.length,
+      tankFishes: this.fishTank.fishes.length,
+      isInitialized: this.isFishTankInitialized
+    });
+
+    // 确保鱼缸已初始化
+    if (!this.isFishTankInitialized) {
+      this.initializeFishTank();
+      this.isFishTankInitialized = true;
+    } else {
+      // 同步鱼缸状态，确保所有鱼都在
+      this.syncFishTank();
+    }
+
+    // 关键修复：确保数据库鱼被加载
+    if (this.databaseFishes.length === 0) {
+      console.log('数据库鱼为空，开始加载数据库鱼...');
+      await this.fishManager.data.loadAndShowDatabaseFishes();
+    } else {
+      console.log(`已有 ${this.databaseFishes.length} 条数据库鱼，跳过重新加载`);
+    }
+
     this.fishManager.animator.startAnimationLoop();
-    console.log('公共鱼缸界面已显示，包含数据库鱼和用户鱼');
+    console.log('公共鱼缸界面已显示，总鱼数:', this.fishTank.fishes.length);
   }
 
   // 鱼详情功能
