@@ -232,6 +232,7 @@ class EventHandler {
   }
 
 
+// 在 eventHandler.js 中的 handleMakeItSwim 方法
 async handleMakeItSwim() {
   if (this.gameState.score < 60) {
     wx.showToast({ title: 'AI评分小于60，这鱼画的太抽象', icon: 'none', duration: 2000 });
@@ -248,9 +249,13 @@ async handleMakeItSwim() {
     this.positions = getAreaPositions();
   }
 
-  await this.fishManager.processor.processFishImage();
+  try {
+    await this.fishManager.processor.processFishImage();
+  } catch (error) {
+    console.error('处理鱼图像失败:', error);
+    wx.showToast({ title: '处理失败，请重试', icon: 'none', duration: 2000 });
+  }
 }
-
   // 获取排行榜数据（带图片）- 修改：按照最终评分（点赞-点踩）由大到小排序
   async getRankingDataWithImages() {
     const rankingData = await this.databaseManager.getRankingData(20);
