@@ -41,61 +41,26 @@ class DatabaseManager {
     }
   }
 
-  // 从数据库随机获取鱼数据
-  async getRandomFishesFromDatabase(count = 20) {
-    if (!this.isCloudDbInitialized || !this.cloudDb) {
-      console.warn('云数据库未初始化，无法获取数据');
-      return [];
-    }
+async getRandomFishesFromDatabase(count = 20) {
+  if (!this.isCloudDbInitialized) return [];
 
-    try {
-      console.log('开始从数据库获取随机鱼数据...');
+  try {
+    // 优先使用方法1：数据库真随机
+    const result = await this.cloudDb.collection('fishes')
+      .aggregate()
+      .sample({ size: count })
+      .end();
 
-      const countResult = await this.cloudDb.collection('fishes').count();
-      const totalCount = countResult.total;
+    console.log(`使用数据库真随机获取了 ${result.list.length} 条鱼数据`);
+    return result.list;
 
-      console.log(`数据库中共有 ${totalCount} 条鱼数据`);
+  } catch (error) {
+    console.warn('数据库真随机不支持，需要备选方案:', error);
 
-      if (totalCount === 0) {
-        console.log('数据库中没有鱼数据');
-        return [];
-      }
-
-      const actualCount = Math.min(count, totalCount);
-      const skipCount = totalCount > actualCount ?
-        Math.floor(Math.random() * (totalCount - actualCount)) : 0;
-
-      console.log(`随机跳过 ${skipCount} 条记录，获取 ${actualCount} 条鱼数据`);
-
-      const result = await this.cloudDb.collection('fishes')
-        .skip(skipCount)
-        .limit(actualCount)
-        .field({
-          fishName: true,
-          createdAt: true,
-          score: true,
-          star: true,
-          unstar: true,
-          base64: true,
-          fishid: true,
-          _id: true
-        })
-        .get();
-
-      console.log(`成功获取 ${result.data.length} 条鱼数据`);
-
-      const validFishes = result.data.filter(fish =>
-        fish.base64 && fish.base64.length > 0
-      );
-
-      console.log(`其中 ${validFishes.length} 条有有效的base64数据`);
-
-      return validFishes;
-    } catch (error) {
-      console.error('从数据库获取鱼数据失败:', error);
-      return [];
-    }
+    // 只有方法1失败时才需要方法2
+    return await this.getRandomFishesFallback(count);
   }
+}
 
 async getRankingData(limit = 100) {
   if (!this.isCloudDbInitialized || !this.cloudDb) {
