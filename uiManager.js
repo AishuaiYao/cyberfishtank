@@ -36,7 +36,7 @@ class UIManager {
     this.eventHandler = eventHandler;
   }
 
-  // 绘制鱼缸界面
+  // 修改：绘制鱼缸界面
   drawFishTankInterface() {
     const ctx = this.ctx;
 
@@ -46,6 +46,10 @@ class UIManager {
 
     // 绘制返回按钮
     Utils.drawModernButton(ctx, 20, 40, 50, 30, '返回', false, true);
+
+    // 新增：绘制刷新按钮
+//    Utils.drawModernButton(ctx, config.screenWidth - 70, 40, 50, 30, '刷新', false, false);
+    Utils.drawModernButton(ctx, 80, 40, 50, 30, '刷新', false, false);
 
     // 绘制标题
     ctx.fillStyle = config.textColor;

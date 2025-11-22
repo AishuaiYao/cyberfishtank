@@ -90,72 +90,10 @@ class FishDataManager {
     });
   }
 
-  // 加载并显示数据库中的鱼 - 简化：每次调用都重新从数据库随机获取20条
+  // 修改：不再需要此方法，由eventHandler统一管理
   async loadAndShowDatabaseFishes(targetFishName = null) {
-    if (this.eventHandler.isLoadingDatabaseFishes) {
-      console.log('正在加载数据库鱼数据，请稍候...');
-      return;
-    }
-
-    this.eventHandler.isLoadingDatabaseFishes = true;
-
-    try {
-      console.log('开始从数据库随机加载鱼数据...');
-      wx.showLoading({ title: '加载鱼缸中...', mask: true });
-
-      // 直接从数据库随机获取20条鱼数据
-      let databaseFishes = await this.eventHandler.databaseManager.getRandomFishesFromDatabase(20);
-
-      if (databaseFishes.length === 0) {
-        console.log('没有从数据库获取到鱼数据');
-        wx.hideLoading();
-        this.eventHandler.isLoadingDatabaseFishes = false;
-        return;
-      }
-
-      console.log(`开始创建 ${databaseFishes.length} 条数据库鱼...`);
-
-      const fishCreationPromises = databaseFishes.map(fishData =>
-        this.createFishFromDatabaseData(fishData)
-      );
-
-      const createdFishes = await Promise.all(fishCreationPromises);
-      const validFishes = createdFishes.filter(fish => fish !== null);
-
-      console.log(`成功创建 ${validFishes.length} 条数据库鱼`);
-
-      // 清空当前鱼缸，全部重新添加
-      this.eventHandler.fishTank.fishes = [];
-      this.eventHandler.addedUserFishNames.clear();
-
-      validFishes.forEach(fish => {
-        this.eventHandler.fishTank.addFish(fish);
-        this.eventHandler.addedUserFishNames.add(fish.name);
-      });
-
-      this.eventHandler.databaseFishes = validFishes;
-
-      wx.hideLoading();
-
-      if (validFishes.length > 0) {
-        wx.showToast({
-          title: `已加载 ${validFishes.length} 条鱼`,
-          icon: 'success',
-          duration: 1500
-        });
-      }
-
-    } catch (error) {
-      console.error('加载数据库鱼数据失败:', error);
-      wx.hideLoading();
-      wx.showToast({
-        title: '加载鱼缸数据失败',
-        icon: 'none',
-        duration: 2000
-      });
-    } finally {
-      this.eventHandler.isLoadingDatabaseFishes = false;
-    }
+    console.warn('此方法已弃用，请使用eventHandler的全局鱼列表管理');
+    return [];
   }
 
   // 新增：根据鱼名查询特定鱼

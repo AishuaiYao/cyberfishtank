@@ -1,4 +1,4 @@
-// eventHandler.js - 修复触摸事件处理
+// eventHandler.js - 添加全局鱼列表管理
 const { config, getAreaPositions } = require('./config.js');
 const AIService = require('./aiService.js');
 const DatabaseManager = require('./databaseManager.js');
@@ -63,6 +63,10 @@ class EventHandler {
 
     // 新增：记录已添加的用户鱼名称，防止重复添加
     this.addedUserFishNames = new Set();
+
+    // 新增：全局鱼列表
+    this.globalFishList = [];
+    this.isFirstEnterTank = true; // 是否首次进入鱼缸
 
     this.bindEvents();
   }
@@ -154,12 +158,33 @@ class EventHandler {
     }
   }
 
-  // 鱼缸功能 - 简化：每次点击都重新从数据库随机加载20条鱼
+  // 修改：鱼缸功能 - 使用全局列表
   async handleFishTank() {
-    await this.showFishTankInterface();
+    await this.enterFishTank(); // 不传参数，只是进入鱼缸
   }
 
-  async showFishTankInterface() {
+  // 修改：让它游起来处理
+  async handleMakeItSwim() {
+    if (this.gameState.score < 60) {
+      wx.showToast({ title: 'AI评分小于60，这鱼画的太抽象', icon: 'none', duration: 2000 });
+      return;
+    }
+
+    if (this.gameState.drawingPaths.length === 0) {
+      wx.showToast({ title: '请先画一条鱼', icon: 'none', duration: 1500 });
+      return;
+    }
+
+    try {
+      await this.fishManager.processor.processFishImage();
+    } catch (error) {
+      console.error('处理鱼图像失败:', error);
+      wx.showToast({ title: '处理失败，请重试', icon: 'none', duration: 2000 });
+    }
+  }
+
+  // 新增：进入鱼缸的统一方法
+  async enterFishTank(newFishName = null) {
     this.isSwimInterfaceVisible = true;
     this.swimInterfaceData = { mode: 'fishTank' };
 
@@ -168,14 +193,102 @@ class EventHandler {
       this.fishTank = new FishTank(this.ctx, config.screenWidth, config.screenHeight);
     }
 
-    // 清空当前鱼缸
+    // 清空当前鱼缸显示
     this.fishTank.fishes = [];
     this.addedUserFishNames.clear();
 
-    // 直接从数据库随机加载20条鱼
-    await this.fishManager.data.loadAndShowDatabaseFishes();
+    // 首次进入：从数据库加载并初始化全局列表
+    if (this.isFirstEnterTank) {
+      await this.loadInitialFishes();
+      this.isFirstEnterTank = false;
+    }
+
+    // 如果有指定新鱼（从"让它游起来"来的），确保它在列表中
+    if (newFishName) {
+      await this.ensureFishInList(newFishName);
+    }
+
+    // 从全局列表创建鱼对象并显示
+    await this.createFishesFromGlobalList();
+
     this.fishManager.animator.startAnimationLoop();
-    console.log('鱼缸界面已显示，包含随机20条数据库鱼');
+    console.log('进入鱼缸，当前鱼数量:', this.globalFishList.length);
+  }
+
+  // 新增：首次加载初始鱼数据
+  async loadInitialFishes() {
+    try {
+      console.log('首次加载初始鱼数据...');
+      const databaseFishes = await this.databaseManager.getRandomFishesFromDatabase(20);
+      this.globalFishList = databaseFishes;
+      console.log('初始鱼数据加载完成，数量:', this.globalFishList.length);
+    } catch (error) {
+      console.error('加载初始鱼数据失败:', error);
+      this.globalFishList = [];
+    }
+  }
+
+  // 新增：确保指定鱼在全局列表中
+  async ensureFishInList(fishName) {
+    // 检查是否已在列表中
+    const existingFish = this.globalFishList.find(fish =>
+      fish.fishName === fishName
+    );
+
+    if (!existingFish) {
+      // 从数据库查询这条鱼并加入列表
+      const fishData = await this.fishManager.data.getFishByName(fishName);
+      if (fishData) {
+        this.globalFishList.unshift(fishData); // 新鱼放在前面
+        console.log('新鱼加入全局列表:', fishName);
+      }
+    }
+  }
+
+  // 新增：从全局列表创建鱼对象
+  async createFishesFromGlobalList() {
+    if (this.globalFishList.length === 0) return;
+
+    console.log('从全局列表创建鱼对象，数量:', this.globalFishList.length);
+
+    const fishCreationPromises = this.globalFishList.map(fishData =>
+      this.fishManager.data.createFishFromDatabaseData(fishData)
+    );
+
+    const createdFishes = await Promise.all(fishCreationPromises);
+    const validFishes = createdFishes.filter(fish => fish !== null);
+
+    // 添加到鱼缸显示
+    validFishes.forEach(fish => {
+      this.fishTank.addFish(fish);
+      this.addedUserFishNames.add(fish.name);
+    });
+
+    console.log('成功创建鱼对象:', validFishes.length);
+  }
+
+  // 新增：刷新鱼缸数据
+  async refreshFishTank() {
+    console.log('手动刷新鱼缸数据...');
+    wx.showLoading({ title: '刷新中...', mask: true });
+
+    try {
+      // 重新从数据库随机加载
+      const newFishes = await this.databaseManager.getRandomFishesFromDatabase(20);
+      this.globalFishList = newFishes;
+
+      // 清空并重新创建鱼对象
+      this.fishTank.fishes = [];
+      this.addedUserFishNames.clear();
+      await this.createFishesFromGlobalList();
+
+      wx.showToast({ title: `刷新完成，${newFishes.length}条鱼`, icon: 'success', duration: 1500 });
+    } catch (error) {
+      console.error('刷新鱼缸失败:', error);
+      wx.showToast({ title: '刷新失败', icon: 'none', duration: 1500 });
+    } finally {
+      wx.hideLoading();
+    }
   }
 
   hideSwimInterface() {
@@ -229,31 +342,6 @@ class EventHandler {
     console.log('排行榜界面已隐藏');
   }
 
-
-// 在 eventHandler.js 中的 handleMakeItSwim 方法
-async handleMakeItSwim() {
-  if (this.gameState.score < 60) {
-    wx.showToast({ title: 'AI评分小于60，这鱼画的太抽象', icon: 'none', duration: 2000 });
-    return;
-  }
-
-  if (this.gameState.drawingPaths.length === 0) {
-    wx.showToast({ title: '请先画一条鱼', icon: 'none', duration: 1500 });
-    return;
-  }
-
-  // 确保 positions 已初始化
-  if (!this.positions) {
-    this.positions = getAreaPositions();
-  }
-
-  try {
-    await this.fishManager.processor.processFishImage();
-  } catch (error) {
-    console.error('处理鱼图像失败:', error);
-    wx.showToast({ title: '处理失败，请重试', icon: 'none', duration: 2000 });
-  }
-}
   // 获取排行榜数据（带图片）- 修改：按照最终评分（点赞-点踩）由大到小排序
   async getRankingDataWithImages() {
     const rankingData = await this.databaseManager.getRankingData(20);
@@ -425,8 +513,8 @@ async handleMakeItSwim() {
       if (insertSuccess) {
         wx.showToast({ title: `${finalName} 加入鱼缸！`, icon: 'success', duration: 1500 });
 
-        // 修改：传入鱼名，确保这条鱼被加载
-        await this.showSwimInterface(finalName);
+        // 修改：进入鱼缸并确保新鱼显示
+        await this.enterFishTank(finalName);
       } else {
         wx.showToast({ title: `${finalName} 加入鱼缸！(本地)`, icon: 'success', duration: 1500 });
         // 本地模式下还是使用原有逻辑
@@ -440,7 +528,7 @@ async handleMakeItSwim() {
         );
         this.fishTank.addFish(fish);
         this.addedUserFishNames.add(finalName);
-        await this.showSwimInterface();
+        await this.enterFishTank();
       }
     } catch (error) {
       wx.hideLoading();
@@ -456,7 +544,7 @@ async handleMakeItSwim() {
       );
       this.fishTank.addFish(fish);
       this.addedUserFishNames.add(finalName);
-      await this.showSwimInterface();
+      await this.enterFishTank();
     }
   }
 
@@ -513,26 +601,6 @@ async handleMakeItSwim() {
       );
       console.log(`已移除 ${fishesToRemove.length} 条重复名称的鱼`);
     }
-  }
-
-  async showSwimInterface(targetFishName = null) {
-    this.isSwimInterfaceVisible = true;
-    this.swimInterfaceData = { mode: 'fishTank' };
-
-    if (!this.fishTank) {
-      const { FishTank } = require('./fishCore.js');
-      this.fishTank = new FishTank(this.ctx, config.screenWidth, config.screenHeight);
-    }
-
-    // 清空当前鱼缸
-    this.fishTank.fishes = [];
-    this.addedUserFishNames.clear();
-
-    // 修改：传入目标鱼名，确保这条鱼被加载
-    await this.fishManager.data.loadAndShowDatabaseFishes(targetFishName);
-
-    this.fishManager.animator.startAnimationLoop();
-    console.log('公共鱼缸界面已显示，包含数据库鱼和用户鱼');
   }
 
   // 鱼详情功能

@@ -7,11 +7,17 @@ class SwimTouchHandler {
     this.tapTimeout = null;
   }
 
-  // 处理游泳界面触摸
+  // 修改：处理游泳界面触摸
   handleTouch(x, y) {
     // 返回按钮
     if (x >= 20 && x <= 70 && y >= 40 && y <= 70) {
       this.eventHandler.hideSwimInterface();
+      return;
+    }
+
+    // 修改：刷新按钮 (在返回按钮旁边)
+    if (x >= 80 && x <= 130 && y >= 40 && y <= 70) {
+      this.eventHandler.refreshFishTank();
       return;
     }
 
