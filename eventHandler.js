@@ -494,17 +494,17 @@ class EventHandler {
     try {
       const base64Data = await this.fishManager.data.canvasToBase64(scaledImage.canvas);
       const fishData = {
-        uid: 12345,
+//        uid: 12345,
         createdAt: new Date(),
         fishName: finalName,
         score: 0,
         star: 0,
         unstar: 0,
         base64: base64Data,
-        imageWidth: scaledImage.width,
-        imageHeight: scaledImage.height,
+//        imageWidth: scaledImage.width,
+//        imageHeight: scaledImage.height,
         createTimestamp: Date.now(),
-        userInfo: this.getUserInfo()
+//        userInfo: this.getUserInfo()
       };
 
       const insertSuccess = await this.databaseManager.insertFishToDatabase(fishData);

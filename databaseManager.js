@@ -143,7 +143,7 @@ async getRankingData(limit = 100) {
   async insertWithBackupMethod(fishData) {
     try {
       const simpleFishData = {
-        uid: 12345,
+//        uid: 12345,
         fish_name: fishData.fishName,
         score: 0,
         star_count: 0,
