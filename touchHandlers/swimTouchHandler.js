@@ -80,12 +80,12 @@ class SwimTouchHandler {
       this.eventHandler.fishTank.spawnFishFood(x, y, 10);
       console.log(`在位置 (${x}, ${y}) 生成鱼粮`);
 
-      // 显示提示
-      wx.showToast({
-        title: '投放了鱼粮',
-        icon: 'success',
-        duration: 1000
-      });
+//      // 显示提示
+//      wx.showToast({
+//        title: '投放了鱼粮',
+//        icon: 'success',
+//        duration: 1000
+//      });
     }
   }
 }

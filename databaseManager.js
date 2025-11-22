@@ -97,45 +97,51 @@ class DatabaseManager {
     }
   }
 
-  // 获取排行榜数据
-  async getRankingData(limit = 20) {
-    if (!this.isCloudDbInitialized || !this.cloudDb) {
-      console.warn('云数据库未初始化，无法获取排行榜数据');
-      return [];
-    }
+async getRankingData(limit = 100) {
+  if (!this.isCloudDbInitialized || !this.cloudDb) {
+    console.warn('云数据库未初始化，无法获取排行榜数据');
+    return [];
+  }
 
-    try {
-      console.log('开始获取排行榜数据...');
+  try {
+    console.log(`开始获取排行榜数据，目标: ${limit} 条`);
 
+    let allData = [];
+    let skip = 0;
+    const batchSize = 20; // 每次获取20条
+
+    while (allData.length < limit) {
       const result = await this.cloudDb.collection('fishes')
         .orderBy('score', 'desc')
-        .limit(limit)
-        .field({
-          fishName: true,
-          createdAt: true,
-          score: true,
-          star: true,
-          unstar: true,
-          base64: true,
-          fishid: true,
-          _id: true
-        })
+        .skip(skip)
+        .limit(batchSize)
         .get();
 
-      console.log(`成功获取 ${result.data.length} 条排行榜数据`);
+      if (result.data.length === 0) {
+        break; // 没有更多数据了
+      }
 
-      const validRankingData = result.data.filter(fish =>
-        fish.base64 && fish.base64.length > 0
-      );
+      allData = allData.concat(result.data);
+      skip += batchSize;
 
-      console.log(`其中 ${validRankingData.length} 条有有效的base64数据`);
-
-      return validRankingData;
-    } catch (error) {
-      console.error('获取排行榜数据失败:', error);
-      return [];
+      console.log(`已获取 ${allData.length} 条数据`);
     }
+
+    // 限制最终数量
+    const finalData = allData.slice(0, limit);
+    console.log(`最终获取 ${finalData.length} 条排行榜数据`);
+
+    const validRankingData = finalData.filter(fish =>
+      fish.base64 && fish.base64.length > 0
+    );
+
+    console.log(`有效数据: ${validRankingData.length} 条`);
+    return validRankingData;
+  } catch (error) {
+    console.error('获取排行榜数据失败:', error);
+    return [];
   }
+}
 
   // 向数据库插入鱼数据
   async insertFishToDatabase(fishData) {

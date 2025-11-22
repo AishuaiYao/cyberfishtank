@@ -344,7 +344,7 @@ class EventHandler {
 
   // 获取排行榜数据（带图片）- 修改：按照最终评分（点赞-点踩）由大到小排序
   async getRankingDataWithImages() {
-    const rankingData = await this.databaseManager.getRankingData(20);
+    const rankingData = await this.databaseManager.getRankingData(100);
     const rankingFishes = [];
 
     for (const fishData of rankingData) {

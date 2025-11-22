@@ -150,6 +150,9 @@ class UIManager {
     const rankingFishes = this.eventHandler.rankingData.fishes;
     const scrollOffset = this.eventHandler.touchHandlers.ranking.getScrollOffset();
 
+      console.log(`排行榜数据总数: ${rankingFishes.length}`); // 添加这行
+  console.log(`当前滚动位置: ${scrollOffset}`); // 添加这行
+
     const cardWidth = (config.screenWidth - 60) / 2;
     const cardHeight = 200;
     const startY = 100 - scrollOffset;
@@ -455,7 +458,8 @@ class UIManager {
     const dialogWidth = config.screenWidth - 80;
     const dialogHeight = 220;
     const dialogX = 40;
-    const dialogY = (config.screenHeight - dialogHeight) / 2;
+    const dialogY = (config.screenHeight - dialogHeight) / 2 - 100; // 向上移动100像素
+
 
     // 绘制半透明背景遮罩
     ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
