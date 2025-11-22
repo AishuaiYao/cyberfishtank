@@ -317,15 +317,14 @@ async handleMakeItSwim() {
 
     wx.onKeyboardConfirm((res) => {
       this.fishNameInput = res.value;
-      this.confirmFishName();
+      this.confirmFishName();  // 只在这里调用确认方法
     });
 
+    // 修复：删除 onKeyboardComplete 中的重复调用
     wx.onKeyboardComplete((res) => {
-      if (this.fishNameInput) {
-        this.confirmFishName();
-      } else {
-        this.hideNameInputDialog();
-      }
+      // 只隐藏键盘，不重复调用 confirmFishName
+      console.log('键盘输入完成，隐藏对话框');
+      this.hideNameInputDialog();
     });
   }
 
