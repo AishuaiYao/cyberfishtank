@@ -4,9 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="鱼缸渲染重复">
+    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="修复了鱼缸渲染重复&#10;修复了数据库重复插入">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/eventHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/eventHandler.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fishCore.js" beforeDir="false" afterPath="$PROJECT_DIR$/fishCore.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fishManager/fishDataManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/fishManager/fishDataManager.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/prompt.txt" beforeDir="false" afterPath="$PROJECT_DIR$/prompt.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -393,11 +395,18 @@
       <option name="project" value="LOCAL" />
       <updated>1763801488459</updated>
     </task>
-    <option name="localTasksCounter" value="41" />
+    <task id="LOCAL-00041" summary="修复了鱼缸渲染重复&#10;修复了数据库重复插入">
+      <option name="closed" value="true" />
+      <created>1763803355691</created>
+      <option name="number" value="00041" />
+      <option name="presentableId" value="LOCAL-00041" />
+      <option name="project" value="LOCAL" />
+      <updated>1763803355691</updated>
+    </task>
+    <option name="localTasksCounter" value="42" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="0.0.2" />
     <MESSAGE value="可以裁剪图片" />
     <MESSAGE value="增加了公共鱼缸" />
     <MESSAGE value="实现返回功能" />
@@ -422,6 +431,7 @@
     <MESSAGE value="重复添加鱼fix" />
     <MESSAGE value="优化UI" />
     <MESSAGE value="鱼缸渲染重复" />
-    <option name="LAST_COMMIT_MESSAGE" value="鱼缸渲染重复" />
+    <MESSAGE value="修复了鱼缸渲染重复&#10;修复了数据库重复插入" />
+    <option name="LAST_COMMIT_MESSAGE" value="修复了鱼缸渲染重复&#10;修复了数据库重复插入" />
   </component>
 </project>

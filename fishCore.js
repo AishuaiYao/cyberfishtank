@@ -360,12 +360,19 @@ class FishTank {
   }
 
   addFish(fish) {
-    // 新增：在添加鱼之前检查名称是否重复
-    const existingFish = this.fishes.find(f => f.name === fish.name);
-    if (existingFish) {
+    // 检查名称重复
+    const existingFishByName = this.fishes.find(f => f.name === fish.name);
+    if (existingFishByName) {
       console.warn(`鱼名称 "${fish.name}" 已存在，跳过添加`);
       return false;
     }
+
+    // 可选：检查图像相似性（根据需求决定是否启用）
+    // const existingFishByImage = this.findSimilarFish(fish);
+    // if (existingFishByImage) {
+    //   console.warn(`发现相似的鱼 "${existingFishByImage.name}"，跳过添加`);
+    //   return false;
+    // }
 
     fish.setCanvasSize(this.width, this.height);
     this.fishes.push(fish);

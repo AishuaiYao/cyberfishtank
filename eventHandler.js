@@ -175,7 +175,6 @@ class EventHandler {
     this.fishTank.fishes = currentUserFish;
 
     await this.fishManager.data.loadAndShowDatabaseFishes();
-
     this.fishManager.animator.startAnimationLoop();
     console.log('鱼缸界面已显示，包含数据库鱼和用户鱼');
   }
@@ -426,31 +425,28 @@ async handleMakeItSwim() {
 
       if (insertSuccess) {
         wx.showToast({ title: `${finalName} 加入鱼缸！`, icon: 'success', duration: 1500 });
+
+        // 修改：传入鱼名，确保这条鱼被加载
+        await this.showSwimInterface(finalName);
       } else {
         wx.showToast({ title: `${finalName} 加入鱼缸！(本地)`, icon: 'success', duration: 1500 });
+        // 本地模式下还是使用原有逻辑
+        const { Fish } = require('./fishCore.js');
+        const fish = new Fish(
+          scaledImage.canvas,
+          Math.random() * (config.screenWidth - scaledImage.width),
+          Math.random() * (config.screenHeight - scaledImage.height),
+          Math.random() < 0.5 ? -1 : 1,
+          finalName
+        );
+        this.fishTank.addFish(fish);
+        this.addedUserFishNames.add(finalName);
+        await this.showSwimInterface();
       }
     } catch (error) {
       wx.hideLoading();
       wx.showToast({ title: `${finalName} 加入鱼缸！(本地)`, icon: 'success', duration: 1500 });
-    }
-
-    // 修复：检查鱼缸中是否已存在同名鱼，避免重复添加
-    if (!this.fishTank) {
-      const { Fish, FishTank } = require('./fishCore.js');
-      this.fishTank = new FishTank(this.ctx, config.screenWidth, config.screenHeight);
-    }
-
-    // 新增：检查鱼缸中是否已存在同名鱼
-    const existingFish = this.findFishByName(finalName);
-    if (existingFish) {
-      console.log(`鱼 "${finalName}" 已存在于鱼缸中，跳过重复添加`);
-      wx.showToast({
-        title: `${finalName} 已在鱼缸中`,
-        icon: 'none',
-        duration: 1500
-      });
-    } else {
-      // 只有不存在时才添加新鱼
+      // 错误处理同上
       const { Fish } = require('./fishCore.js');
       const fish = new Fish(
         scaledImage.canvas,
@@ -460,13 +456,9 @@ async handleMakeItSwim() {
         finalName
       );
       this.fishTank.addFish(fish);
-
-      // 记录已添加的鱼名称
       this.addedUserFishNames.add(finalName);
-      console.log(`成功添加新鱼: ${finalName}`);
+      await this.showSwimInterface();
     }
-
-    await this.showSwimInterface();
   }
 
   // 新增：根据名称查找鱼缸中是否已存在同名鱼
@@ -524,14 +516,22 @@ async handleMakeItSwim() {
     }
   }
 
-  async showSwimInterface() {
+  async showSwimInterface(targetFishName = null) {
     this.isSwimInterfaceVisible = true;
     this.swimInterfaceData = { mode: 'fishTank' };
 
-    // 新增：在显示鱼缸界面时校验所有鱼的名称
-    this.validateFishNamesInTank();
+    if (!this.fishTank) {
+      const { FishTank } = require('./fishCore.js');
+      this.fishTank = new FishTank(this.ctx, config.screenWidth, config.screenHeight);
+    }
 
-    await this.fishManager.data.loadAndShowDatabaseFishes();
+    // 清空当前鱼缸
+    this.fishTank.fishes = [];
+    this.addedUserFishNames.clear();
+
+    // 修改：传入目标鱼名，确保这条鱼被加载
+    await this.fishManager.data.loadAndShowDatabaseFishes(targetFishName);
+
     this.fishManager.animator.startAnimationLoop();
     console.log('公共鱼缸界面已显示，包含数据库鱼和用户鱼');
   }

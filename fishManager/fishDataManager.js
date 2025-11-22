@@ -91,7 +91,7 @@ class FishDataManager {
   }
 
   // 加载并显示数据库中的鱼
-  async loadAndShowDatabaseFishes() {
+  async loadAndShowDatabaseFishes(targetFishName = null) {
     if (this.eventHandler.isLoadingDatabaseFishes) {
       console.log('正在加载数据库鱼数据，请稍候...');
       return;
@@ -103,7 +103,35 @@ class FishDataManager {
       console.log('开始加载数据库中的鱼...');
       wx.showLoading({ title: '加载鱼缸中...', mask: true });
 
-      const databaseFishes = await this.eventHandler.databaseManager.getRandomFishesFromDatabase(20);
+      // 先加载随机鱼数据
+      let databaseFishes = await this.eventHandler.databaseManager.getRandomFishesFromDatabase(20);
+
+      // 如果有指定鱼名，确保这条鱼在列表中
+      if (targetFishName) {
+        console.log(`确保鱼 "${targetFishName}" 在鱼缸中`);
+
+        // 检查随机鱼数据中是否已经包含目标鱼
+        const hasTargetFish = databaseFishes.some(fish =>
+          fish.fishName === targetFishName
+        );
+
+        // 如果不包含，专门查询这条鱼
+        if (!hasTargetFish) {
+          try {
+            const targetFish = await this.getFishByName(targetFishName);
+            if (targetFish) {
+              // 如果随机数据已满20条，替换最后一条
+              if (databaseFishes.length >= 20) {
+                databaseFishes.pop();
+              }
+              databaseFishes.unshift(targetFish); // 添加到前面
+              console.log(`成功添加目标鱼 "${targetFishName}" 到鱼缸列表`);
+            }
+          } catch (error) {
+            console.warn(`查询目标鱼 "${targetFishName}" 失败:`, error);
+          }
+        }
+      }
 
       if (databaseFishes.length === 0) {
         console.log('没有从数据库获取到鱼数据');
@@ -123,9 +151,12 @@ class FishDataManager {
 
       console.log(`成功创建 ${validFishes.length} 条数据库鱼`);
 
+      // 清空当前鱼缸，全部重新添加
+      this.eventHandler.fishTank.fishes = [];
+      this.eventHandler.addedUserFishNames.clear();
+
       validFishes.forEach(fish => {
         this.eventHandler.fishTank.addFish(fish);
-        // 记录数据库鱼的名称
         this.eventHandler.addedUserFishNames.add(fish.name);
       });
 
@@ -151,6 +182,35 @@ class FishDataManager {
       });
     } finally {
       this.eventHandler.isLoadingDatabaseFishes = false;
+    }
+  }
+
+  // 新增：根据鱼名查询特定鱼
+  async getFishByName(fishName) {
+    if (!this.eventHandler.databaseManager.isCloudDbInitialized ||
+        !this.eventHandler.databaseManager.cloudDb) {
+      console.warn('云数据库未初始化，无法查询特定鱼');
+      return null;
+    }
+
+    try {
+      console.log(`查询鱼: ${fishName}`);
+      const result = await this.eventHandler.databaseManager.cloudDb.collection('fishes')
+        .where({
+          fishName: fishName
+        })
+        .get();
+
+      if (result.data.length > 0) {
+        console.log(`找到鱼 "${fishName}"`);
+        return result.data[0];
+      } else {
+        console.log(`未找到鱼 "${fishName}"`);
+        return null;
+      }
+    } catch (error) {
+      console.error(`查询鱼 "${fishName}" 失败:`, error);
+      return null;
     }
   }
 }
