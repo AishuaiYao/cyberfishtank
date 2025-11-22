@@ -11,7 +11,7 @@ class DialogTouchHandler {
     const dialogWidth = config.screenWidth - 80;
     const dialogHeight = 220;
     const dialogX = 40;
-    const dialogY = (config.screenHeight - dialogHeight) / 2;
+    const dialogY = (config.screenHeight - dialogHeight) / 2 - 100;
 
     // 确认按钮
     const confirmButtonX = dialogX + 20;
