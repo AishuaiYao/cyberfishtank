@@ -497,9 +497,41 @@ async handleMakeItSwim() {
     return false;
   }
 
+  // 新增：在进入鱼缸界面时校验所有鱼的名称，移除重复的鱼
+  validateFishNamesInTank() {
+    if (!this.fishTank || !this.fishTank.fishes || this.fishTank.fishes.length === 0) {
+      return;
+    }
+
+    const uniqueNames = new Set();
+    const fishesToRemove = [];
+
+    // 找出重复名称的鱼
+    for (const fish of this.fishTank.fishes) {
+      if (uniqueNames.has(fish.name)) {
+        fishesToRemove.push(fish);
+        console.log(`检测到重复名称的鱼: ${fish.name}，将被移除`);
+      } else {
+        uniqueNames.add(fish.name);
+      }
+    }
+
+    // 移除重复的鱼
+    if (fishesToRemove.length > 0) {
+      this.fishTank.fishes = this.fishTank.fishes.filter(fish =>
+        !fishesToRemove.includes(fish)
+      );
+      console.log(`已移除 ${fishesToRemove.length} 条重复名称的鱼`);
+    }
+  }
+
   async showSwimInterface() {
     this.isSwimInterfaceVisible = true;
     this.swimInterfaceData = { mode: 'fishTank' };
+
+    // 新增：在显示鱼缸界面时校验所有鱼的名称
+    this.validateFishNamesInTank();
+
     await this.fishManager.data.loadAndShowDatabaseFishes();
     this.fishManager.animator.startAnimationLoop();
     console.log('公共鱼缸界面已显示，包含数据库鱼和用户鱼');

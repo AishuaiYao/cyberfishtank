@@ -340,6 +340,11 @@ class Fish {
       ctx.restore();
     }
   }
+
+  // 新增：获取鱼的唯一标识符（用于重复校验）
+  getUniqueIdentifier() {
+    return this.name;
+  }
 }
 
 // 鱼缸类
@@ -355,8 +360,52 @@ class FishTank {
   }
 
   addFish(fish) {
+    // 新增：在添加鱼之前检查名称是否重复
+    const existingFish = this.fishes.find(f => f.name === fish.name);
+    if (existingFish) {
+      console.warn(`鱼名称 "${fish.name}" 已存在，跳过添加`);
+      return false;
+    }
+
     fish.setCanvasSize(this.width, this.height);
     this.fishes.push(fish);
+    return true;
+  }
+
+  // 新增：移除指定名称的鱼
+  removeFishByName(fishName) {
+    const initialCount = this.fishes.length;
+    this.fishes = this.fishes.filter(fish => fish.name !== fishName);
+    const removedCount = initialCount - this.fishes.length;
+    if (removedCount > 0) {
+      console.log(`移除了 ${removedCount} 条名为 "${fishName}" 的鱼`);
+    }
+    return removedCount;
+  }
+
+  // 新增：校验并移除重复名称的鱼
+  validateAndRemoveDuplicateFishes() {
+    const uniqueNames = new Set();
+    const fishesToRemove = [];
+
+    // 找出重复名称的鱼
+    for (const fish of this.fishes) {
+      if (uniqueNames.has(fish.name)) {
+        fishesToRemove.push(fish);
+        console.log(`检测到重复名称的鱼: ${fish.name}`);
+      } else {
+        uniqueNames.add(fish.name);
+      }
+    }
+
+    // 移除重复的鱼
+    if (fishesToRemove.length > 0) {
+      this.fishes = this.fishes.filter(fish => !fishesToRemove.includes(fish));
+      console.log(`已移除 ${fishesToRemove.length} 条重复名称的鱼`);
+      return fishesToRemove.length;
+    }
+
+    return 0;
   }
 
   // 生成鱼粮
