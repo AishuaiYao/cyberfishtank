@@ -48,7 +48,6 @@ class UIManager {
     Utils.drawModernButton(ctx, 20, 40, 50, 30, '返回', false, true);
 
     // 新增：绘制刷新按钮
-//    Utils.drawModernButton(ctx, config.screenWidth - 70, 40, 50, 30, '刷新', false, false);
     Utils.drawModernButton(ctx, 80, 40, 50, 30, '刷新', false, false);
 
     // 绘制标题
@@ -150,8 +149,8 @@ class UIManager {
     const rankingFishes = this.eventHandler.rankingData.fishes;
     const scrollOffset = this.eventHandler.touchHandlers.ranking.getScrollOffset();
 
-      console.log(`排行榜数据总数: ${rankingFishes.length}`); // 添加这行
-  console.log(`当前滚动位置: ${scrollOffset}`); // 添加这行
+    console.log(`排行榜数据总数: ${rankingFishes.length}`);
+    console.log(`当前滚动位置: ${scrollOffset}`);
 
     const cardWidth = (config.screenWidth - 60) / 2;
     const cardHeight = 200;
@@ -264,7 +263,7 @@ class UIManager {
     // 绘制文本信息
     const textStartY = Math.round(imageY + imageHeight + 15);
 
-    // 鱼名字 - 使用更清晰的字体
+    // 鱼名字
     ctx.fillStyle = config.textColor;
     ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'center';
@@ -334,10 +333,11 @@ class UIManager {
     ctx.textBaseline = 'alphabetic';
   }
 
-  // 绘制鱼详情界面
+  // 修改：绘制鱼详情界面 - 优化按钮状态显示和提示信息
   drawFishDetailInterface() {
     const ctx = this.ctx;
     const fishData = this.eventHandler.selectedFishData.fishData;
+    const userInteraction = this.eventHandler.selectedFishData.userInteraction;
 
     // 先绘制鱼缸背景，再添加半透明遮罩
     this.drawFishTankInterface();
@@ -416,33 +416,55 @@ class UIManager {
     const score = fishData.score || 0;
     ctx.fillText(`评分: ${score}`, detailX + detailWidth / 2, textStartY + 50);
 
-    // 绘制点赞和点踩按钮
+    // 绘制点赞和点踩按钮 - 修改：根据用户交互状态设置按钮样式
     const buttonWidth = (detailWidth - 60) / 2;
     const buttonY = textStartY + 75;
 
-    // 点赞按钮
+    // 检查用户交互状态
+    const hasInteracted = !!userInteraction;
+    const userAction = userInteraction ? userInteraction.action : null;
+
+    // 点赞按钮 - 修改：显示取消状态
+    const isLiked = hasInteracted && userAction === 'star';
+    const likeButtonText = isLiked ? `取消点赞 ${fishData.star || 0}` : `👍 ${fishData.star || 0}`;
     Utils.drawModernButton(
       ctx,
       detailX + 20,
       buttonY,
       buttonWidth,
       36,
-      `👍 ${fishData.star || 0}`,
+      likeButtonText,
+      isLiked,
       false,
-      false
+      false // 不再禁用，允许取消操作
     );
 
-    // 点踩按钮
+    // 点踩按钮 - 修改：显示取消状态
+    const isDisliked = hasInteracted && userAction === 'unstar';
+    const dislikeButtonText = isDisliked ? `取消点踩 ${fishData.unstar || 0}` : `👎 ${fishData.unstar || 0}`;
     Utils.drawModernButton(
       ctx,
       detailX + buttonWidth + 40,
       buttonY,
       buttonWidth,
       36,
-      `👎 ${fishData.unstar || 0}`,
+      dislikeButtonText,
+      isDisliked,
       false,
-      false
+      false // 不再禁用，允许取消操作
     );
+
+    // 新增：显示操作提示
+    ctx.fillStyle = config.lightTextColor;
+    ctx.font = 'bold 12px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+    ctx.textAlign = 'center';
+
+    if (hasInteracted) {
+      const actionText = userAction === 'star' ? '已点赞' : userAction === 'unstar' ? '已点踩' : '已投票';
+      ctx.fillText(`您${actionText}，点击可取消`, detailX + detailWidth / 2, buttonY + 50);
+    } else {
+      ctx.fillText('点击按钮表达您的态度', detailX + detailWidth / 2, buttonY + 50);
+    }
 
     ctx.textAlign = 'left';
   }
@@ -459,7 +481,6 @@ class UIManager {
     const dialogHeight = 220;
     const dialogX = 40;
     const dialogY = (config.screenHeight - dialogHeight) / 2 - 100; // 向上移动100像素
-
 
     // 绘制半透明背景遮罩
     ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';

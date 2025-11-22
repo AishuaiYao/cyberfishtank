@@ -41,72 +41,196 @@ class DatabaseManager {
     }
   }
 
-async getRandomFishesFromDatabase(count = 20) {
-  if (!this.isCloudDbInitialized) return [];
-
-  try {
-    // 优先使用方法1：数据库真随机
-    const result = await this.cloudDb.collection('fishes')
-      .aggregate()
-      .sample({ size: count })
-      .end();
-
-    console.log(`使用数据库真随机获取了 ${result.list.length} 条鱼数据`);
-    return result.list;
-
-  } catch (error) {
-    console.warn('数据库真随机不支持，需要备选方案:', error);
-
-    // 只有方法1失败时才需要方法2
-    return await this.getRandomFishesFallback(count);
-  }
-}
-
-async getRankingData(limit = 100) {
-  if (!this.isCloudDbInitialized || !this.cloudDb) {
-    console.warn('云数据库未初始化，无法获取排行榜数据');
-    return [];
-  }
-
-  try {
-    console.log(`开始获取排行榜数据，目标: ${limit} 条`);
-
-    let allData = [];
-    let skip = 0;
-    const batchSize = 20; // 每次获取20条
-
-    while (allData.length < limit) {
-      const result = await this.cloudDb.collection('fishes')
-        .orderBy('score', 'desc')
-        .skip(skip)
-        .limit(batchSize)
-        .get();
-
-      if (result.data.length === 0) {
-        break; // 没有更多数据了
-      }
-
-      allData = allData.concat(result.data);
-      skip += batchSize;
-
-      console.log(`已获取 ${allData.length} 条数据`);
+  // 新增：获取用户对某条鱼的交互记录
+  async getUserInteraction(fishName) {
+    if (!this.isCloudDbInitialized || !this.cloudDb) {
+      console.warn('云数据库未初始化，无法获取交互记录');
+      return null;
     }
 
-    // 限制最终数量
-    const finalData = allData.slice(0, limit);
-    console.log(`最终获取 ${finalData.length} 条排行榜数据`);
+    try {
+      const result = await this.cloudDb.collection('interaction')
+        .where({
+          fishName: fishName
+          // 系统会自动添加 _openid 查询条件
+        })
+        .get();
 
-    const validRankingData = finalData.filter(fish =>
-      fish.base64 && fish.base64.length > 0
-    );
-
-    console.log(`有效数据: ${validRankingData.length} 条`);
-    return validRankingData;
-  } catch (error) {
-    console.error('获取排行榜数据失败:', error);
-    return [];
+      if (result.data.length > 0) {
+        console.log(`找到用户对鱼 ${fishName} 的交互记录:`, result.data[0].action);
+        return result.data[0];
+      } else {
+        console.log(`用户对鱼 ${fishName} 暂无交互记录`);
+        return null;
+      }
+    } catch (error) {
+      console.error('获取用户交互记录失败:', error);
+      return null;
+    }
   }
-}
+
+  // 新增：插入用户交互记录
+  async insertUserInteraction(fishName, action) {
+    if (!this.isCloudDbInitialized || !this.cloudDb) {
+      console.warn('云数据库未初始化，无法插入交互记录');
+      return false;
+    }
+
+    try {
+      const interactionData = {
+        fishName: fishName,
+        action: action,
+        createdAt: new Date(),
+        createTimestamp: Date.now()
+        // 不需要包含 openid 字段，系统会自动添加 _openid
+      };
+
+      console.log('准备插入交互记录:', interactionData);
+
+      const result = await this.cloudDb.collection('interaction').add({
+        data: interactionData
+      });
+
+      console.log('交互记录插入成功:', result);
+      return true;
+    } catch (error) {
+      console.error('插入交互记录失败:', error);
+      return false;
+    }
+  }
+
+  // 新增：更新用户交互记录
+  async updateUserInteraction(interactionId, newAction) {
+    if (!this.isCloudDbInitialized || !this.cloudDb) {
+      console.warn('云数据库未初始化，无法更新交互记录');
+      return false;
+    }
+
+    try {
+      const result = await this.cloudDb.collection('interaction').doc(interactionId).update({
+        data: {
+          action: newAction,
+          updateTime: new Date()
+        }
+      });
+
+      console.log('交互记录更新成功:', result);
+      return true;
+    } catch (error) {
+      console.error('更新交互记录失败:', error);
+      return false;
+    }
+  }
+
+  // 新增：删除用户交互记录
+  async deleteUserInteraction(interactionId) {
+    if (!this.isCloudDbInitialized || !this.cloudDb) {
+      console.warn('云数据库未初始化，无法删除交互记录');
+      return false;
+    }
+
+    try {
+      const result = await this.cloudDb.collection('interaction').doc(interactionId).remove();
+      console.log('交互记录删除成功:', result);
+      return true;
+    } catch (error) {
+      console.error('删除交互记录失败:', error);
+      return false;
+    }
+  }
+
+  async getRandomFishesFromDatabase(count = 20) {
+    if (!this.isCloudDbInitialized) return [];
+
+    try {
+      // 优先使用方法1：数据库真随机
+      const result = await this.cloudDb.collection('fishes')
+        .aggregate()
+        .sample({ size: count })
+        .end();
+
+      console.log(`使用数据库真随机获取了 ${result.list.length} 条鱼数据`);
+      return result.list;
+
+    } catch (error) {
+      console.warn('数据库真随机不支持，需要备选方案:', error);
+
+      // 只有方法1失败时才需要方法2
+      return await this.getRandomFishesFallback(count);
+    }
+  }
+
+  async getRandomFishesFallback(count = 20) {
+    if (!this.isCloudDbInitialized || !this.cloudDb) {
+      console.warn('云数据库未初始化，无法获取随机鱼数据');
+      return [];
+    }
+
+    try {
+      // 方法2：获取所有数据后随机选择
+      const result = await this.cloudDb.collection('fishes')
+        .limit(1000) // 限制最大获取数量
+        .get();
+
+      console.log(`备选方案获取了 ${result.data.length} 条鱼数据`);
+
+      // 随机选择指定数量的鱼
+      const shuffled = result.data.sort(() => 0.5 - Math.random());
+      const selectedFishes = shuffled.slice(0, count);
+
+      console.log(`备选方案随机选择了 ${selectedFishes.length} 条鱼`);
+      return selectedFishes;
+    } catch (error) {
+      console.error('备选方案获取鱼数据失败:', error);
+      return [];
+    }
+  }
+
+  async getRankingData(limit = 100) {
+    if (!this.isCloudDbInitialized || !this.cloudDb) {
+      console.warn('云数据库未初始化，无法获取排行榜数据');
+      return [];
+    }
+
+    try {
+      console.log(`开始获取排行榜数据，目标: ${limit} 条`);
+
+      let allData = [];
+      let skip = 0;
+      const batchSize = 20; // 每次获取20条
+
+      while (allData.length < limit) {
+        const result = await this.cloudDb.collection('fishes')
+          .orderBy('score', 'desc')
+          .skip(skip)
+          .limit(batchSize)
+          .get();
+
+        if (result.data.length === 0) {
+          break; // 没有更多数据了
+        }
+
+        allData = allData.concat(result.data);
+        skip += batchSize;
+
+        console.log(`已获取 ${allData.length} 条数据`);
+      }
+
+      // 限制最终数量
+      const finalData = allData.slice(0, limit);
+      console.log(`最终获取 ${finalData.length} 条排行榜数据`);
+
+      const validRankingData = finalData.filter(fish =>
+        fish.base64 && fish.base64.length > 0
+      );
+
+      console.log(`有效数据: ${validRankingData.length} 条`);
+      return validRankingData;
+    } catch (error) {
+      console.error('获取排行榜数据失败:', error);
+      return [];
+    }
+  }
 
   // 向数据库插入鱼数据
   async insertFishToDatabase(fishData) {
@@ -143,7 +267,6 @@ async getRankingData(limit = 100) {
   async insertWithBackupMethod(fishData) {
     try {
       const simpleFishData = {
-//        uid: 12345,
         fish_name: fishData.fishName,
         score: 0,
         star_count: 0,

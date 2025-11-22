@@ -29,8 +29,8 @@ class Utils {
     }
   }
 
-  // 绘制现代按钮 - 优化文本渲染
-  static drawModernButton(ctx, x, y, width, height, text, isActive = false, isPrimary = false) {
+  // 修改：绘制现代按钮 - 增加禁用状态支持
+  static drawModernButton(ctx, x, y, width, height, text, isActive = false, isPrimary = false, isDisabled = false) {
     const { config } = require('./config.js');
 
     // 确保坐标为整数
@@ -39,17 +39,40 @@ class Utils {
     width = Math.round(width);
     height = Math.round(height);
 
-    ctx.fillStyle = isActive ? config.primaryColor :
-                    isPrimary ? config.primaryColor : '#FFFFFF';
+    // 修改：根据禁用状态设置颜色
+    let fillColor, textColor, borderColor;
+
+    if (isDisabled) {
+      // 禁用状态
+      fillColor = '#F8F9FA';
+      textColor = '#C7C7CC';
+      borderColor = '#E5E5EA';
+    } else if (isActive) {
+      // 激活状态
+      fillColor = config.primaryColor;
+      textColor = '#FFFFFF';
+      borderColor = config.primaryColor;
+    } else if (isPrimary) {
+      // 主要按钮
+      fillColor = config.primaryColor;
+      textColor = '#FFFFFF';
+      borderColor = config.primaryColor;
+    } else {
+      // 默认状态
+      fillColor = '#FFFFFF';
+      textColor = config.textColor;
+      borderColor = config.borderColor;
+    }
+
+    ctx.fillStyle = fillColor;
     this.drawRoundedRect(ctx, x, y, width, height, config.borderRadius, true, false);
 
-    ctx.strokeStyle = isActive ? config.primaryColor : config.borderColor;
+    ctx.strokeStyle = borderColor;
     ctx.lineWidth = isActive ? 0 : 1;
     this.drawRoundedRect(ctx, x, y, width, height, config.borderRadius, false, true);
 
     // 优化文本渲染
-    ctx.fillStyle = isActive ? '#FFFFFF' :
-                    isPrimary ? '#FFFFFF' : config.textColor;
+    ctx.fillStyle = textColor;
     ctx.font = 'bold 14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
