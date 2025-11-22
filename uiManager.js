@@ -4,10 +4,31 @@ const InterfaceRenderer = require('./interfaceRenderer.js');
 const Utils = require('./utils.js');
 
 class UIManager {
-  constructor(ctx) {
+  constructor(ctx, pixelRatio = 1) {
     this.ctx = ctx;
+    this.pixelRatio = pixelRatio;
     this.eventHandler = null;
-    this.interfaceRenderer = new InterfaceRenderer(ctx);
+    this.interfaceRenderer = new InterfaceRenderer(ctx, pixelRatio);
+    // 初始化时优化渲染设置
+    this.optimizeRendering();
+  }
+
+  // 新增：优化渲染设置
+  optimizeRendering() {
+    const ctx = this.ctx;
+
+    // 设置高质量图像渲染
+    ctx.imageSmoothingEnabled = false; // 关闭图像平滑以获得更锐利的图像
+    ctx.imageSmoothingQuality = 'high';
+
+    // 设置文本渲染优化
+    ctx.textRendering = 'geometricPrecision';
+
+    // 设置清晰的线条渲染
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    console.log('UI管理器渲染优化完成，像素比:', this.pixelRatio);
   }
 
   // 设置事件处理器引用
@@ -28,15 +49,15 @@ class UIManager {
 
     // 绘制标题
     ctx.fillStyle = config.textColor;
-    ctx.font = 'bold 20px -apple-system';
+    ctx.font = 'bold 20px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('赛博鱼缸', config.screenWidth / 2, 100);
+    ctx.fillText('赛博鱼缸', Math.round(config.screenWidth / 2), 100);
 
     // 绘制鱼的数量
     ctx.fillStyle = config.lightTextColor;
-    ctx.font = '16px -apple-system';
+    ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     const fishCount = this.eventHandler.fishTank ? this.eventHandler.fishTank.fishes.length : 0;
-    ctx.fillText(`共有 ${fishCount} 条鱼`, config.screenWidth / 2, 130);
+    ctx.fillText(`共有 ${fishCount} 条鱼`, Math.round(config.screenWidth / 2), 130);
     ctx.textAlign = 'left';
 
     // 绘制鱼缸内容
@@ -44,9 +65,9 @@ class UIManager {
       this.eventHandler.fishTank.draw();
     } else {
       ctx.fillStyle = config.lightTextColor;
-      ctx.font = '16px -apple-system';
+      ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('鱼缸空空如也，快去画一条鱼吧！', config.screenWidth / 2, config.screenHeight / 2);
+      ctx.fillText('鱼缸空空如也，快去画一条鱼吧！', Math.round(config.screenWidth / 2), Math.round(config.screenHeight / 2));
       ctx.textAlign = 'left';
     }
   }
@@ -66,14 +87,14 @@ class UIManager {
 
     // 绘制标题 - 上移50像素
     ctx.fillStyle = config.textColor;
-    ctx.font = 'bold 20px -apple-system';
+    ctx.font = 'bold 20px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('排行榜', config.screenWidth / 2, 50); // 从100改为50
+    ctx.fillText('排行榜', Math.round(config.screenWidth / 2), 50);
 
     // 绘制副标题 - 上移50像素
     ctx.fillStyle = config.lightTextColor;
-    ctx.font = '16px -apple-system';
-    ctx.fillText('按评分从高到低排列', config.screenWidth / 2, 80); // 从130改为80
+    ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+    ctx.fillText('按评分从高到低排列', Math.round(config.screenWidth / 2), 80);
 
     // 如果有滚动，显示滚动提示 - 上移50像素
     const scrollOffset = this.eventHandler.touchHandlers.ranking.getScrollOffset();
@@ -81,13 +102,13 @@ class UIManager {
 
     if (maxScrollY > 0) {
       ctx.fillStyle = config.primaryColor;
-      ctx.font = '14px -apple-system';
+      ctx.font = 'bold 14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
       if (scrollOffset === 0) {
-        ctx.fillText('↓ 向下滑动查看更多 ↓', config.screenWidth / 2, 100); // 从150改为100
+        ctx.fillText('↓ 向下滑动查看更多 ↓', Math.round(config.screenWidth / 2), 100);
       } else if (scrollOffset >= maxScrollY) {
-        ctx.fillText('↑ 向上滑动返回顶部 ↑', config.screenWidth / 2, 100); // 从150改为100
+        ctx.fillText('↑ 向上滑动返回顶部 ↑', Math.round(config.screenWidth / 2), 100);
       } else {
-        ctx.fillText('↑ 可上下滑动查看 ↑', config.screenWidth / 2, 100); // 从150改为100
+        ctx.fillText('↑ 可上下滑动查看 ↑', Math.round(config.screenWidth / 2), 100);
       }
     }
 
@@ -113,9 +134,9 @@ class UIManager {
   drawLoadingMessage(message) {
     const ctx = this.ctx;
     ctx.fillStyle = config.lightTextColor;
-    ctx.font = '16px -apple-system';
+    ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(message, config.screenWidth / 2, config.screenHeight / 2);
+    ctx.fillText(message, Math.round(config.screenWidth / 2), Math.round(config.screenHeight / 2));
     ctx.textAlign = 'left';
   }
 
@@ -127,12 +148,12 @@ class UIManager {
 
     const cardWidth = (config.screenWidth - 60) / 2;
     const cardHeight = 200;
-    const startY = 100 - scrollOffset; // 调整起始位置，从150改为100
+    const startY = 100 - scrollOffset;
 
     // 设置裁剪区域，防止卡片绘制到界面外
     ctx.save();
     ctx.beginPath();
-    ctx.rect(0, 100, config.screenWidth, config.screenHeight - 100); // 从150改为100
+    ctx.rect(0, 100, config.screenWidth, config.screenHeight - 100);
     ctx.clip();
 
     for (let i = 0; i < rankingFishes.length; i++) {
@@ -144,7 +165,7 @@ class UIManager {
       const cardY = startY + row * (cardHeight + 15);
 
       // 只绘制在可见区域内的卡片
-      if (cardY + cardHeight > 100 && cardY < config.screenHeight) { // 从150改为100
+      if (cardY + cardHeight > 100 && cardY < config.screenHeight) {
         this.drawRankingCard(cardX, cardY, cardWidth, cardHeight, fishData, fishImage, i + 1);
       }
     }
@@ -164,34 +185,40 @@ class UIManager {
 
     if (maxScrollY <= 0) return;
 
-    const indicatorWidth = 6;
-    const indicatorRight = config.screenWidth - 12;
-    const indicatorTop = 100; // 从150改为100
-    const indicatorHeight = config.screenHeight - 100 - 20; // 从150改为100
+    const indicatorWidth = 4;
+    const indicatorRight = config.screenWidth - 10;
+    const indicatorTop = 100;
+    const indicatorHeight = config.screenHeight - 100 - 20;
 
     // 计算滑块位置和大小
     const scrollRatio = scrollOffset / maxScrollY;
-    const sliderHeight = Math.max(40, indicatorHeight * 0.2);
+    const sliderHeight = Math.max(30, indicatorHeight * 0.2);
     const sliderY = indicatorTop + (indicatorHeight - sliderHeight) * scrollRatio;
 
     // 绘制轨道
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-    Utils.drawRoundedRect(ctx, indicatorRight - indicatorWidth, indicatorTop, indicatorWidth, indicatorHeight, 3, true, false);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
+    Utils.drawRoundedRect(ctx, indicatorRight - indicatorWidth, indicatorTop, indicatorWidth, indicatorHeight, 2, true, false);
 
     // 绘制滑块
-    ctx.fillStyle = 'rgba(0, 122, 255, 0.6)';
-    Utils.drawRoundedRect(ctx, indicatorRight - indicatorWidth, sliderY, indicatorWidth, sliderHeight, 3, true, false);
+    ctx.fillStyle = 'rgba(0, 122, 255, 0.7)';
+    Utils.drawRoundedRect(ctx, indicatorRight - indicatorWidth, sliderY, indicatorWidth, sliderHeight, 2, true, false);
   }
 
   // 绘制单个排行榜卡片
   drawRankingCard(x, y, width, height, fishData, fishImage, rank) {
     const ctx = this.ctx;
 
-    // 绘制卡片背景
-    ctx.shadowColor = 'rgba(0,0,0,0.2)';
-    ctx.shadowBlur = 20;
+    // 确保坐标为整数
+    x = Math.round(x);
+    y = Math.round(y);
+    width = Math.round(width);
+    height = Math.round(height);
+
+    // 绘制卡片背景 - 使用更清晰的阴影
+    ctx.shadowColor = 'rgba(0,0,0,0.1)';
+    ctx.shadowBlur = 8;
     ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 5;
+    ctx.shadowOffsetY = 2;
 
     Utils.drawCard(ctx, x, y, width, height);
 
@@ -201,7 +228,9 @@ class UIManager {
     // 绘制排名徽章
     this.drawRankBadge(x + 10, y + 10, rank);
 
-    // 绘制鱼图片
+    // 绘制鱼图片 - 确保高质量渲染
+    ctx.imageSmoothingEnabled = false; // 关闭图像平滑以获得更锐利的图像
+
     const maxImageWidth = width - 20;
     const maxImageHeight = 80;
 
@@ -220,43 +249,43 @@ class UIManager {
       imageWidth = imageWidth * scale;
     }
 
-    const imageX = x + (width - imageWidth) / 2;
-    const imageY = y + 40;
+    const imageX = Math.round(x + (width - imageWidth) / 2);
+    const imageY = Math.round(y + 40);
 
     ctx.drawImage(fishImage.canvas, imageX, imageY, imageWidth, imageHeight);
 
     // 绘制文本信息
-    const textStartY = imageY + imageHeight + 15;
+    const textStartY = Math.round(imageY + imageHeight + 15);
 
-    // 鱼名字
+    // 鱼名字 - 使用更清晰的字体
     ctx.fillStyle = config.textColor;
-    ctx.font = 'bold 16px -apple-system';
+    ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'center';
     let fishName = Utils.truncateText(fishData.fishName || '未命名', 8);
-    ctx.fillText(fishName, x + width / 2, textStartY);
+    ctx.fillText(fishName, Math.round(x + width / 2), textStartY);
 
     // 创作时间
     ctx.fillStyle = config.lightTextColor;
-    ctx.font = '12px -apple-system';
+    ctx.font = 'bold 12px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     const createTime = Utils.formatTime(fishData.createdAt);
-    ctx.fillText(createTime, x + width / 2, textStartY + 20);
+    ctx.fillText(createTime, Math.round(x + width / 2), textStartY + 20);
 
     // 评分
     ctx.fillStyle = Utils.getScoreColor(fishData.score || 0);
-    ctx.font = 'bold 14px -apple-system';
+    ctx.font = 'bold 14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     const score = fishData.score || 0;
-    ctx.fillText(`评分: ${score}`, x + width / 2, textStartY + 40);
+    ctx.fillText(`评分: ${score}`, Math.round(x + width / 2), textStartY + 40);
 
     // 点赞和点踩信息
     const infoStartY = textStartY + 60;
 
     ctx.fillStyle = config.lightTextColor;
-    ctx.font = '12px -apple-system';
+    ctx.font = 'bold 12px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText(`👍 ${fishData.star || 0}`, x + 15, infoStartY);
+    ctx.fillText(`👍 ${fishData.star || 0}`, Math.round(x + 15), infoStartY);
 
     ctx.textAlign = 'right';
-    ctx.fillText(`👎 ${fishData.unstar || 0}`, x + width - 15, infoStartY);
+    ctx.fillText(`👎 ${fishData.unstar || 0}`, Math.round(x + width - 15), infoStartY);
 
     ctx.textAlign = 'left';
   }
@@ -264,6 +293,10 @@ class UIManager {
   // 绘制排名徽章
   drawRankBadge(x, y, rank) {
     const ctx = this.ctx;
+
+    // 确保坐标为整数
+    x = Math.round(x);
+    y = Math.round(y);
 
     // 前3名使用特殊颜色
     let badgeColor;
@@ -280,12 +313,12 @@ class UIManager {
     // 绘制徽章背景
     ctx.fillStyle = badgeColor;
     ctx.beginPath();
-    ctx.arc(x + 15, y + 15, 15, 0, Math.PI * 2);
+    ctx.arc(x + 15, y + 15, 14, 0, Math.PI * 2);
     ctx.fill();
 
     // 绘制排名数字
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 12px -apple-system';
+    ctx.font = 'bold 12px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(rank.toString(), x + 15, y + 15);
@@ -301,7 +334,7 @@ class UIManager {
 
     // 先绘制鱼缸背景，再添加半透明遮罩
     this.drawFishTankInterface();
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
     ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
 
     const detailWidth = config.screenWidth - 60;
@@ -310,10 +343,10 @@ class UIManager {
     const detailY = (config.screenHeight - detailHeight) / 2;
 
     // 绘制详情卡片
-    ctx.shadowColor = 'rgba(0,0,0,0.2)';
-    ctx.shadowBlur = 20;
+    ctx.shadowColor = 'rgba(0,0,0,0.15)';
+    ctx.shadowBlur = 15;
     ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 5;
+    ctx.shadowOffsetY = 3;
 
     Utils.drawCard(ctx, detailX, detailY, detailWidth, detailHeight);
 
@@ -322,7 +355,7 @@ class UIManager {
 
     // 绘制关闭按钮
     ctx.fillStyle = config.lightTextColor;
-    ctx.font = '24px Arial';
+    ctx.font = 'bold 24px Arial, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('×', detailX + detailWidth - 25, detailY + 30);
 
@@ -346,23 +379,23 @@ class UIManager {
       imageWidth = imageWidth * scale;
     }
 
-    const imageX = detailX + (detailWidth - imageWidth) / 2;
-    const imageY = detailY + 50;
+    const imageX = Math.round(detailX + (detailWidth - imageWidth) / 2);
+    const imageY = Math.round(detailY + 50);
 
     ctx.drawImage(fishImage, imageX, imageY, imageWidth, imageHeight);
 
     // 绘制文本信息
-    const textStartY = imageY + imageHeight + 20;
+    const textStartY = Math.round(imageY + imageHeight + 20);
 
     // 鱼名字
     ctx.fillStyle = config.textColor;
-    ctx.font = 'bold 18px -apple-system';
+    ctx.font = 'bold 18px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(fishData.fishName || '未命名', detailX + detailWidth / 2, textStartY);
 
     // 创作时间
     ctx.fillStyle = config.lightTextColor;
-    ctx.font = '14px -apple-system';
+    ctx.font = 'bold 14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     let createTime = '未知时间';
     if (fishData.createdAt) {
       const date = new Date(fishData.createdAt);
@@ -372,7 +405,7 @@ class UIManager {
 
     // 评分
     ctx.fillStyle = config.primaryColor;
-    ctx.font = 'bold 16px -apple-system';
+    ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     const score = fishData.score || 0;
     ctx.fillText(`评分: ${score}`, detailX + detailWidth / 2, textStartY + 50);
 
@@ -421,7 +454,7 @@ class UIManager {
     const dialogY = (config.screenHeight - dialogHeight) / 2;
 
     // 绘制半透明背景遮罩
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
     ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
 
     // 绘制对话框卡片
@@ -429,7 +462,7 @@ class UIManager {
 
     // 绘制标题
     ctx.fillStyle = config.textColor;
-    ctx.font = 'bold 18px -apple-system';
+    ctx.font = 'bold 18px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('给你的鱼起个名字', dialogX + dialogWidth / 2, dialogY + 40);
 
@@ -442,7 +475,7 @@ class UIManager {
 
     // 绘制输入文本
     ctx.fillStyle = config.textColor;
-    ctx.font = '16px -apple-system';
+    ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'left';
     const text = eventHandler.fishNameInput || '';
 

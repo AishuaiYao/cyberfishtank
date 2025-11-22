@@ -1,7 +1,14 @@
 // utils.js - 公共工具方法
 class Utils {
-  // 绘制圆角矩形
+  // 绘制圆角矩形 - 优化绘制质量
   static drawRoundedRect(ctx, x, y, width, height, radius, fill, stroke) {
+    // 确保坐标为整数，避免亚像素渲染模糊
+    x = Math.round(x);
+    y = Math.round(y);
+    width = Math.round(width);
+    height = Math.round(height);
+    radius = Math.round(radius);
+
     ctx.beginPath();
     ctx.moveTo(x + radius, y);
     ctx.lineTo(x + width - radius, y);
@@ -14,14 +21,24 @@ class Utils {
     ctx.quadraticCurveTo(x, y, x + radius, y);
     ctx.closePath();
 
-    if (fill) ctx.fill();
-    if (stroke) ctx.stroke();
+    if (fill) {
+      ctx.fill();
+    }
+    if (stroke) {
+      ctx.stroke();
+    }
   }
 
-  // 绘制现代按钮
+  // 绘制现代按钮 - 优化文本渲染
   static drawModernButton(ctx, x, y, width, height, text, isActive = false, isPrimary = false) {
     const { config } = require('./config.js');
-    
+
+    // 确保坐标为整数
+    x = Math.round(x);
+    y = Math.round(y);
+    width = Math.round(width);
+    height = Math.round(height);
+
     ctx.fillStyle = isActive ? config.primaryColor :
                     isPrimary ? config.primaryColor : '#FFFFFF';
     this.drawRoundedRect(ctx, x, y, width, height, config.borderRadius, true, false);
@@ -30,23 +47,37 @@ class Utils {
     ctx.lineWidth = isActive ? 0 : 1;
     this.drawRoundedRect(ctx, x, y, width, height, config.borderRadius, false, true);
 
+    // 优化文本渲染
     ctx.fillStyle = isActive ? '#FFFFFF' :
                     isPrimary ? '#FFFFFF' : config.textColor;
-    ctx.font = '15px -apple-system, "PingFang SC", "Helvetica Neue"';
+    ctx.font = 'bold 14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(text, x + width / 2, y + height / 2);
+
+    // 确保文本位置为整数
+    const textX = Math.round(x + width / 2);
+    const textY = Math.round(y + height / 2);
+
+    ctx.fillText(text, textX, textY);
     ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
   }
 
-  // 绘制卡片
+  // 绘制卡片 - 优化阴影效果
   static drawCard(ctx, x, y, width, height, radius = 12) {
     const { config } = require('./config.js');
 
-    ctx.shadowColor = 'rgba(0,0,0,0.1)';
-    ctx.shadowBlur = config.shadowBlur;
+    // 确保坐标为整数
+    x = Math.round(x);
+    y = Math.round(y);
+    width = Math.round(width);
+    height = Math.round(height);
+
+    // 使用更清晰的阴影
+    ctx.shadowColor = 'rgba(0,0,0,0.06)';
+    ctx.shadowBlur = 4;
     ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 2;
+    ctx.shadowOffsetY = 1;
 
     ctx.fillStyle = '#FFFFFF';
     this.drawRoundedRect(ctx, x, y, width, height, radius, true, false);

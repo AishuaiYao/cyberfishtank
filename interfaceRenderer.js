@@ -3,17 +3,37 @@ const Utils = require('./utils.js');
 const { config } = require('./config.js');
 
 class InterfaceRenderer {
-  constructor(ctx) {
+  constructor(ctx, pixelRatio = 1) {
     this.ctx = ctx;
+    this.pixelRatio = pixelRatio;
+    // 初始化时优化渲染设置
+    this.optimizeRendering();
+  }
+
+  // 新增：优化渲染设置
+  optimizeRendering() {
+    const ctx = this.ctx;
+
+    // 设置高质量图像渲染
+    ctx.imageSmoothingEnabled = false; // 关闭图像平滑以获得更锐利的图像
+    ctx.imageSmoothingQuality = 'high';
+
+    // 设置文本渲染优化
+    ctx.textRendering = 'geometricPrecision';
+
+    // 设置清晰的线条渲染
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    console.log('界面渲染器优化完成，像素比:', this.pixelRatio);
   }
 
   // 绘制背景
   drawBackground() {
     const ctx = this.ctx;
-    const gradient = ctx.createLinearGradient(0, 0, config.screenWidth, config.screenHeight);
-    gradient.addColorStop(0, '#F8F9FA');
-    gradient.addColorStop(1, '#FFFFFF');
-    ctx.fillStyle = gradient;
+
+    // 使用纯色背景避免渐变模糊
+    ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
   }
 
@@ -22,7 +42,7 @@ class InterfaceRenderer {
     const startY = positions.functionAreaY;
     const ctx = this.ctx;
 
-    // 颜色选择
+    // 颜色选择 - 使用更清晰的阴影
     Utils.drawCard(ctx, 15, startY, config.screenWidth - 30, config.partHeight - 10);
     this.drawColorButtons(startY + 20, gameState);
 
@@ -42,13 +62,14 @@ class InterfaceRenderer {
     const startX = (config.screenWidth - totalWidth) / 2;
 
     for (let i = 0; i < 7; i++) {
-      const x = startX + i * (config.colorButtonSize + 18);
+      const x = Math.round(startX + i * (config.colorButtonSize + 18));
       const isSelected = config.colors[i] === gameState.currentColor && !gameState.isEraser;
 
-      ctx.shadowColor = 'rgba(0,0,0,0.15)';
-      ctx.shadowBlur = 4;
+      // 使用更清晰的阴影
+      ctx.shadowColor = 'rgba(0,0,0,0.08)';
+      ctx.shadowBlur = 3;
       ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 2;
+      ctx.shadowOffsetY = 1;
 
       ctx.beginPath();
       ctx.arc(x + config.colorButtonSize/2, startY + config.colorButtonSize/2,
@@ -63,20 +84,20 @@ class InterfaceRenderer {
       ctx.lineWidth = config.colors[i] === '#FFFFFF' ? 1 : 0;
       ctx.stroke();
 
-      // 选中状态
+      // 选中状态 - 使用更清晰的边框
       if (isSelected) {
         ctx.beginPath();
         ctx.arc(x + config.colorButtonSize/2, startY + config.colorButtonSize/2,
-                config.colorButtonSize/2 + 4, 0, Math.PI * 2);
+                config.colorButtonSize/2 + 3, 0, Math.PI * 2);
         ctx.strokeStyle = config.primaryColor;
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 2; // 减少线宽提高清晰度
         ctx.stroke();
 
         ctx.beginPath();
         ctx.arc(x + config.colorButtonSize/2, startY + config.colorButtonSize/2,
-                config.colorButtonSize/2 - 2, 0, Math.PI * 2);
+                config.colorButtonSize/2 - 1, 0, Math.PI * 2);
         ctx.strokeStyle = '#FFFFFF';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 1;
         ctx.stroke();
       }
     }
@@ -86,46 +107,45 @@ class InterfaceRenderer {
   drawBrushSizeControl(startY, gameState) {
     const ctx = this.ctx;
 
+    // 使用更清晰的字体
     ctx.fillStyle = config.textColor;
-    ctx.font = '16px -apple-system, "PingFang SC"';
+    ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+    ctx.textAlign = 'left';
     ctx.fillText('画笔大小:', 25, startY);
 
     const sliderX = 100;
     const sliderWidth = config.screenWidth - 140;
     const progressWidth = (gameState.brushSize / 20) * sliderWidth;
 
-    // 滑动条轨道
+    // 滑动条轨道 - 使用更清晰的线条
     ctx.fillStyle = '#E5E5EA';
-    Utils.drawRoundedRect(ctx, sliderX, startY - 6, sliderWidth, 4, 2, true, false);
+    Utils.drawRoundedRect(ctx, sliderX, startY - 6, sliderWidth, 3, 1.5, true, false);
 
     // 进度填充
-    const gradient = ctx.createLinearGradient(sliderX, 0, sliderX + progressWidth, 0);
-    gradient.addColorStop(0, config.primaryColor);
-    gradient.addColorStop(1, config.secondaryColor);
-    ctx.fillStyle = gradient;
-    Utils.drawRoundedRect(ctx, sliderX, startY - 6, progressWidth, 4, 2, true, false);
+    ctx.fillStyle = config.primaryColor;
+    Utils.drawRoundedRect(ctx, sliderX, startY - 6, progressWidth, 3, 1.5, true, false);
 
-    // 滑动块
+    // 滑动块 - 使用更清晰的阴影
     const sliderPos = sliderX + progressWidth;
-    ctx.shadowColor = 'rgba(0,122,255,0.3)';
-    ctx.shadowBlur = 6;
+    ctx.shadowColor = 'rgba(0,122,255,0.15)';
+    ctx.shadowBlur = 3;
     ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 2;
+    ctx.shadowOffsetY = 1;
 
     ctx.fillStyle = config.primaryColor;
     ctx.beginPath();
-    ctx.arc(sliderPos, startY - 6, 12, 0, Math.PI * 2);
+    ctx.arc(sliderPos, startY - 6, 8, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.shadowColor = 'transparent';
     ctx.fillStyle = '#FFFFFF';
     ctx.beginPath();
-    ctx.arc(sliderPos, startY - 6, 4, 0, Math.PI * 2);
+    ctx.arc(sliderPos, startY - 6, 3, 0, Math.PI * 2);
     ctx.fill();
 
-    // 大小显示
+    // 大小显示 - 使用更清晰的字体
     ctx.fillStyle = config.primaryColor;
-    ctx.font = 'bold 16px -apple-system';
+    ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'right';
     ctx.fillText(`${gameState.brushSize}px`, config.screenWidth - 25, startY);
     ctx.textAlign = 'left';
@@ -158,20 +178,21 @@ class InterfaceRenderer {
 
     Utils.drawCard(ctx, 15, startY, config.screenWidth - 30, config.indicatorHeight - 10);
 
+    // 使用更清晰的字体
     ctx.fillStyle = config.textColor;
-    ctx.font = 'bold 18px -apple-system, "PingFang SC"';
+    ctx.font = 'bold 18px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'center';
 
     ctx.fillStyle = config.primaryColor;
-    ctx.font = '24px Arial';
+    ctx.font = 'bold 24px Arial, sans-serif'; // 指定备用字体
     ctx.fillText('🎨', config.screenWidth / 2, startY + 28);
 
     ctx.fillStyle = config.textColor;
-    ctx.font = 'bold 18px -apple-system';
+    ctx.font = 'bold 18px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.fillText('画一条鱼吧!', config.screenWidth / 2, startY + 55);
 
     ctx.fillStyle = config.lightTextColor;
-    ctx.font = '15px -apple-system';
+    ctx.font = '14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.fillText('鱼头请朝右', config.screenWidth / 2, startY + 78);
 
     ctx.textAlign = 'left';
@@ -182,35 +203,37 @@ class InterfaceRenderer {
     const startY = positions.drawingAreaY;
     const ctx = this.ctx;
 
-    // 绘画区域卡片
-    ctx.shadowColor = 'rgba(0,0,0,0.08)';
-    ctx.shadowBlur = 12;
+    // 绘画区域卡片 - 使用更清晰的阴影
+    ctx.shadowColor = 'rgba(0,0,0,0.05)';
+    ctx.shadowBlur = 6;
     ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 4;
+    ctx.shadowOffsetY = 1;
 
     ctx.fillStyle = '#FFFFFF';
     Utils.drawRoundedRect(ctx, 12, startY, config.screenWidth - 24, config.drawingAreaHeight, config.borderRadius, true, false);
 
     ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+
     ctx.strokeStyle = config.borderColor;
     ctx.lineWidth = 1;
     Utils.drawRoundedRect(ctx, 12, startY, config.screenWidth - 24, config.drawingAreaHeight, config.borderRadius, false, true);
 
-    // 网格背景
+    // 网格背景 - 使用更清晰的线条
     ctx.strokeStyle = '#F8F9FA';
-    ctx.lineWidth = 0.8;
+    ctx.lineWidth = 1;
 
     for (let i = 1; i < 4; i++) {
       ctx.beginPath();
-      ctx.moveTo(12, startY + i * (config.drawingAreaHeight / 4));
-      ctx.lineTo(config.screenWidth - 12, startY + i * (config.drawingAreaHeight / 4));
+      ctx.moveTo(12, Math.round(startY + i * (config.drawingAreaHeight / 4)));
+      ctx.lineTo(config.screenWidth - 12, Math.round(startY + i * (config.drawingAreaHeight / 4)));
       ctx.stroke();
     }
 
     for (let i = 1; i < 4; i++) {
       ctx.beginPath();
-      ctx.moveTo(12 + i * ((config.screenWidth - 24) / 4), startY);
-      ctx.lineTo(12 + i * ((config.screenWidth - 24) / 4), startY + config.drawingAreaHeight);
+      ctx.moveTo(Math.round(12 + i * ((config.screenWidth - 24) / 4)), startY);
+      ctx.lineTo(Math.round(12 + i * ((config.screenWidth - 24) / 4)), startY + config.drawingAreaHeight);
       ctx.stroke();
     }
 
@@ -262,11 +285,11 @@ class InterfaceRenderer {
     }
 
     ctx.fillStyle = config.primaryColor;
-    ctx.font = '20px Arial';
+    ctx.font = 'bold 20px Arial, sans-serif';
     ctx.fillText('', config.screenWidth / 2 - 50, startY + 22);
 
     ctx.fillStyle = scoreColor;
-    ctx.font = gameState.isScoring ? '16px -apple-system' : 'bold 18px -apple-system';
+    ctx.font = gameState.isScoring ? 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif' : 'bold 18px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.fillText(scoreText, config.screenWidth / 2, startY + 35);
 
     ctx.textAlign = 'left';

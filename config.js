@@ -1,10 +1,13 @@
 // 游戏配置管理
-const screenWidth = wx.getSystemInfoSync().screenWidth;
-const screenHeight = wx.getSystemInfoSync().screenHeight;
+const systemInfo = wx.getSystemInfoSync();
+const screenWidth = systemInfo.screenWidth;
+const screenHeight = systemInfo.screenHeight;
+const pixelRatio = systemInfo.pixelRatio || 1;
 
 const config = {
   screenWidth,
   screenHeight,
+  pixelRatio, // 新增像素比配置
   topMargin: 90,
   partHeight: 70,
   indicatorHeight: 90,
@@ -40,7 +43,7 @@ const config = {
 // 计算各区域位置
 function getAreaPositions() {
   const functionAreaY = config.topMargin;
-  const indicatorAreaY = functionAreaY + config.partHeight * 3;
+  const indicatorAreaY = functionAreaY + config.partHeight * 3; // 修复：功能区有3行，每行高度为partHeight
   const drawingAreaY = indicatorAreaY + config.indicatorHeight;
   const scoreAreaY = drawingAreaY + config.drawingAreaHeight;
   const jumpAreaY = scoreAreaY + config.scoreHeight;

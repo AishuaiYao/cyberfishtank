@@ -231,20 +231,25 @@ class EventHandler {
     console.log('排行榜界面已隐藏');
   }
 
-  // 游泳功能
-  async handleMakeItSwim() {
-    if (this.gameState.score < 60) {
-      wx.showToast({ title: 'AI评分小于60，这鱼画的太抽象', icon: 'none', duration: 2000 });
-      return;
-    }
 
-    if (this.gameState.drawingPaths.length === 0) {
-      wx.showToast({ title: '请先画一条鱼', icon: 'none', duration: 1500 });
-      return;
-    }
-
-    await this.fishManager.processor.processFishImage();
+async handleMakeItSwim() {
+  if (this.gameState.score < 60) {
+    wx.showToast({ title: 'AI评分小于60，这鱼画的太抽象', icon: 'none', duration: 2000 });
+    return;
   }
+
+  if (this.gameState.drawingPaths.length === 0) {
+    wx.showToast({ title: '请先画一条鱼', icon: 'none', duration: 1500 });
+    return;
+  }
+
+  // 确保 positions 已初始化
+  if (!this.positions) {
+    this.positions = getAreaPositions();
+  }
+
+  await this.fishManager.processor.processFishImage();
+}
 
   // 获取排行榜数据（带图片）- 修改：按照最终评分（点赞-点踩）由大到小排序
   async getRankingDataWithImages() {
