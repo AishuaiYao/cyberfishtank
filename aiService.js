@@ -37,7 +37,7 @@ class AIService {
                     "type": "image_url",
                     "image_url": {"url": `data:image/png;base64,${base64Image}`}
                   },
-                  {"type": "text", "text": "判断这个图上画的像不像一条鱼，在0到100范围内打分，精确到小数点后两位，直接返回给我得分就行"}
+                  {"type": "text", "text": "判断这个图上画的像不像一条鱼，判定稍微严格一点，在0到100范围内打分，精确到小数点后两位，直接返回给我得分就行"}
                 ]
               }
             ]

@@ -154,7 +154,7 @@ class EventHandler {
     }
   }
 
-  // 鱼缸功能
+  // 鱼缸功能 - 简化：每次点击都重新从数据库随机加载20条鱼
   async handleFishTank() {
     await this.showFishTankInterface();
   }
@@ -168,15 +168,14 @@ class EventHandler {
       this.fishTank = new FishTank(this.ctx, config.screenWidth, config.screenHeight);
     }
 
-    // 清空当前鱼缸，但保留用户鱼（通过名称校验防止重复）
-    const currentUserFish = this.fishTank.fishes.filter(fish =>
-      this.addedUserFishNames.has(fish.name)
-    );
-    this.fishTank.fishes = currentUserFish;
+    // 清空当前鱼缸
+    this.fishTank.fishes = [];
+    this.addedUserFishNames.clear();
 
+    // 直接从数据库随机加载20条鱼
     await this.fishManager.data.loadAndShowDatabaseFishes();
     this.fishManager.animator.startAnimationLoop();
-    console.log('鱼缸界面已显示，包含数据库鱼和用户鱼');
+    console.log('鱼缸界面已显示，包含随机20条数据库鱼');
   }
 
   hideSwimInterface() {
