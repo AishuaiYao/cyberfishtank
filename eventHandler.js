@@ -734,7 +734,7 @@ class EventHandler {
 
     if (updateSuccess) {
       console.log('排行榜点赞操作成功');
-      wx.showToast({ title: '点赞成功', icon: 'success', duration: 1000 });
+//      wx.showToast({ title: '点赞成功', icon: 'success', duration: 1000 });
     }
   }
 
@@ -772,7 +772,7 @@ class EventHandler {
 
     if (updateSuccess) {
       console.log('排行榜点踩操作成功');
-      wx.showToast({ title: '点踩成功', icon: 'success', duration: 1000 });
+//      wx.showToast({ title: '点踩成功', icon: 'success', duration: 1000 });
     }
   }
 
@@ -805,7 +805,7 @@ class EventHandler {
     if (updateSuccess) {
       fishItem.userInteraction = null;
       console.log('取消排行榜点赞成功');
-      wx.showToast({ title: '已取消点赞', icon: 'success', duration: 1000 });
+//      wx.showToast({ title: '已取消点赞', icon: 'success', duration: 1000 });
     }
   }
 
@@ -837,8 +837,8 @@ class EventHandler {
 
     if (updateSuccess) {
       fishItem.userInteraction = null;
-      console.log('取消排行榜点踩成功');
-      wx.showToast({ title: '已取消点踩', icon: 'success', duration: 1000 });
+//      console.log('取消排行榜点踩成功');
+//      wx.showToast({ title: '已取消点踩', icon: 'success', duration: 1000 });
     }
   }
 
@@ -1327,9 +1327,9 @@ class EventHandler {
       newUnstarCount
     );
 
-    if (updateSuccess) {
-      wx.showToast({ title: '点赞成功', icon: 'success', duration: 1000 });
-    }
+//    if (updateSuccess) {
+////      wx.showToast({ title: '点赞成功', icon: 'success', duration: 1000 });
+//    }
   }
 
   // 新增：执行点踩操作（无交互状态时）
@@ -1363,9 +1363,9 @@ class EventHandler {
       newUnstarCount
     );
 
-    if (updateSuccess) {
-      wx.showToast({ title: '点踩成功', icon: 'success', duration: 1000 });
-    }
+//    if (updateSuccess) {
+////      wx.showToast({ title: '点踩成功', icon: 'success', duration: 1000 });
+//    }
   }
 
   // 修改：取消点赞操作
@@ -1396,7 +1396,7 @@ class EventHandler {
     if (updateSuccess) {
       // 无论交互记录删除是否成功，都更新本地状态
       this.selectedFishData.userInteraction = null;
-      wx.showToast({ title: '已取消点赞', icon: 'success', duration: 1000 });
+//      wx.showToast({ title: '已取消点赞', icon: 'success', duration: 1000 });
     } else {
       console.warn('取消点赞失败');
       wx.showToast({ title: '操作失败', icon: 'none', duration: 1000 });
@@ -1431,7 +1431,7 @@ class EventHandler {
     if (updateSuccess) {
       // 无论交互记录删除是否成功，都更新本地状态
       this.selectedFishData.userInteraction = null;
-      wx.showToast({ title: '已取消点踩', icon: 'success', duration: 1000 });
+//      wx.showToast({ title: '已取消点踩', icon: 'success', duration: 1000 });
     } else {
       console.warn('取消点踩失败');
       wx.showToast({ title: '操作失败', icon: 'none', duration: 1000 });
