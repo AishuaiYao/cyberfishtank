@@ -74,6 +74,10 @@ class EventHandler {
     // 新增：操作锁，防止重复点击
     this.isOperating = false;
 
+    // 新增：我的鱼缸相关
+    this.myFishTankList = []; // 用户自己的鱼列表
+    this.currentTankMode = 'public'; // 'public' 或 'my'
+
     this.bindEvents();
   }
 
@@ -210,48 +214,136 @@ class EventHandler {
     }
   }
 
-// 修改：进入鱼缸的统一方法
-async enterFishTank(newFishName = null) {
-  this.isSwimInterfaceVisible = true;
-  this.swimInterfaceData = { mode: 'fishTank' };
+  // 修改：进入鱼缸的统一方法
+  async enterFishTank(newFishName = null, mode = 'public') {
+    this.isSwimInterfaceVisible = true;
+    this.swimInterfaceData = { mode: mode };
+    this.currentTankMode = mode;
 
-  if (!this.fishTank) {
-    const { FishTank } = require('./fishCore.js');
-    this.fishTank = new FishTank(this.ctx, config.screenWidth, config.screenHeight);
+    if (!this.fishTank) {
+      const { FishTank } = require('./fishCore.js');
+      this.fishTank = new FishTank(this.ctx, config.screenWidth, config.screenHeight);
+    }
+
+    // 清空当前鱼缸显示
+    this.fishTank.fishes = [];
+    this.addedUserFishNames.clear();
+
+    if (mode === 'public') {
+      // 公共鱼缸逻辑
+      // 首次进入：从数据库加载并初始化全局列表
+      if (this.isFirstEnterTank) {
+        await this.loadInitialFishes();
+        this.isFirstEnterTank = false;
+      }
+
+      // 如果有指定新鱼（从"让它游起来"来的），确保它在列表中
+      if (newFishName) {
+        await this.ensureFishInList(newFishName);
+      }
+
+      // 从全局列表创建鱼对象并显示
+      await this.createFishesFromGlobalList();
+    } else {
+      // 我的鱼缸逻辑
+      await this.loadMyFishes();
+    }
+
+    this.fishManager.animator.startAnimationLoop();
+
+    // 修改这里：进入鱼缸时显示鱼的数量和模式
+    const fishCount = mode === 'public' ? this.globalFishList.length : this.myFishTankList.length;
+    const tankName = mode === 'public' ? '切换到赛博鱼缸' : '切换到我的鱼缸';
+    wx.showToast({
+      title: `${tankName}中有${fishCount}条鱼`,
+      icon: 'success',
+      duration: 2000
+    });
+
+    console.log(`进入${tankName}，当前鱼数量:`, fishCount);
   }
 
-  // 清空当前鱼缸显示
-  this.fishTank.fishes = [];
-  this.addedUserFishNames.clear();
+  // 新增：加载我的鱼数据
+  async loadMyFishes() {
+    try {
+      console.log('加载我的鱼数据...');
 
-  // 首次进入：从数据库加载并初始化全局列表
-  if (this.isFirstEnterTank) {
-    await this.loadInitialFishes();
-    this.isFirstEnterTank = false;
+      if (!this.databaseManager.isCloudDbInitialized || !this.databaseManager.cloudDb) {
+        console.warn('云数据库未初始化，无法加载我的鱼数据');
+        this.myFishTankList = [];
+        return;
+      }
+
+      // 这里需要根据用户ID查询用户自己的鱼
+      // 由于当前数据库设计没有用户字段，这里先使用模拟数据或名称匹配
+      // 在实际应用中，应该在鱼数据中添加用户ID字段
+      const allFishes = await this.databaseManager.getRandomFishesFromDatabase(100);
+
+      // 模拟：假设用户自己画的鱼名称包含特定前缀
+      // 这里可以根据实际业务逻辑调整
+      this.myFishTankList = allFishes.filter(fish =>
+        fish.fishName && fish.fishName.startsWith('小鱼')
+      );
+
+      console.log('我的鱼数据加载完成，数量:', this.myFishTankList.length);
+
+      // 从我的鱼列表创建鱼对象并显示
+      await this.createFishesFromMyList();
+
+    } catch (error) {
+      console.error('加载我的鱼数据失败:', error);
+      this.myFishTankList = [];
+    }
   }
 
-  // 如果有指定新鱼（从"让它游起来"来的），确保它在列表中
-  if (newFishName) {
-    await this.ensureFishInList(newFishName);
+  // 新增：从我的鱼列表创建鱼对象
+  async createFishesFromMyList() {
+    if (this.myFishTankList.length === 0) return;
+
+    console.log('从我的鱼列表创建鱼对象，数量:', this.myFishTankList.length);
+
+    const fishCreationPromises = this.myFishTankList.map(fishData =>
+      this.fishManager.data.createFishFromDatabaseData(fishData)
+    );
+
+    const createdFishes = await Promise.all(fishCreationPromises);
+    const validFishes = createdFishes.filter(fish => fish !== null);
+
+    // 添加到鱼缸显示
+    validFishes.forEach(fish => {
+      this.fishTank.addFish(fish);
+      this.addedUserFishNames.add(fish.name);
+    });
+
+    console.log('成功创建我的鱼对象:', validFishes.length);
   }
 
-  // 从全局列表创建鱼对象并显示
-  await this.createFishesFromGlobalList();
+  // 新增：切换鱼缸模式
+  async switchTankMode() {
+    const newMode = this.currentTankMode === 'public' ? 'my' : 'public';
+    await this.enterFishTank(null, newMode);
+  }
 
-  this.fishManager.animator.startAnimationLoop();
+//  // 新增：获取当前鱼缸名称
+//  getCurrentTankName() {
+//    return this.currentTankMode === 'public' ? '赛博鱼缸' : '我的鱼缸';
+//  }
 
-  // 修改这里：进入鱼缸时显示鱼的数量
-  const fishCount = this.globalFishList.length;
-  wx.showToast({
-    title: `鱼缸中有${fishCount}条鱼`,
-    icon: 'success',
-    duration: 2000
-  });
+  // 新增：获取切换按钮文本
+  getSwitchButtonText() {
+    return this.currentTankMode === 'public' ? '切换到我的鱼缸' : '切换到赛博鱼缸';
+  }
 
-  console.log('进入鱼缸，当前鱼数量:', fishCount);
-}
+  // 新增：获取当前鱼缸鱼的数量
+  getCurrentTankFishCount() {
+    if (this.currentTankMode === 'public') {
+      return this.globalFishList.length;
+    } else {
+      return this.myFishTankList.length;
+    }
+  }
 
-  // 新增：首次加载初始鱼数据
+  // 首次加载初始鱼数据
   async loadInitialFishes() {
     try {
       console.log('首次加载初始鱼数据...');
@@ -264,7 +356,7 @@ async enterFishTank(newFishName = null) {
     }
   }
 
-  // 新增：确保指定鱼在全局列表中
+  // 确保指定鱼在全局列表中
   async ensureFishInList(fishName) {
     // 检查是否已在列表中
     const existingFish = this.globalFishList.find(fish =>
@@ -281,7 +373,7 @@ async enterFishTank(newFishName = null) {
     }
   }
 
-  // 新增：从全局列表创建鱼对象
+  // 从全局列表创建鱼对象
   async createFishesFromGlobalList() {
     if (this.globalFishList.length === 0) return;
 
@@ -303,41 +395,52 @@ async enterFishTank(newFishName = null) {
     console.log('成功创建鱼对象:', validFishes.length);
   }
 
-// 修改：刷新鱼缸数据
-async refreshFishTank() {
-  console.log('手动刷新鱼缸数据...');
-  wx.showLoading({ title: '刷新中...', mask: true });
+  // 修改：刷新鱼缸数据
+  async refreshFishTank() {
+    console.log('手动刷新鱼缸数据...');
+    wx.showLoading({ title: '刷新中...', mask: true });
 
-  try {
-    // 重新从数据库随机加载
-    const newFishes = await this.databaseManager.getRandomFishesFromDatabase(20);
-    this.globalFishList = newFishes;
+    try {
+      if (this.currentTankMode === 'public') {
+        // 重新从数据库随机加载
+        const newFishes = await this.databaseManager.getRandomFishesFromDatabase(20);
+        this.globalFishList = newFishes;
 
-    // 清空并重新创建鱼对象
-    this.fishTank.fishes = [];
-    this.addedUserFishNames.clear();
-    await this.createFishesFromGlobalList();
+        // 清空并重新创建鱼对象
+        this.fishTank.fishes = [];
+        this.addedUserFishNames.clear();
+        await this.createFishesFromGlobalList();
 
-    // 修改这里：刷新完成后显示鱼的数量
-    wx.showToast({
-      title: `刷新完成，${newFishes.length}条鱼`,
-      icon: 'success',
-      duration: 1500
-    });
-  } catch (error) {
-    console.error('刷新鱼缸失败:', error);
-    wx.showToast({ title: '刷新失败', icon: 'none', duration: 1500 });
-  } finally {
-    wx.hideLoading();
+        wx.showToast({
+          title: `刷新完成，${newFishes.length}条鱼`,
+          icon: 'success',
+          duration: 1500
+        });
+      } else {
+        // 刷新我的鱼缸
+        await this.loadMyFishes();
+
+        wx.showToast({
+          title: `刷新完成，${this.myFishTankList.length}条鱼`,
+          icon: 'success',
+          duration: 1500
+        });
+      }
+    } catch (error) {
+      console.error('刷新鱼缸失败:', error);
+      wx.showToast({ title: '刷新失败', icon: 'none', duration: 1500 });
+    } finally {
+      wx.hideLoading();
+    }
   }
-}
 
   hideSwimInterface() {
     this.isSwimInterfaceVisible = false;
     this.swimInterfaceData = null;
+    this.currentTankMode = 'public'; // 重置为公共鱼缸模式
     this.fishManager.animator.stopAnimationLoop();
     this.uiManager.drawGameUI(this.gameState);
-    console.log('公共鱼缸界面已隐藏');
+    console.log('鱼缸界面已隐藏');
   }
 
   // 排行榜功能
@@ -585,7 +688,7 @@ async refreshFishTank() {
     }
   }
 
-  // 新增：根据名称查找鱼缸中是否已存在同名鱼
+  // 根据名称查找鱼缸中是否已存在同名鱼
   findFishByName(fishName) {
     if (!this.fishTank || !this.fishTank.fishes || this.fishTank.fishes.length === 0) {
       return null;
@@ -596,7 +699,7 @@ async refreshFishTank() {
     );
   }
 
-  // 新增：检查鱼缸中是否已存在鱼的通用方法
+  // 检查鱼缸中是否已存在鱼的通用方法
   isFishAlreadyInTank(fishName, fishImage = null) {
     // 首先检查名称
     if (this.findFishByName(fishName)) {
@@ -612,7 +715,7 @@ async refreshFishTank() {
     return false;
   }
 
-  // 新增：在进入鱼缸界面时校验所有鱼的名称，移除重复的鱼
+  // 在进入鱼缸界面时校验所有鱼的名称，移除重复的鱼
   validateFishNamesInTank() {
     if (!this.fishTank || !this.fishTank.fishes || this.fishTank.fishes.length === 0) {
       return;

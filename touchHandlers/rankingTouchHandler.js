@@ -29,10 +29,11 @@ class RankingTouchHandler {
     }
 
     // 刷新按钮
-    const refreshButtonX = config.screenWidth - 70;
-    const refreshButtonY = 40;
-    const refreshButtonWidth = 50;
-    const refreshButtonHeight = 30;
+  const refreshButtonX = 80; // 从原来的屏幕右侧移到返回按钮旁边
+  const refreshButtonY = 40;
+  const refreshButtonWidth = 50;
+  const refreshButtonHeight = 30;
+
 
     if (x >= refreshButtonX && x <= refreshButtonX + refreshButtonWidth &&
         y >= refreshButtonY && y <= refreshButtonY + refreshButtonHeight) {

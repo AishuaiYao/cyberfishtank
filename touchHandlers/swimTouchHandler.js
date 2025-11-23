@@ -21,6 +21,16 @@ class SwimTouchHandler {
       return;
     }
 
+    // 新增：鱼缸切换按钮（在屏幕中央）
+    const switchButtonWidth = 120;
+    const switchButtonX = (this.eventHandler.canvas.width / this.eventHandler.uiManager.pixelRatio - switchButtonWidth) / 2;
+
+    if (x >= switchButtonX && x <= switchButtonX + switchButtonWidth &&
+        y >= 40 && y <= 70) {
+      this.eventHandler.switchTankMode();
+      return;
+    }
+
     // 检测双击
     this.handleDoubleTap(x, y);
 
@@ -41,7 +51,7 @@ class SwimTouchHandler {
       }
     }
 
-    console.log('公共鱼缸界面点击位置:', x, y);
+    console.log('鱼缸界面点击位置:', x, y);
   }
 
   // 处理双击事件

@@ -6,7 +6,8 @@
   <component name="ChangeListManager">
     <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="优化界面">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fishCore.js" beforeDir="false" afterPath="$PROJECT_DIR$/fishCore.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/eventHandler.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/touchHandlers/swimTouchHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/swimTouchHandler.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/uiManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/uiManager.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -72,14 +73,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00004" summary="update">
-      <option name="closed" value="true" />
-      <created>1763218943423</created>
-      <option name="number" value="00004" />
-      <option name="presentableId" value="LOCAL-00004" />
-      <option name="project" value="LOCAL" />
-      <updated>1763218943423</updated>
     </task>
     <task id="LOCAL-00005" summary="update">
       <option name="closed" value="true" />
@@ -465,7 +458,15 @@
       <option name="project" value="LOCAL" />
       <updated>1763876554350</updated>
     </task>
-    <option name="localTasksCounter" value="53" />
+    <task id="LOCAL-00053" summary="优化界面">
+      <option name="closed" value="true" />
+      <created>1763877781097</created>
+      <option name="number" value="00053" />
+      <option name="presentableId" value="LOCAL-00053" />
+      <option name="project" value="LOCAL" />
+      <updated>1763877781097</updated>
+    </task>
+    <option name="localTasksCounter" value="54" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
