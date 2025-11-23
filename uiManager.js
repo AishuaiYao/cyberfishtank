@@ -468,7 +468,7 @@ class UIManager {
 
     // 点赞按钮 - 修改：显示取消状态
     const isLiked = hasInteracted && userAction === 'star';
-    const likeButtonText = isLiked ? `取消点赞 ${fishData.star || 0}` : `👍 ${fishData.star || 0}`;
+    const likeButtonText = isLiked ? `取消点赞` : `👍`;
     Utils.drawModernButton(
       ctx,
       detailX + 20,
@@ -483,7 +483,7 @@ class UIManager {
 
     // 点踩按钮 - 修改：显示取消状态
     const isDisliked = hasInteracted && userAction === 'unstar';
-    const dislikeButtonText = isDisliked ? `取消点踩 ${fishData.unstar || 0}` : `👎 ${fishData.unstar || 0}`;
+    const dislikeButtonText = isDisliked ? `取消点踩` : `👎`;
     Utils.drawModernButton(
       ctx,
       detailX + buttonWidth + 40,

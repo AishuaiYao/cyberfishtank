@@ -734,8 +734,7 @@ class EventHandler {
 
     if (updateSuccess) {
       console.log('排行榜点赞操作成功');
-//      wx.showToast({ title: '点赞成功', icon: 'success', duration: 1000 });
-    }
+      }
   }
 
   // 新增：执行排行榜点踩操作
