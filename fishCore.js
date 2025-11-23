@@ -306,8 +306,8 @@ class Fish {
 
   // 检查边界 - 修改为新的边界逻辑
   checkBoundaries() {
-    const minX = this.tankPadding;
-    const maxX = this.canvasWidth - this.width - this.tankPadding;
+    const minX = 0;
+    const maxX = this.canvasWidth - this.width - 0;
     const minY = this.maxY; // 距离顶端90像素
     const maxY = this.canvasHeight - this.height - this.tankPadding;
 

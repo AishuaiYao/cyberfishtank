@@ -121,28 +121,28 @@ class UIManager {
     ctx.fillStyle = config.textColor;
     ctx.font = 'bold 20px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('排行榜', Math.round(config.screenWidth / 2), 50);
+    ctx.fillText('排行榜', Math.round(config.screenWidth / 2), 60);
 
-    // 绘制副标题 - 上移50像素
-    ctx.fillStyle = config.lightTextColor;
-    ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-    ctx.fillText('按评分从高到低排列', Math.round(config.screenWidth / 2), 80);
+//    // 绘制副标题 - 上移50像素
+//    ctx.fillStyle = config.lightTextColor;
+//    ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+//    ctx.fillText('按评分从高到低排列', Math.round(config.screenWidth / 2), 80);
 
     // 如果有滚动，显示滚动提示 - 上移50像素
     const scrollOffset = this.eventHandler.touchHandlers.ranking.getScrollOffset();
     const maxScrollY = this.eventHandler.touchHandlers.ranking.getMaxScrollY();
-
-    if (maxScrollY > 0) {
-      ctx.fillStyle = config.primaryColor;
-      ctx.font = 'bold 14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-      if (scrollOffset === 0) {
-        ctx.fillText('↓ 向下滑动查看更多 ↓', Math.round(config.screenWidth / 2), 100);
-      } else if (scrollOffset >= maxScrollY) {
-        ctx.fillText('↑ 向上滑动返回顶部 ↑', Math.round(config.screenWidth / 2), 100);
-      } else {
-        ctx.fillText('↑ 可上下滑动查看 ↑', Math.round(config.screenWidth / 2), 100);
-      }
-    }
+//
+//    if (maxScrollY > 0) {
+//      ctx.fillStyle = config.primaryColor;
+//      ctx.font = 'bold 14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+//      if (scrollOffset === 0) {
+//        ctx.fillText('↓ 向下滑动查看更多 ↓', Math.round(config.screenWidth / 2), 100);
+//      } else if (scrollOffset >= maxScrollY) {
+//        ctx.fillText('↑ 向上滑动返回顶部 ↑', Math.round(config.screenWidth / 2), 100);
+//      } else {
+//        ctx.fillText('↑ 可上下滑动查看 ↑', Math.round(config.screenWidth / 2), 100);
+//      }
+//    }
 
     ctx.textAlign = 'left';
 
