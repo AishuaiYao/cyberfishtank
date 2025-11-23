@@ -1,6 +1,6 @@
 const { config } = require('../config.js');
 
-// fishManager/fishProcessor.js - 修复边界计算，排除边框区域
+// fishManager/fishProcessor.js - 修复边界计算，排除边框区域，添加翻转支持
 class FishProcessor {
   constructor(eventHandler) {
     this.eventHandler = eventHandler;
@@ -26,7 +26,12 @@ class FishProcessor {
       console.log('计算出的边界框:', boundingBox);
 
       const subImage = await this.cropWithCorrectScaling(boundingBox);
-      const scaledImage = await this.scaleImageWithOriginalLogic(subImage);
+
+      // 新增：如果画布被翻转，处理翻转后的图像
+      const finalImage = this.eventHandler.gameState.isFlipped ?
+        await this.flipImage(subImage) : subImage;
+
+      const scaledImage = await this.scaleImageWithOriginalLogic(finalImage);
 
       wx.hideLoading();
 
@@ -40,6 +45,36 @@ class FishProcessor {
     }
   }
 
+  // 新增：翻转图像
+  async flipImage(subImage) {
+    return new Promise((resolve, reject) => {
+      try {
+        const flippedCanvas = wx.createCanvas();
+        flippedCanvas.width = subImage.width;
+        flippedCanvas.height = subImage.height;
+
+        const flippedCtx = flippedCanvas.getContext('2d');
+
+        // 应用水平翻转
+        flippedCtx.translate(subImage.width, 0);
+        flippedCtx.scale(-1, 1);
+
+        // 绘制翻转后的图像
+        flippedCtx.drawImage(subImage.canvas, 0, 0);
+
+        resolve({
+          canvas: flippedCanvas,
+          width: subImage.width,
+          height: subImage.height,
+          logicalWidth: subImage.logicalWidth,
+          logicalHeight: subImage.logicalHeight
+        });
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
   // 修复：边界计算时排除绘制区域的边框
   calculateScaledBoundingBox() {
     const gameState = this.eventHandler.gameState;
@@ -50,9 +85,11 @@ class FishProcessor {
     // 步骤1: 遍历路径点（这些是逻辑像素坐标）
     gameState.drawingPaths.forEach(path => {
       path.points.forEach(point => {
-        minX = Math.min(minX, point.x);
+        // 如果画布被翻转，需要转换坐标
+        const actualX = gameState.isFlipped ? config.screenWidth - point.x : point.x;
+        minX = Math.min(minX, actualX);
         minY = Math.min(minY, point.y);
-        maxX = Math.max(maxX, point.x);
+        maxX = Math.max(maxX, actualX);
         maxY = Math.max(maxY, point.y);
       });
     });

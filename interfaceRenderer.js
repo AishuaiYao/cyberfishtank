@@ -154,7 +154,7 @@ drawBrushSizeControl(startY, gameState) {
   ctx.textAlign = 'left';
 }
 
-  // 绘制工具按钮
+  // 绘制工具按钮 - 修改：翻转按钮显示状态
   drawToolButtons(startY, gameState) {
     const toolButtons = [
       { name: '橡皮', icon: '◻' },
@@ -166,7 +166,15 @@ drawBrushSizeControl(startY, gameState) {
 
     for (let i = 0; i < toolButtons.length; i++) {
       const x = 30 + i * toolWidth;
-      const isActive = (i === 0 && gameState.isEraser);
+      let isActive = false;
+
+      // 设置激活状态
+      if (i === 0 && gameState.isEraser) {
+        isActive = true;
+      } else if (i === 3 && gameState.isFlipped) {
+        // 新增：翻转按钮激活状态
+        isActive = true;
+      }
 
       Utils.drawModernButton(this.ctx, x, startY, toolWidth - 10, config.buttonHeight,
                             `${toolButtons[i].icon} ${toolButtons[i].name}`,
@@ -197,7 +205,7 @@ drawBrushSizeControl(startY, gameState) {
     ctx.textAlign = 'left';
   }
 
-  // 绘制绘画区
+  // 绘制绘画区 - 修改：支持翻转状态显示
   drawDrawingArea(gameState, positions) {
     const startY = positions.drawingAreaY;
     const ctx = this.ctx;
@@ -240,9 +248,16 @@ drawBrushSizeControl(startY, gameState) {
     this.redrawAllPaths(gameState, startY);
   }
 
-  // 重新绘制所有路径
+  // 重新绘制所有路径 - 修改：支持翻转状态
   redrawAllPaths(gameState, drawingAreaY) {
     const ctx = this.ctx;
+
+    // 如果处于翻转状态，应用翻转变换
+    if (gameState.isFlipped) {
+      ctx.save();
+      ctx.translate(config.screenWidth, 0);
+      ctx.scale(-1, 1);
+    }
 
     gameState.drawingPaths.forEach(path => {
       if (path.points.length > 0) {
@@ -260,6 +275,10 @@ drawBrushSizeControl(startY, gameState) {
         ctx.stroke();
       }
     });
+
+    if (gameState.isFlipped) {
+      ctx.restore();
+    }
   }
 
   // 绘制得分区

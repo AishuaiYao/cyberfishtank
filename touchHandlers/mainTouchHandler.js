@@ -91,7 +91,7 @@ class MainTouchHandler {
   // 颜色按钮点击 - 修改：不取消评分
   handleColorButtonClick(x, y) {
     const functionAreaY = this.positions.functionAreaY;
-    const colorButtonsY = functionAreaY + 20;
+    const colorButtonsY = functionAreaY + 10; // 调整为与UI一致
     const totalWidth = config.colorButtonSize * 7 + 18 * 6;
     const startX = (config.screenWidth - totalWidth) / 2;
 
@@ -113,14 +113,17 @@ class MainTouchHandler {
   // 画笔大小点击 - 修改：不取消评分
   handleBrushSizeClick(x, y) {
     const functionAreaY = this.positions.functionAreaY;
-    const sizeControlY = functionAreaY + config.partHeight + 15;
+    // 调整为与UI一致的位置
+    const sizeControlY = functionAreaY + config.partHeight - 5;
     const sliderX = 100;
     const sliderWidth = config.screenWidth - 140;
 
-    if (y >= sizeControlY - 20 && y <= sizeControlY + 20 &&
-        x >= sliderX && x <= sliderX + sliderWidth) {
+    // 扩大触摸区域，便于操作
+    if (y >= sizeControlY - 15 && y <= sizeControlY + 15 &&
+        x >= sliderX - 10 && x <= sliderX + sliderWidth + 10) {
 
-      const newSize = Math.round(((x - sliderX) / sliderWidth) * 20);
+      const progress = Math.max(0, Math.min(1, (x - sliderX) / sliderWidth));
+      const newSize = Math.round(progress * 19) + 1; // 1-20范围
       this.eventHandler.gameState.setBrushSize(newSize);
       this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
       return true;
@@ -128,16 +131,19 @@ class MainTouchHandler {
     return false;
   }
 
-  // 工具按钮点击
+  // 工具按钮点击 - 修复：调整触摸区域与UI一致
   handleToolButtonClick(x, y) {
     const functionAreaY = this.positions.functionAreaY;
-    const toolsY = functionAreaY + config.partHeight * 2 + 15;
+    // 调整为与UI一致的位置
+    const toolsY = functionAreaY + config.partHeight * 2 - 40;
     const toolWidth = (config.screenWidth - 50) / 4;
 
     for (let i = 0; i < 4; i++) {
-      const buttonX = 20 + i * toolWidth;
+      const buttonX = 30 + i * toolWidth;
+      const buttonWidth = toolWidth - 10;
 
-      if (x >= buttonX && x <= buttonX + toolWidth - 10 &&
+      // 调整触摸区域与UI按钮完全一致
+      if (x >= buttonX && x <= buttonX + buttonWidth &&
           y >= toolsY && y <= toolsY + config.buttonHeight) {
 
         this.handleToolAction(i);
@@ -147,10 +153,10 @@ class MainTouchHandler {
     return false;
   }
 
-  // 工具操作 - 修改：只有清空操作才取消评分
+  // 工具操作 - 修改：实现翻转功能
   handleToolAction(toolIndex) {
     const gameState = this.eventHandler.gameState;
-    
+
     switch (toolIndex) {
       case 0: // 橡皮 - 不取消评分
         gameState.toggleEraser();
@@ -162,22 +168,94 @@ class MainTouchHandler {
         gameState.clear();
         this.cancelPendingScoring();
         break;
-      case 3: // 翻转 - 不取消评分
-        wx.showToast({ title: '翻转功能开发中', icon: 'none' });
+      case 3: // 翻转 - 实现翻转功能
+        this.handleFlipAction();
         break;
     }
     this.eventHandler.uiManager.drawGameUI(gameState);
   }
 
-  // 跳转按钮点击 - 修改：不取消评分
+  // 新增：处理翻转操作
+  handleFlipAction() {
+    const gameState = this.eventHandler.gameState;
+
+    if (gameState.drawingPaths.length === 0) {
+      wx.showToast({
+        title: '请先画一些内容',
+        icon: 'none',
+        duration: 1500
+      });
+      return;
+    }
+
+    // 执行翻转
+    const isFlipped = gameState.flipCanvas();
+
+    // 重新绘制所有路径（翻转后）
+    this.redrawAllPathsFlipped();
+
+  }
+
+  // 新增：重新绘制所有路径（翻转后）
+  redrawAllPathsFlipped() {
+    const gameState = this.eventHandler.gameState;
+    const ctx = this.eventHandler.canvas.getContext('2d');
+    const drawingAreaY = this.positions.drawingAreaY;
+
+    // 清除绘画区域
+    ctx.clearRect(12, drawingAreaY, config.screenWidth - 24, config.drawingAreaHeight);
+
+    // 如果处于翻转状态，应用翻转变换
+    if (gameState.isFlipped) {
+      ctx.save();
+      ctx.translate(config.screenWidth, 0);
+      ctx.scale(-1, 1);
+    }
+
+    // 重新绘制所有路径
+    gameState.drawingPaths.forEach(path => {
+      if (path.points.length > 0) {
+        ctx.beginPath();
+
+        // 应用翻转变换到坐标
+        const startPoint = gameState.isFlipped ?
+          { x: config.screenWidth - path.points[0].x, y: path.points[0].y } :
+          path.points[0];
+
+        ctx.moveTo(startPoint.x, startPoint.y);
+
+        for (let i = 1; i < path.points.length; i++) {
+          const point = gameState.isFlipped ?
+            { x: config.screenWidth - path.points[i].x, y: path.points[i].y } :
+            path.points[i];
+
+          ctx.lineTo(point.x, point.y);
+        }
+
+        ctx.strokeStyle = path.color;
+        ctx.lineWidth = path.size;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+      }
+    });
+
+    if (gameState.isFlipped) {
+      ctx.restore();
+    }
+  }
+
+  // 跳转按钮点击 - 修复：调整触摸区域与UI一致
   handleJumpButtonClick(x, y) {
     const jumpAreaY = this.positions.jumpAreaY;
     const jumpButtonWidth = (config.screenWidth - 50) / 3;
 
     for (let i = 0; i < 3; i++) {
-      const buttonX = 20 + i * jumpButtonWidth;
+      const buttonX = 30 + i * jumpButtonWidth;
+      const buttonWidth = jumpButtonWidth - 10;
 
-      if (x >= buttonX && x <= buttonX + jumpButtonWidth - 10 &&
+      // 调整触摸区域与UI按钮完全一致
+      if (x >= buttonX && x <= buttonX + buttonWidth &&
           y >= jumpAreaY + 13 && y <= jumpAreaY + 13 + config.buttonHeight) {
 
         this.handleJumpAction(i);
@@ -212,27 +290,36 @@ class MainTouchHandler {
   startDrawing(x, y) {
     const gameState = this.eventHandler.gameState;
     gameState.isDrawing = true;
-    gameState.lastX = x;
-    gameState.lastY = y;
-    gameState.startNewPath(x, y);
+
+    // 应用翻转变换到起始坐标
+    const startX = gameState.isFlipped ? config.screenWidth - x : x;
+    const startY = y;
+
+    gameState.lastX = startX;
+    gameState.lastY = startY;
+    gameState.startNewPath(startX, startY);
   }
 
   continueDrawing(x, y) {
     const ctx = this.eventHandler.canvas.getContext('2d');
     const gameState = this.eventHandler.gameState;
-    
+
+    // 应用翻转变换到坐标
+    const currentX = gameState.isFlipped ? config.screenWidth - x : x;
+    const currentY = y;
+
     ctx.beginPath();
     ctx.moveTo(gameState.lastX, gameState.lastY);
-    ctx.lineTo(x, y);
+    ctx.lineTo(currentX, currentY);
     ctx.strokeStyle = gameState.isEraser ? '#FFFFFF' : gameState.currentColor;
     ctx.lineWidth = gameState.brushSize;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.stroke();
 
-    gameState.addPointToPath(x, y);
-    gameState.lastX = x;
-    gameState.lastY = y;
+    gameState.addPointToPath(currentX, currentY);
+    gameState.lastX = currentX;
+    gameState.lastY = currentY;
   }
 
   async finishDrawing() {

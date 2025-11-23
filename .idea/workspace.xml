@@ -4,12 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="调整ai评分时延">
+    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="调整了ui">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config.js" beforeDir="false" afterPath="$PROJECT_DIR$/config.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/fishManager/fishProcessor.js" beforeDir="false" afterPath="$PROJECT_DIR$/fishManager/fishProcessor.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gameState.js" beforeDir="false" afterPath="$PROJECT_DIR$/gameState.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/interfaceRenderer.js" beforeDir="false" afterPath="$PROJECT_DIR$/interfaceRenderer.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uiManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/uiManager.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/touchHandlers/mainTouchHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/mainTouchHandler.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -74,14 +74,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00016" summary="实现了功能鱼缸界面-鱼游动的动画渲染初版">
-      <option name="closed" value="true" />
-      <created>1763288423358</created>
-      <option name="number" value="00016" />
-      <option name="presentableId" value="LOCAL-00016" />
-      <option name="project" value="LOCAL" />
-      <updated>1763288423358</updated>
     </task>
     <task id="LOCAL-00017" summary="实现了功能鱼缸界面-鱼游动的动画渲染初版-第二版，背景是白色了，但是返回键丢失。而且鱼的背景有黑色">
       <option name="closed" value="true" />
@@ -467,11 +459,18 @@
       <option name="project" value="LOCAL" />
       <updated>1763902972363</updated>
     </task>
-    <option name="localTasksCounter" value="65" />
+    <task id="LOCAL-00065" summary="调整了ui">
+      <option name="closed" value="true" />
+      <created>1763906229269</created>
+      <option name="number" value="00065" />
+      <option name="presentableId" value="LOCAL-00065" />
+      <option name="project" value="LOCAL" />
+      <updated>1763906229269</updated>
+    </task>
+    <option name="localTasksCounter" value="66" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="base：重构代码2" />
     <MESSAGE value="base：排名界面基本正常" />
     <MESSAGE value="base：投喂鱼粮" />
     <MESSAGE value="增加起名校验" />
@@ -496,6 +495,7 @@
     <MESSAGE value="修复自己鱼缸不能显示自己的鱼问题" />
     <MESSAGE value="取消了点赞弹窗" />
     <MESSAGE value="调整ai评分时延" />
-    <option name="LAST_COMMIT_MESSAGE" value="调整ai评分时延" />
+    <MESSAGE value="调整了ui" />
+    <option name="LAST_COMMIT_MESSAGE" value="调整了ui" />
   </component>
 </project>

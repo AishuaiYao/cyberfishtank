@@ -1,4 +1,3 @@
-
 const { config } = require('./config.js');
 
 class GameState {
@@ -16,7 +15,10 @@ class GameState {
     this.score = 0;
     this.drawingPaths = [];
     this.currentPath = null;
-    
+
+    // 新增：翻转状态
+    this.isFlipped = false;
+
     // 优化：分离评分状态
     this.scoringState = {
       isScoring: false,
@@ -24,7 +26,7 @@ class GameState {
       lastScoreTime: 0,    // 新增：上次评分时间
       scoreQueue: []       // 新增：评分队列，用于防抖
     };
-    
+
     this.scaledFishImage = null; // 新增：存储缩放后的鱼图像
   }
 
@@ -63,11 +65,18 @@ class GameState {
     this.drawingPaths = [];
     this.score = 0;
     this.scaledFishImage = null; // 清空时也清除缩放图
+    this.isFlipped = false; // 清空时重置翻转状态
   }
 
   toggleEraser() {
     this.isEraser = !this.isEraser;
     return this.isEraser;
+  }
+
+  // 新增：翻转画布
+  flipCanvas() {
+    this.isFlipped = !this.isFlipped;
+    return this.isFlipped;
   }
 
   setColor(color) {
