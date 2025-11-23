@@ -29,62 +29,129 @@ class Utils {
     }
   }
 
-  // 修改：绘制现代按钮 - 增加禁用状态支持
-  static drawModernButton(ctx, x, y, width, height, text, isActive = false, isPrimary = false, isDisabled = false) {
-    const { config } = require('./config.js');
+//  // 修改：绘制现代按钮 - 增加禁用状态支持
+//  static drawModernButton(ctx, x, y, width, height, text, isActive = false, isPrimary = false, isDisabled = false) {
+//    const { config } = require('./config.js');
+//
+//    // 确保坐标为整数
+//    x = Math.round(x);
+//    y = Math.round(y);
+//    width = Math.round(width);
+//    height = Math.round(height);
+//
+//    // 修改：根据禁用状态设置颜色
+//    let fillColor, textColor, borderColor;
+//
+//    if (isDisabled) {
+//      // 禁用状态
+//      fillColor = '#F8F9FA';
+//      textColor = '#C7C7CC';
+//      borderColor = '#E5E5EA';
+//    } else if (isActive) {
+//      // 激活状态
+//      fillColor = config.primaryColor;
+//      textColor = '#FFFFFF';
+//      borderColor = config.primaryColor;
+//    } else if (isPrimary) {
+//      // 主要按钮
+//      fillColor = config.primaryColor;
+//      textColor = '#FFFFFF';
+//      borderColor = config.primaryColor;
+//    } else {
+//      // 默认状态
+//      fillColor = '#FFFFFF';
+//      textColor = config.textColor;
+//      borderColor = config.borderColor;
+//    }
+//
+//    ctx.fillStyle = fillColor;
+//    this.drawRoundedRect(ctx, x, y, width, height, config.borderRadius, true, false);
+//
+//    ctx.strokeStyle = borderColor;
+//    ctx.lineWidth = isActive ? 0 : 1;
+//    this.drawRoundedRect(ctx, x, y, width, height, config.borderRadius, false, true);
+//
+//    // 优化文本渲染
+//    ctx.fillStyle = textColor;
+//    ctx.font = 'bold 14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+//    ctx.textAlign = 'center';
+//    ctx.textBaseline = 'middle';
+//
+//    // 确保文本位置为整数
+//    const textX = Math.round(x + width / 2);
+//    const textY = Math.round(y + height / 2);
+//
+//    ctx.fillText(text, textX, textY);
+//    ctx.textAlign = 'left';
+//    ctx.textBaseline = 'alphabetic';
+//  }
 
-    // 确保坐标为整数
-    x = Math.round(x);
-    y = Math.round(y);
-    width = Math.round(width);
-    height = Math.round(height);
+static drawModernButton(ctx, x, y, width, height, text, isActive = false, isPrimary = false, isDisabled = false, isIconOnly = false) {
+  const { config } = require('./config.js');
 
-    // 修改：根据禁用状态设置颜色
-    let fillColor, textColor, borderColor;
+  // 确保坐标为整数
+  x = Math.round(x);
+  y = Math.round(y);
+  width = Math.round(width);
+  height = Math.round(height);
 
-    if (isDisabled) {
-      // 禁用状态
-      fillColor = '#F8F9FA';
-      textColor = '#C7C7CC';
-      borderColor = '#E5E5EA';
-    } else if (isActive) {
-      // 激活状态
-      fillColor = config.primaryColor;
-      textColor = '#FFFFFF';
-      borderColor = config.primaryColor;
-    } else if (isPrimary) {
-      // 主要按钮
-      fillColor = config.primaryColor;
-      textColor = '#FFFFFF';
-      borderColor = config.primaryColor;
-    } else {
-      // 默认状态
-      fillColor = '#FFFFFF';
-      textColor = config.textColor;
-      borderColor = config.borderColor;
-    }
-
-    ctx.fillStyle = fillColor;
-    this.drawRoundedRect(ctx, x, y, width, height, config.borderRadius, true, false);
-
-    ctx.strokeStyle = borderColor;
-    ctx.lineWidth = isActive ? 0 : 1;
-    this.drawRoundedRect(ctx, x, y, width, height, config.borderRadius, false, true);
-
-    // 优化文本渲染
-    ctx.fillStyle = textColor;
-    ctx.font = 'bold 14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+  // 如果是图标按钮且不处于激活状态，不绘制背景和边框
+  if (isIconOnly && !isActive && !isDisabled) {
+    // 只绘制文本/图标，没有背景和边框
+    ctx.fillStyle = isDisabled ? '#C7C7CC' : config.primaryColor;
+    ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    // 确保文本位置为整数
     const textX = Math.round(x + width / 2);
     const textY = Math.round(y + height / 2);
 
     ctx.fillText(text, textX, textY);
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
+    return;
   }
+
+  // 原有逻辑保持不变
+  let fillColor, textColor, borderColor;
+
+  if (isDisabled) {
+    fillColor = '#F8F9FA';
+    textColor = '#C7C7CC';
+    borderColor = '#E5E5EA';
+  } else if (isActive) {
+    fillColor = config.primaryColor;
+    textColor = '#FFFFFF';
+    borderColor = config.primaryColor;
+  } else if (isPrimary) {
+    fillColor = config.primaryColor;
+    textColor = '#FFFFFF';
+    borderColor = config.primaryColor;
+  } else {
+    fillColor = '#FFFFFF';
+    textColor = config.textColor;
+    borderColor = config.borderColor;
+  }
+
+  ctx.fillStyle = fillColor;
+  this.drawRoundedRect(ctx, x, y, width, height, config.borderRadius, true, false);
+
+  ctx.strokeStyle = borderColor;
+  ctx.lineWidth = isActive ? 0 : 1;
+  this.drawRoundedRect(ctx, x, y, width, height, config.borderRadius, false, true);
+
+  ctx.fillStyle = textColor;
+  ctx.font = 'bold 14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  const textX = Math.round(x + width / 2);
+  const textY = Math.round(y + height / 2);
+
+  ctx.fillText(text, textX, textY);
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+}
 
   // 绘制卡片 - 优化阴影效果
   static drawCard(ctx, x, y, width, height, radius = 12) {

@@ -69,8 +69,10 @@ const switchButtonText = this.eventHandler.getSwitchButtonText();
 Utils.drawModernButton(ctx, switchButtonX, 40, switchButtonWidth, 30, switchButtonText, false, false);
 
 // 绘制刷新按钮（现在在第三个位置）
-const refreshButtonX = switchButtonX + switchButtonWidth + 10; // 在切换按钮右边
-Utils.drawModernButton(ctx, refreshButtonX, 40, 50, 30, '🔄', false, false);
+const refreshButtonX = switchButtonX + switchButtonWidth; // 在切换按钮右边
+//Utils.drawModernButton(ctx, refreshButtonX, 40, 50, 30, '🔄', false, false);
+Utils.drawModernButton(ctx, refreshButtonX, 40, 50, 30, '🔄', false, false, false, true);
+
 
 //    // 绘制返回按钮
 //    Utils.drawModernButton(ctx, 20, 40, 50, 30, '返回', false, true);
@@ -138,7 +140,10 @@ Utils.drawModernButton(ctx, switchButtonX, 40, switchButtonWidth, 30, switchButt
 
 // 绘制刷新按钮（现在在第三个位置）
 const refreshButtonX = switchButtonX + switchButtonWidth + 10; // 在切换按钮右边
-Utils.drawModernButton(ctx, refreshButtonX, 40, 50, 30, '🔄', false, false);
+//Utils.drawModernButton(ctx, refreshButtonX, 40, 50, 30, '🔄', false, false);
+Utils.drawModernButton(ctx, refreshButtonX, 40, 50, 30, '🔄', false, false, false, true);
+
+
 
 //    // 绘制返回按钮
 //    Utils.drawModernButton(ctx, 20, 40, 50, 30, '返回', false, true);
