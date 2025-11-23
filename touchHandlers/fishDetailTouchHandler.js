@@ -4,9 +4,7 @@ const { config } = require('../config.js');
 class FishDetailTouchHandler {
   constructor(eventHandler) {
     this.eventHandler = eventHandler;
-    // 新增：防止快速连续点击
-    this.lastButtonClickTime = 0;
-    this.buttonClickCooldown = 1000; // 1秒冷却时间
+    // 使用事件处理器的统一防重复点击机制
   }
 
   // 处理鱼详情界面触摸
@@ -41,17 +39,15 @@ class FishDetailTouchHandler {
     const dislikeButtonX = detailX + buttonWidth + 40;
     const dislikeButtonY = buttonY;
 
-    // 新增：防止快速连续点击
-    const now = Date.now();
-    if (now - this.lastButtonClickTime < this.buttonClickCooldown) {
-      console.log('按钮点击过于频繁，跳过');
+    // 使用事件处理器的统一防重复点击检查
+    if (!this.eventHandler.canPerformInteraction()) {
+      console.log('操作过于频繁，跳过');
       return;
     }
 
     if (x >= likeButtonX && x <= likeButtonX + buttonWidth &&
         y >= likeButtonY && y <= likeButtonY + buttonHeight) {
       console.log('点击鱼详情点赞按钮');
-      this.lastButtonClickTime = now;
       this.eventHandler.handleLikeAction();
       return;
     }
@@ -59,7 +55,6 @@ class FishDetailTouchHandler {
     if (x >= dislikeButtonX && x <= dislikeButtonX + buttonWidth &&
         y >= dislikeButtonY && y <= dislikeButtonY + buttonHeight) {
       console.log('点击鱼详情点踩按钮');
-      this.lastButtonClickTime = now;
       this.eventHandler.handleDislikeAction();
       return;
     }

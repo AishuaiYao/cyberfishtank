@@ -1,4 +1,3 @@
-
 const { config, getAreaPositions } = require('../config.js');
 
 class MainTouchHandler {
@@ -11,10 +10,9 @@ class MainTouchHandler {
 
   // 处理主界面触摸开始
   handleTouchStart(x, y) {
-    // 优化：用户开始绘画时取消可能的评分请求
-    this.cancelPendingScoring();
-
+    // 只在开始绘画时取消可能的评分请求
     if (this.isInDrawingArea(x, y)) {
+      this.cancelPendingScoring();
       this.startDrawing(x, y);
     } else {
       this.handleFunctionAreaClick(x, y);
@@ -29,7 +27,7 @@ class MainTouchHandler {
       this.continueDrawing(x, y);
       this.lastDrawTime = Date.now();
       
-      // 优化：移动过程中取消评分
+      // 优化：只在绘画移动时取消评分
       this.cancelPendingScoring();
     }
   }
@@ -61,7 +59,7 @@ class MainTouchHandler {
     
     this.scoringTimer = setTimeout(() => {
       this.triggerAIScoring();
-    }, 1000); // 1秒后触发评分
+    }, 400); // 400ms后触发评分
   }
 
   // 优化：触发AI评分
@@ -90,7 +88,7 @@ class MainTouchHandler {
     if (this.handleJumpButtonClick(x, y)) return;
   }
 
-  // 颜色按钮点击
+  // 颜色按钮点击 - 修改：不取消评分
   handleColorButtonClick(x, y) {
     const functionAreaY = this.positions.functionAreaY;
     const colorButtonsY = functionAreaY + 20;
@@ -112,7 +110,7 @@ class MainTouchHandler {
     return false;
   }
 
-  // 画笔大小点击
+  // 画笔大小点击 - 修改：不取消评分
   handleBrushSizeClick(x, y) {
     const functionAreaY = this.positions.functionAreaY;
     const sizeControlY = functionAreaY + config.partHeight + 15;
@@ -149,32 +147,29 @@ class MainTouchHandler {
     return false;
   }
 
-  // 工具操作
+  // 工具操作 - 修改：只有清空操作才取消评分
   handleToolAction(toolIndex) {
     const gameState = this.eventHandler.gameState;
     
-    // 优化：工具操作时取消评分
-    this.cancelPendingScoring();
-    
     switch (toolIndex) {
-      case 0: // 橡皮
+      case 0: // 橡皮 - 不取消评分
         gameState.toggleEraser();
         break;
-      case 1: // 撤销
+      case 1: // 撤销 - 不取消评分
         gameState.undo();
         break;
-      case 2: // 清空
+      case 2: // 清空 - 需要取消评分，因为内容完全变了
         gameState.clear();
-        this.cancelPendingScoring(); // 清空时取消评分
+        this.cancelPendingScoring();
         break;
-      case 3: // 翻转
+      case 3: // 翻转 - 不取消评分
         wx.showToast({ title: '翻转功能开发中', icon: 'none' });
         break;
     }
     this.eventHandler.uiManager.drawGameUI(gameState);
   }
 
-  // 跳转按钮点击
+  // 跳转按钮点击 - 修改：不取消评分
   handleJumpButtonClick(x, y) {
     const jumpAreaY = this.positions.jumpAreaY;
     const jumpButtonWidth = (config.screenWidth - 50) / 3;
@@ -192,11 +187,8 @@ class MainTouchHandler {
     return false;
   }
 
-  // 跳转操作
+  // 跳转操作 - 修改：不取消评分
   handleJumpAction(buttonIndex) {
-    // 优化：跳转时取消评分
-    this.cancelPendingScoring();
-    
     switch (buttonIndex) {
       case 0: // 鱼缸
         this.eventHandler.handleFishTank();
@@ -246,7 +238,6 @@ class MainTouchHandler {
   async finishDrawing() {
     const gameState = this.eventHandler.gameState;
     if (gameState.completePath()) {
-      // 优化：不再立即触发AI评分，改为延迟触发
       console.log('绘画完成，将在空闲时触发AI评分');
     }
     gameState.isDrawing = false;

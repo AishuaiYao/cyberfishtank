@@ -101,7 +101,7 @@ class UIManager {
     // 绘制返回按钮
     Utils.drawModernButton(ctx, 20, 40, 50, 30, '返回', false, true);
 
-    // 绘制鱼缸切换按钮（现在在第二个位置）
+    // 绘制排行榜切换按钮（现在在第二个位置）
     const switchButtonWidth = 120;
     const switchButtonX = 80; // 从中间位置移到第二个位置
     const switchButtonText = this.eventHandler.getRankingSwitchButtonText();
@@ -112,12 +112,13 @@ class UIManager {
     const refreshButtonX = switchButtonX + switchButtonWidth; // 在切换按钮右边
     Utils.drawModernButton(ctx, refreshButtonX, 40, 50, 30, '🔄', false, false, false, true);
 
-    // 绘制标题 - 上移50像素
-    ctx.fillStyle = config.textColor;
-    ctx.font = 'bold 20px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-    ctx.textAlign = 'center';
-
-    ctx.textAlign = 'left';
+//    // 绘制标题 - 上移50像素
+//    ctx.fillStyle = config.textColor;
+//    ctx.font = 'bold 20px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+//    ctx.textAlign = 'center';
+//    ctx.fillText(this.eventHandler.currentRankingMode === 'cyber' ? '🌐 赛博排行榜' : '📅 本周排行榜', Math.round(config.screenWidth / 2), 75);
+//
+//    ctx.textAlign = 'left';
 
     // 检查加载状态
     if (this.eventHandler.isLoadingRanking) {
@@ -216,7 +217,12 @@ class UIManager {
   drawRankingCard(x, y, width, height, fishItem, rank) {
     const ctx = this.ctx;
     const fishData = fishItem.fishData;
-    const userInteraction = fishItem.userInteraction; // 新增：用户交互状态
+
+    // 使用最终交互状态（优先本地缓存）
+    const finalInteraction = this.eventHandler.getFinalInteractionState(
+      fishData.fishName,
+      fishItem.userInteraction
+    );
 
     // 确保坐标为整数
     x = Math.round(x);
@@ -280,24 +286,24 @@ class UIManager {
     const createTime = Utils.formatTime(fishData.createdAt);
     ctx.fillText(createTime, Math.round(x + width / 2), textStartY + 20);
 
-    // 最终评分（点赞-点踩）
+    // 最终评分（点赞-点踩）- 使用即时更新的本地数据
     ctx.fillStyle = config.primaryColor;
     ctx.font = 'bold 14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-    const finalScore = (fishData.star || 0) - (fishData.unstar || 0);
+    const finalScore = fishData.score || 0;
     ctx.fillText(`评分: ${finalScore}`, Math.round(x + width / 2), textStartY + 40);
 
-    // 新增：绘制点赞点踩按钮区域
-    this.drawRankingCardButtons(ctx, x, y, width, height, fishData, userInteraction);
+    // 绘制点赞点踩按钮区域 - 传入最终交互状态
+    this.drawRankingCardButtons(ctx, x, y, width, height, fishData, finalInteraction);
   }
 
-  // 修改后的 drawRankingCardButtons 方法：
-  drawRankingCardButtons(ctx, x, y, width, height, fishData, userInteraction) {
+  // 修改后的 drawRankingCardButtons 方法：使用最终交互状态
+  drawRankingCardButtons(ctx, x, y, width, height, fishData, finalInteraction) {
     const buttonAreaY = y + height - 35;
     const buttonHeight = 25;
 
-    // 检查用户交互状态
-    const hasInteracted = !!userInteraction;
-    const userAction = userInteraction ? userInteraction.action : null;
+    // 检查最终交互状态
+    const hasInteracted = !!finalInteraction;
+    const userAction = finalInteraction ? finalInteraction.action : null;
     const isLiked = hasInteracted && userAction === 'star';
     const isDisliked = hasInteracted && userAction === 'unstar';
 
@@ -317,23 +323,23 @@ class UIManager {
     ctx.lineWidth = 1;
     Utils.drawRoundedRect(ctx, likeButtonX, buttonAreaY, likeButtonWidth, buttonHeight, 4, false, true);
 
-    // 点赞图标（去掉数字）
+    // 点赞图标
     ctx.fillStyle = isLiked ? '#FFFFFF' : config.textColor;
     ctx.font = 'bold 12px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(`👍`, likeButtonX + likeButtonWidth / 2, buttonAreaY + 16); // 去掉 ${fishData.star || 0}
+    ctx.fillText(`👍`, likeButtonX + likeButtonWidth / 2, buttonAreaY + 16);
 
     // 绘制点踩按钮
-    ctx.fillStyle = isDisliked ? '#FF3B30' : '#F8F9FA';
+    ctx.fillStyle = isDisliked ? config.primaryColor : '#F8F9FA';
     Utils.drawRoundedRect(ctx, dislikeButtonX, buttonAreaY, dislikeButtonWidth, buttonHeight, 4, true, false);
 
-    ctx.strokeStyle = isDisliked ? '#FF3B30' : config.borderColor;
+    ctx.strokeStyle = isDisliked ? config.primaryColor : config.borderColor;
     ctx.lineWidth = 1;
     Utils.drawRoundedRect(ctx, dislikeButtonX, buttonAreaY, dislikeButtonWidth, buttonHeight, 4, false, true);
 
-    // 点踩图标（去掉数字）
+    // 点踩图标
     ctx.fillStyle = isDisliked ? '#FFFFFF' : config.textColor;
-    ctx.fillText(`👎`, dislikeButtonX + dislikeButtonWidth / 2, buttonAreaY + 16); // 去掉 ${fishData.unstar || 0}
+    ctx.fillText(`👎`, dislikeButtonX + dislikeButtonWidth / 2, buttonAreaY + 16);
 
     ctx.textAlign = 'left';
   }
@@ -375,11 +381,16 @@ class UIManager {
     ctx.textBaseline = 'alphabetic';
   }
 
-  // 修改：绘制鱼详情界面 - 优化按钮状态显示和提示信息
+  // 修改：绘制鱼详情界面 - 使用最终交互状态
   drawFishDetailInterface() {
     const ctx = this.ctx;
     const fishData = this.eventHandler.selectedFishData.fishData;
-    const userInteraction = this.eventHandler.selectedFishData.userInteraction;
+
+    // 使用最终交互状态（优先本地缓存）
+    const finalInteraction = this.eventHandler.getFinalInteractionState(
+      fishData.fishName,
+      this.eventHandler.selectedFishData.userInteraction
+    );
 
     // 先绘制鱼缸背景，再添加半透明遮罩
     this.drawFishTankInterface();
@@ -452,21 +463,21 @@ class UIManager {
     }
     ctx.fillText(`创作时间: ${createTime}`, detailX + detailWidth / 2, textStartY + 25);
 
-    // 评分
+    // 评分 - 使用即时更新的本地数据
     ctx.fillStyle = config.primaryColor;
     ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     const score = fishData.score || 0;
     ctx.fillText(`评分: ${score}`, detailX + detailWidth / 2, textStartY + 50);
 
-    // 绘制点赞和点踩按钮 - 修改：根据用户交互状态设置按钮样式
+    // 绘制点赞和点踩按钮 - 使用最终交互状态
     const buttonWidth = (detailWidth - 60) / 2;
     const buttonY = textStartY + 75;
 
-    // 检查用户交互状态
-    const hasInteracted = !!userInteraction;
-    const userAction = userInteraction ? userInteraction.action : null;
+    // 检查最终交互状态
+    const hasInteracted = !!finalInteraction;
+    const userAction = finalInteraction ? finalInteraction.action : null;
 
-    // 点赞按钮 - 修改：显示取消状态
+    // 点赞按钮
     const isLiked = hasInteracted && userAction === 'star';
     const likeButtonText = isLiked ? `取消点赞` : `👍`;
     Utils.drawModernButton(
@@ -478,10 +489,10 @@ class UIManager {
       likeButtonText,
       isLiked,
       false,
-      false // 不再禁用，允许取消操作
+      false
     );
 
-    // 点踩按钮 - 修改：显示取消状态
+    // 点踩按钮
     const isDisliked = hasInteracted && userAction === 'unstar';
     const dislikeButtonText = isDisliked ? `取消点踩` : `👎`;
     Utils.drawModernButton(
@@ -493,10 +504,10 @@ class UIManager {
       dislikeButtonText,
       isDisliked,
       false,
-      false // 不再禁用，允许取消操作
+      false
     );
 
-    // 新增：显示操作提示
+    // 显示操作提示
     ctx.fillStyle = config.lightTextColor;
     ctx.font = 'bold 12px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'center';

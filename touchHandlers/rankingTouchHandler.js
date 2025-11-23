@@ -11,7 +11,7 @@ class RankingTouchHandler {
     this.lastTouchY = 0;
     // 新增：防止快速连续点击
     this.lastButtonClickTime = 0;
-    this.buttonClickCooldown = 1000; // 1秒冷却时间
+    this.buttonClickCooldown = 250; // 1秒冷却时间
   }
 
   // 处理排行榜界面触摸
@@ -61,10 +61,9 @@ class RankingTouchHandler {
       return false;
     }
 
-    // 新增：防止快速连续点击
-    const now = Date.now();
-    if (now - this.lastButtonClickTime < this.buttonClickCooldown) {
-      console.log('按钮点击过于频繁，跳过');
+    // 新增：防止快速连续点击 - 使用事件处理器的统一检查
+    if (!this.eventHandler.canPerformInteraction()) {
+      console.log('操作过于频繁，跳过');
       return false;
     }
 
@@ -101,7 +100,6 @@ class RankingTouchHandler {
         if (x >= likeButtonX && x <= likeButtonX + likeButtonWidth &&
             y >= buttonAreaY && y <= buttonAreaY + buttonHeight) {
           console.log('点击排行榜卡片点赞按钮:', fishItem.fishData.fishName);
-          this.lastButtonClickTime = now; // 记录点击时间
           this.eventHandler.handleRankingLikeAction(fishItem);
           return true;
         }
@@ -110,7 +108,6 @@ class RankingTouchHandler {
         if (x >= dislikeButtonX && x <= dislikeButtonX + dislikeButtonWidth &&
             y >= buttonAreaY && y <= buttonAreaY + buttonHeight) {
           console.log('点击排行榜卡片点踩按钮:', fishItem.fishData.fishName);
-          this.lastButtonClickTime = now; // 记录点击时间
           this.eventHandler.handleRankingDislikeAction(fishItem);
           return true;
         }

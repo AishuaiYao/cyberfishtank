@@ -118,33 +118,49 @@ class DatabaseManager {
     }
   }
 
-  // 新增：获取用户对某条鱼的交互记录
-  async getUserInteraction(fishName) {
-    if (!this.isCloudDbInitialized || !this.cloudDb) {
-      console.warn('云数据库未初始化，无法获取交互记录');
-      return null;
-    }
-
-    try {
-      const result = await this.cloudDb.collection('interaction')
-        .where({
-          fishName: fishName
-          // 系统会自动添加 _openid 查询条件
-        })
-        .get();
-
-      if (result.data.length > 0) {
-        console.log(`找到用户对鱼 ${fishName} 的交互记录:`, result.data[0].action);
-        return result.data[0];
-      } else {
-        console.log(`用户对鱼 ${fishName} 暂无交互记录`);
-        return null;
-      }
-    } catch (error) {
-      console.error('获取用户交互记录失败:', error);
-      return null;
-    }
+async getUserInteraction(fishName) {
+  if (!this.isCloudDbInitialized || !this.cloudDb) {
+    console.warn('云数据库未初始化，无法获取交互记录');
+    return null;
   }
+
+  try {
+    // 获取当前用户的openid
+    let userOpenid;
+    try {
+      const cloudResult = await wx.cloud.callFunction({
+        name: 'getOpenid'
+      });
+      userOpenid = cloudResult.result.openid;
+    } catch (error) {
+      console.warn('获取用户openid失败:', error);
+      return null;
+    }
+
+    if (!userOpenid) {
+      console.warn('用户openid为空，无法获取交互记录');
+      return null;
+    }
+
+    const result = await this.cloudDb.collection('interaction')
+      .where({
+        fishName: fishName,
+        _openid: userOpenid  // 必须显式指定_openid条件
+      })
+      .get();
+
+    if (result.data.length > 0) {
+      console.log(`找到用户对鱼 ${fishName} 的交互记录:`, result.data[0].action);
+      return result.data[0];
+    } else {
+      console.log(`用户对鱼 ${fishName} 暂无交互记录`);
+      return null;
+    }
+  } catch (error) {
+    console.error('获取用户交互记录失败:', error);
+    return null;
+  }
+}
 
   // 新增：插入用户交互记录
   async insertUserInteraction(fishName, action) {

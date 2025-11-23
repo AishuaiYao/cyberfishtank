@@ -105,13 +105,14 @@ class AIService {
         },
         fail: (err) => {
           this.currentRequest = null;
-          
-          // 检查是否主动取消
-          if (err.errMsg && err.errMsg.includes('abort')) {
-            reject(new Error('请求被取消'));
-          } else {
-            reject(err);
-          }
+
+        if (err.errMsg && err.errMsg.includes('abort')) {
+          console.log('AI评分取消（用户继续绘画）');
+          resolve(null); // 静默完成，不报错
+        } else {
+          console.warn('AI评分请求失败:', err);
+          reject(err);
+        }
         }
       });
 
@@ -158,7 +159,7 @@ class AIService {
       if (!gameState.isDrawing && gameState.canStartScoring()) {
         await this.getAIScore(canvas, gameState, updateUI);
       }
-    }, 1500); // 1.5秒延迟
+    }, 400); // 1.5秒延迟
   }
 }
 
