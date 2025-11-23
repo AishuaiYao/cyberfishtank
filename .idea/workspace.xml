@@ -4,14 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="取消了点赞弹窗">
+    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="调整ai评分时延">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/aiService.js" beforeDir="false" afterPath="$PROJECT_DIR$/aiService.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/databaseManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/databaseManager.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/eventHandler.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/touchHandlers/fishDetailTouchHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/fishDetailTouchHandler.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/touchHandlers/mainTouchHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/mainTouchHandler.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/touchHandlers/rankingTouchHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/rankingTouchHandler.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config.js" beforeDir="false" afterPath="$PROJECT_DIR$/config.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fishManager/fishProcessor.js" beforeDir="false" afterPath="$PROJECT_DIR$/fishManager/fishProcessor.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/interfaceRenderer.js" beforeDir="false" afterPath="$PROJECT_DIR$/interfaceRenderer.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/uiManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/uiManager.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -77,14 +74,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00015" summary="实现了功能鱼缸界面">
-      <option name="closed" value="true" />
-      <created>1763285695305</created>
-      <option name="number" value="00015" />
-      <option name="presentableId" value="LOCAL-00015" />
-      <option name="project" value="LOCAL" />
-      <updated>1763285695305</updated>
     </task>
     <task id="LOCAL-00016" summary="实现了功能鱼缸界面-鱼游动的动画渲染初版">
       <option name="closed" value="true" />
@@ -470,11 +459,18 @@
       <option name="project" value="LOCAL" />
       <updated>1763897869205</updated>
     </task>
-    <option name="localTasksCounter" value="64" />
+    <task id="LOCAL-00064" summary="调整ai评分时延">
+      <option name="closed" value="true" />
+      <created>1763902972363</created>
+      <option name="number" value="00064" />
+      <option name="presentableId" value="LOCAL-00064" />
+      <option name="project" value="LOCAL" />
+      <updated>1763902972363</updated>
+    </task>
+    <option name="localTasksCounter" value="65" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="base：重构代码" />
     <MESSAGE value="base：重构代码2" />
     <MESSAGE value="base：排名界面基本正常" />
     <MESSAGE value="base：投喂鱼粮" />
@@ -499,6 +495,7 @@
     <MESSAGE value="刷新button调大" />
     <MESSAGE value="修复自己鱼缸不能显示自己的鱼问题" />
     <MESSAGE value="取消了点赞弹窗" />
-    <option name="LAST_COMMIT_MESSAGE" value="取消了点赞弹窗" />
+    <MESSAGE value="调整ai评分时延" />
+    <option name="LAST_COMMIT_MESSAGE" value="调整ai评分时延" />
   </component>
 </project>

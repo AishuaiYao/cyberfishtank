@@ -598,6 +598,35 @@ class UIManager {
     ctx.textAlign = 'left';
   }
 
+// 绘制主界面标题 - 现代黑体斜体
+drawMainTitle() {
+  const ctx = this.ctx;
+
+  // 现代黑体字体栈，优先使用系统黑体
+  const title = '赛博鱼缸DrawAFish';
+  const x = 20;
+  const y = 60;
+
+  // 方案1：使用斜体黑体
+  ctx.font = 'italic bold 18px "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Source Han Sans CN", "Noto Sans CJK", "Helvetica Neue", Arial, sans-serif';
+  ctx.fillStyle = config.textColor;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+
+  // 添加轻微文字阴影，增强立体感
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+  ctx.shadowBlur = 2;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 1;
+
+  ctx.fillText(title, x, y);
+
+  // 重置阴影
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+  ctx.textBaseline = 'alphabetic';
+}
+
   // 绘制完整UI
   drawGameUI(gameState) {
     const positions = getAreaPositions();
@@ -627,6 +656,7 @@ class UIManager {
 
     // 绘制主游戏界面
     this.interfaceRenderer.drawBackground();
+    this.drawMainTitle();
     this.interfaceRenderer.drawFunctionArea(gameState, positions);
     this.interfaceRenderer.drawIndicatorArea(positions);
     this.interfaceRenderer.drawDrawingArea(gameState, positions);

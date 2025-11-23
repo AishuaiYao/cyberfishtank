@@ -1,4 +1,6 @@
-// fishManager/fishProcessor.js - 修复缩放逻辑
+const { config } = require('../config.js');
+
+// fishManager/fishProcessor.js - 修复边界计算，排除边框区域
 class FishProcessor {
   constructor(eventHandler) {
     this.eventHandler = eventHandler;
@@ -15,7 +17,7 @@ class FishProcessor {
     try {
       wx.showLoading({ title: '处理中...', mask: true });
 
-      // 使用修复后的边界计算，考虑像素比
+      // 使用修复后的边界计算，排除边框区域
       const boundingBox = this.calculateScaledBoundingBox();
       if (!boundingBox || boundingBox.width === 0 || boundingBox.height === 0) {
         throw new Error('无法计算有效的外接矩形');
@@ -38,7 +40,7 @@ class FishProcessor {
     }
   }
 
-  // 修复：考虑像素比的边界计算
+  // 修复：边界计算时排除绘制区域的边框
   calculateScaledBoundingBox() {
     const gameState = this.eventHandler.gameState;
     if (gameState.drawingPaths.length === 0) return null;
@@ -61,14 +63,20 @@ class FishProcessor {
     const maxLineWidth = Math.max(...gameState.drawingPaths.map(p => p.size));
     const lineMargin = maxLineWidth / 2;
 
-    // 修复2: 增加边距
+    // 修复2: 增加边距，同时排除边框区域
     const margin = 10 + lineMargin;
 
-    // 计算逻辑像素边界
-    const logicalX = Math.max(0, Math.round(minX - margin));
-    const logicalY = Math.max(0, Math.round(minY - margin));
-    const logicalWidth = Math.round(Math.max(0, maxX - minX + margin * 2));
-    const logicalHeight = Math.round(Math.max(0, maxY - minY + margin * 2));
+    // 绘制区域的实际边界（排除边框）
+    const drawingAreaLeft = 12;    // 左边框位置
+    const drawingAreaTop = this.getDrawingAreaTop(); // 绘制区域顶部位置
+    const drawingAreaRight = config.screenWidth - 12;  // 右边框位置
+    const drawingAreaBottom = drawingAreaTop + config.drawingAreaHeight; // 底部边框位置
+
+    // 计算逻辑像素边界，确保在绘制区域内
+    const logicalX = Math.max(drawingAreaLeft, Math.round(minX - margin));
+    const logicalY = Math.max(drawingAreaTop, Math.round(minY - margin));
+    const logicalWidth = Math.round(Math.max(0, Math.min(maxX + margin, drawingAreaRight) - logicalX));
+    const logicalHeight = Math.round(Math.max(0, Math.min(maxY + margin, drawingAreaBottom) - logicalY));
 
     console.log('逻辑像素边界:', { logicalX, logicalY, logicalWidth, logicalHeight });
 
@@ -105,6 +113,13 @@ class FishProcessor {
       logicalWidth: logicalWidth,
       logicalHeight: logicalHeight
     };
+  }
+
+  // 新增：获取绘制区域顶部位置
+  getDrawingAreaTop() {
+    const { getAreaPositions } = require('../config.js');
+    const positions = getAreaPositions();
+    return positions.drawingAreaY;
   }
 
   // 修复：使用正确的缩放进行裁剪
@@ -201,57 +216,6 @@ class FishProcessor {
           canvas: scaledCanvas,
           width: scaledWidth,
           height: scaledHeight,
-          scale: scale
-        });
-      } catch (error) {
-        reject(error);
-      }
-    });
-  }
-
-  // 备选方案：如果上面的缩放还有问题，使用这个更保守的版本
-  scaleImageConservative(subImage) {
-    return new Promise((resolve, reject) => {
-      try {
-        const { width, height } = subImage;
-        const targetSize = 80;
-
-        console.log('保守缩放 - 输入尺寸:', { width, height });
-
-        // 完全按照原来的逻辑
-        const isWidthLonger = width >= height;
-        const scale = isWidthLonger ? targetSize / width : targetSize / height;
-
-        const scaledWidth = Math.round(width * scale);
-        const scaledHeight = Math.round(height * scale);
-
-        // 确保最小尺寸
-        const finalWidth = Math.max(20, scaledWidth);
-        const finalHeight = Math.max(20, scaledHeight);
-
-        console.log('保守缩放 - 输出尺寸:', {
-          scaledWidth: finalWidth,
-          scaledHeight: finalHeight,
-          scale
-        });
-
-        const scaledCanvas = wx.createCanvas();
-        scaledCanvas.width = finalWidth;
-        scaledCanvas.height = finalHeight;
-
-        const scaledCtx = scaledCanvas.getContext('2d');
-        scaledCtx.imageSmoothingEnabled = false;
-
-        scaledCtx.drawImage(
-          subImage.canvas,
-          0, 0, width, height,
-          0, 0, finalWidth, finalHeight
-        );
-
-        resolve({
-          canvas: scaledCanvas,
-          width: finalWidth,
-          height: finalHeight,
           scale: scale
         });
       } catch (error) {

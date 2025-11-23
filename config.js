@@ -43,9 +43,9 @@ const config = {
 // 计算各区域位置
 function getAreaPositions() {
   const functionAreaY = config.topMargin;
-  const indicatorAreaY = functionAreaY + config.partHeight * 3; // 修复：功能区有3行，每行高度为partHeight
-  const drawingAreaY = indicatorAreaY + config.indicatorHeight;
-  const scoreAreaY = drawingAreaY + config.drawingAreaHeight;
+  const indicatorAreaY = functionAreaY + config.partHeight * 3 - 10; // 修复：功能区有3行，每行高度为partHeight
+  const drawingAreaY = indicatorAreaY + config.indicatorHeight -80;
+  const scoreAreaY = drawingAreaY + config.drawingAreaHeight + 10;
   const jumpAreaY = scoreAreaY + config.scoreHeight;
 
   return {

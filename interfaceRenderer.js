@@ -43,16 +43,16 @@ class InterfaceRenderer {
     const ctx = this.ctx;
 
     // 颜色选择 - 使用更清晰的阴影
-    Utils.drawCard(ctx, 15, startY, config.screenWidth - 30, config.partHeight - 10);
-    this.drawColorButtons(startY + 20, gameState);
+    Utils.drawCard(ctx, 15, startY, config.screenWidth - 30, config.partHeight - 20);
+    this.drawColorButtons(startY + 10, gameState);
 
     // 画笔大小调节
-    Utils.drawCard(ctx, 15, startY + config.partHeight, config.screenWidth - 30, config.partHeight - 10);
-    this.drawBrushSizeControl(startY + config.partHeight + 25, gameState);
+    Utils.drawCard(ctx, 15, startY + config.partHeight -15 , config.screenWidth - 30, config.partHeight - 40);
+    this.drawBrushSizeControl(startY + config.partHeight + 15, gameState);
 
     // 工具按钮
-    Utils.drawCard(ctx, 15, startY + config.partHeight * 2, config.screenWidth - 30, config.partHeight - 10);
-    this.drawToolButtons(startY + config.partHeight * 2 + 15, gameState);
+    Utils.drawCard(ctx, 15, startY + config.partHeight * 2 - 50, config.screenWidth - 30, config.partHeight - 10);
+    this.drawToolButtons(startY + config.partHeight * 2 - 40, gameState);
   }
 
   // 绘制颜色按钮
@@ -103,53 +103,56 @@ class InterfaceRenderer {
     }
   }
 
-  // 绘制画笔大小控制
-  drawBrushSizeControl(startY, gameState) {
-    const ctx = this.ctx;
+// 绘制画笔大小控制
+drawBrushSizeControl(startY, gameState) {
+  const ctx = this.ctx;
 
-    // 使用更清晰的字体
-    ctx.fillStyle = config.textColor;
-    ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillText('画笔大小:', 25, startY);
+  // 上移10像素
+  const adjustedY = startY - 10;
 
-    const sliderX = 100;
-    const sliderWidth = config.screenWidth - 140;
-    const progressWidth = (gameState.brushSize / 20) * sliderWidth;
+  // 使用调整后的Y坐标
+  ctx.fillStyle = config.textColor;
+  ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('画笔大小:', 25, adjustedY);
 
-    // 滑动条轨道 - 使用更清晰的线条
-    ctx.fillStyle = '#E5E5EA';
-    Utils.drawRoundedRect(ctx, sliderX, startY - 6, sliderWidth, 3, 1.5, true, false);
+  const sliderX = 100;
+  const sliderWidth = config.screenWidth - 140;
+  const progressWidth = (gameState.brushSize / 20) * sliderWidth;
 
-    // 进度填充
-    ctx.fillStyle = config.primaryColor;
-    Utils.drawRoundedRect(ctx, sliderX, startY - 6, progressWidth, 3, 1.5, true, false);
+  // 滑动条轨道 - 使用调整后的Y坐标
+  ctx.fillStyle = '#E5E5EA';
+  Utils.drawRoundedRect(ctx, sliderX, adjustedY - 6, sliderWidth, 3, 1.5, true, false);
 
-    // 滑动块 - 使用更清晰的阴影
-    const sliderPos = sliderX + progressWidth;
-    ctx.shadowColor = 'rgba(0,122,255,0.15)';
-    ctx.shadowBlur = 3;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 1;
+  // 进度填充
+  ctx.fillStyle = config.primaryColor;
+  Utils.drawRoundedRect(ctx, sliderX, adjustedY - 6, progressWidth, 3, 1.5, true, false);
 
-    ctx.fillStyle = config.primaryColor;
-    ctx.beginPath();
-    ctx.arc(sliderPos, startY - 6, 8, 0, Math.PI * 2);
-    ctx.fill();
+  // 滑动块
+  const sliderPos = sliderX + progressWidth;
+  ctx.shadowColor = 'rgba(0,122,255,0.15)';
+  ctx.shadowBlur = 3;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 1;
 
-    ctx.shadowColor = 'transparent';
-    ctx.fillStyle = '#FFFFFF';
-    ctx.beginPath();
-    ctx.arc(sliderPos, startY - 6, 3, 0, Math.PI * 2);
-    ctx.fill();
+  ctx.fillStyle = config.primaryColor;
+  ctx.beginPath();
+  ctx.arc(sliderPos, adjustedY - 6, 8, 0, Math.PI * 2);
+  ctx.fill();
 
-    // 大小显示 - 使用更清晰的字体
-    ctx.fillStyle = config.primaryColor;
-    ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-    ctx.textAlign = 'right';
-    ctx.fillText(`${gameState.brushSize}px`, config.screenWidth - 25, startY);
-    ctx.textAlign = 'left';
-  }
+  ctx.shadowColor = 'transparent';
+  ctx.fillStyle = '#FFFFFF';
+  ctx.beginPath();
+  ctx.arc(sliderPos, adjustedY - 6, 3, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 大小显示
+  ctx.fillStyle = config.primaryColor;
+  ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText(`${gameState.brushSize}px`, config.screenWidth - 25, adjustedY);
+  ctx.textAlign = 'left';
+}
 
   // 绘制工具按钮
   drawToolButtons(startY, gameState) {
@@ -162,7 +165,7 @@ class InterfaceRenderer {
     const toolWidth = (config.screenWidth - 50) / 4;
 
     for (let i = 0; i < toolButtons.length; i++) {
-      const x = 20 + i * toolWidth;
+      const x = 30 + i * toolWidth;
       const isActive = (i === 0 && gameState.isEraser);
 
       Utils.drawModernButton(this.ctx, x, startY, toolWidth - 10, config.buttonHeight,
@@ -176,24 +179,20 @@ class InterfaceRenderer {
     const startY = positions.indicatorAreaY;
     const ctx = this.ctx;
 
-    Utils.drawCard(ctx, 15, startY, config.screenWidth - 30, config.indicatorHeight - 10);
+    Utils.drawCard(ctx, 15, startY - 45, config.screenWidth - 30, config.indicatorHeight - 40);
 
     // 使用更清晰的字体
     ctx.fillStyle = config.textColor;
     ctx.font = 'bold 18px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'center';
 
-    ctx.fillStyle = config.primaryColor;
-    ctx.font = 'bold 24px Arial, sans-serif'; // 指定备用字体
-    ctx.fillText('🎨', config.screenWidth / 2, startY + 28);
-
     ctx.fillStyle = config.textColor;
     ctx.font = 'bold 18px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-    ctx.fillText('画一条鱼吧!', config.screenWidth / 2, startY + 55);
+    ctx.fillText('🎨画一条鱼吧!', config.screenWidth / 2, startY - 25);
 
     ctx.fillStyle = config.lightTextColor;
     ctx.font = '14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-    ctx.fillText('鱼头请朝右', config.screenWidth / 2, startY + 78);
+    ctx.fillText('鱼头请朝右', config.screenWidth / 2, startY - 5);
 
     ctx.textAlign = 'left';
   }
@@ -300,13 +299,13 @@ class InterfaceRenderer {
     const startY = positions.jumpAreaY;
     const ctx = this.ctx;
 
-    Utils.drawCard(ctx, 15, startY, config.screenWidth - 30, config.jumpHeight - 10);
+    Utils.drawCard(ctx, 15, startY, config.screenWidth - 30, config.jumpHeight - 20);
 
     const jumpButtons = ['🐠 鱼缸', '🚀 让它游起来！', '🏆 排行榜'];
     const buttonWidth = (config.screenWidth - 50) / 3;
 
     for (let i = 0; i < jumpButtons.length; i++) {
-      const x = 20 + i * buttonWidth;
+      const x = 30 + i * buttonWidth;
       const isPrimary = i === 1;
 
       Utils.drawModernButton(ctx, x, startY + 13, buttonWidth - 10, config.buttonHeight,
