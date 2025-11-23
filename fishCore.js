@@ -1,3 +1,4 @@
+
 const { config } = require('./config.js');
 
 // 气泡类
@@ -68,6 +69,103 @@ class Bubble {
   ctx.fill();
 
   ctx.restore();
+  }
+}
+
+// 水草类
+class Seaweed {
+  constructor(x, height = 120) {
+    this.x = x;
+    this.y = config.screenHeight; // 从底部开始
+    this.height = height;
+    this.width = 15 + Math.random() * 10; // 水草宽度
+    this.segments = []; // 水草分段
+    this.phase = Math.random() * Math.PI * 2; // 随机相位
+    this.swingSpeed = 0.5 + Math.random() * 0.5; // 摆动速度
+    this.swingAmplitude = 5 + Math.random() * 8; // 摆动幅度
+    
+    // 水草颜色（绿色系）
+    this.colors = [
+      '#2E8B57', // 海绿色
+      '#3CB371', // 中海绿色
+      '#20B2AA', // 浅海绿色
+      '#32CD32', // 酸橙绿
+      '#228B22'  // 森林绿
+    ];
+    this.color = this.colors[Math.floor(Math.random() * this.colors.length)];
+    
+    this.initSegments();
+  }
+
+  // 初始化水草分段
+  initSegments() {
+    const segmentCount = 8 + Math.floor(Math.random() * 6); // 8-13个分段
+    const segmentHeight = this.height / segmentCount;
+    
+    for (let i = 0; i < segmentCount; i++) {
+      this.segments.push({
+        width: this.width * (1 - i * 0.08), // 越往上越细
+        height: segmentHeight,
+        baseWidth: this.width * (1 - i * 0.08)
+      });
+    }
+  }
+
+  update(deltaTime) {
+    // 水草缓慢摆动
+    this.phase += this.swingSpeed * (deltaTime / 1000);
+  }
+
+  draw(ctx) {
+    ctx.save();
+    
+    // 水草从底部向上绘制
+    let currentY = this.y;
+    
+    this.segments.forEach((segment, index) => {
+      const progress = index / this.segments.length;
+      const swing = Math.sin(this.phase + progress * 2) * this.swingAmplitude * progress;
+      
+      // 设置水草颜色，越往上颜色越浅
+      const colorAlpha = 0.6 + progress * 0.4;
+      ctx.fillStyle = this.color;
+      ctx.globalAlpha = colorAlpha;
+      
+      // 绘制水草分段（叶子形状）
+      ctx.beginPath();
+      ctx.moveTo(this.x + swing - segment.width / 2, currentY);
+      ctx.quadraticCurveTo(
+        this.x + swing - segment.width / 3, 
+        currentY - segment.height / 2,
+        this.x + swing, 
+        currentY - segment.height
+      );
+      ctx.quadraticCurveTo(
+        this.x + swing + segment.width / 3, 
+        currentY - segment.height / 2,
+        this.x + swing + segment.width / 2, 
+        currentY
+      );
+      ctx.closePath();
+      ctx.fill();
+      
+      // 添加叶脉
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(this.x + swing, currentY);
+      ctx.quadraticCurveTo(
+        this.x + swing, 
+        currentY - segment.height / 2,
+        this.x + swing, 
+        currentY - segment.height
+      );
+      ctx.stroke();
+      
+      currentY -= segment.height;
+    });
+    
+    ctx.restore();
   }
 }
 
@@ -426,6 +524,7 @@ class FishTank {
     this.fishes = [];
     this.fishFoods = []; // 鱼粮数组
     this.bubbles = []; // 气泡数组
+    this.seaweeds = []; // 水草数组
     this.ctx = ctx;
     this.width = width;
     this.height = height;
@@ -433,6 +532,24 @@ class FishTank {
     this.lastFoodSpawnTime = 0;
     this.lastBubbleSpawnTime = 0;
     this.maxY = 90; // 顶部边界
+    
+    // 初始化水草
+    this.initSeaweeds();
+  }
+
+  // 初始化水草
+  initSeaweeds() {
+    // 在鱼缸底部生成几簇水草
+    const seaweedCount = 5 + Math.floor(Math.random() * 4); // 5-8簇水草
+    
+    for (let i = 0; i < seaweedCount; i++) {
+      const x = 20 + Math.random() * (this.width - 40); // 避免在边缘生成
+      const height = 80 + Math.random() * 80; // 高度80-160像素
+      const seaweed = new Seaweed(x, height);
+      this.seaweeds.push(seaweed);
+    }
+    
+    console.log(`生成了 ${this.seaweeds.length} 簇水草`);
   }
 
   addFish(fish) {
@@ -528,6 +645,11 @@ spawnBubbles() {
       }
     }
 
+    // 更新水草
+    this.seaweeds.forEach(seaweed => {
+      seaweed.update(deltaTime);
+    });
+
     // 更新鱼
     this.fishes.forEach(fish => {
       fish.update(deltaTime, this.fishFoods);
@@ -564,7 +686,12 @@ spawnBubbles() {
     ctx.fillStyle = '#E6F7FF'; // 水蓝色
     ctx.fillRect(0, 0, this.width, this.height);
 
-    // 先绘制气泡（在最底层）
+    // 先绘制水草（在最底层）
+    this.seaweeds.forEach(seaweed => {
+      seaweed.draw(ctx);
+    });
+
+    // 再绘制气泡
     this.bubbles.forEach(bubble => {
       bubble.draw(ctx);
     });
@@ -589,5 +716,6 @@ module.exports = {
   Fish,
   FishTank,
   FishFood,
-  Bubble
+  Bubble,
+  Seaweed
 };

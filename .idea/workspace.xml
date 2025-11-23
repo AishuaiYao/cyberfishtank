@@ -4,10 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="切换button">
+    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="刷新button">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uiManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/uiManager.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils.js" beforeDir="false" afterPath="$PROJECT_DIR$/utils.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fishCore.js" beforeDir="false" afterPath="$PROJECT_DIR$/fishCore.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -72,14 +71,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00007" summary="update-temp">
-      <option name="closed" value="true" />
-      <created>1763220521358</created>
-      <option name="number" value="00007" />
-      <option name="presentableId" value="LOCAL-00007" />
-      <option name="project" value="LOCAL" />
-      <updated>1763220521358</updated>
     </task>
     <task id="LOCAL-00008" summary="update">
       <option name="closed" value="true" />
@@ -465,11 +456,18 @@
       <option name="project" value="LOCAL" />
       <updated>1763883157747</updated>
     </task>
-    <option name="localTasksCounter" value="56" />
+    <task id="LOCAL-00056" summary="刷新button">
+      <option name="closed" value="true" />
+      <created>1763884041413</created>
+      <option name="number" value="00056" />
+      <option name="presentableId" value="LOCAL-00056" />
+      <option name="project" value="LOCAL" />
+      <updated>1763884041413</updated>
+    </task>
+    <option name="localTasksCounter" value="57" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="base：写入数据库成功-补充base64" />
     <MESSAGE value="base：写入数据库成功-可以加载历史鱼群" />
     <MESSAGE value="base：评价界面功能ok，ui需要继续调" />
     <MESSAGE value="base：评价界面功能ok" />
@@ -494,6 +492,7 @@
     <MESSAGE value="优化界面" />
     <MESSAGE value="update" />
     <MESSAGE value="切换button" />
-    <option name="LAST_COMMIT_MESSAGE" value="切换button" />
+    <MESSAGE value="刷新button" />
+    <option name="LAST_COMMIT_MESSAGE" value="刷新button" />
   </component>
 </project>
