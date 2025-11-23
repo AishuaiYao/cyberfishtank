@@ -1,3 +1,4 @@
+
 // eventHandler.js - 添加全局鱼列表管理
 const { config, getAreaPositions } = require('./config.js');
 const AIService = require('./aiService.js');
@@ -181,7 +182,7 @@ class EventHandler {
       // 游泳界面不需要处理触摸结束
     } else {
       // 主界面
-      this.touchHandlers.main.finishDrawing();
+      this.touchHandlers.main.handleTouchEnd();
     }
   }
 
@@ -199,6 +200,12 @@ class EventHandler {
 
   // 修改：让它游起来处理
   async handleMakeItSwim() {
+    // 优化：检查是否正在评分
+    if (this.gameState.scoringState.isRequesting) {
+      wx.showToast({ title: 'AI评分中，请稍候', icon: 'none', duration: 1500 });
+      return;
+    }
+
     if (this.gameState.score < 60) {
       wx.showToast({ title: 'AI评分小于60，这鱼画的太抽象', icon: 'none', duration: 2000 });
       return;

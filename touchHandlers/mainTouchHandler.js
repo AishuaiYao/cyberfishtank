@@ -1,14 +1,19 @@
-// touchHandlers/mainTouchHandler.js - 主界面触摸处理
+
 const { config, getAreaPositions } = require('../config.js');
 
 class MainTouchHandler {
   constructor(eventHandler) {
     this.eventHandler = eventHandler;
     this.positions = getAreaPositions();
+    this.lastDrawTime = 0;
+    this.scoringTimer = null;
   }
 
   // 处理主界面触摸开始
   handleTouchStart(x, y) {
+    // 优化：用户开始绘画时取消可能的评分请求
+    this.cancelPendingScoring();
+
     if (this.isInDrawingArea(x, y)) {
       this.startDrawing(x, y);
     } else {
@@ -22,7 +27,59 @@ class MainTouchHandler {
     
     if (this.isInDrawingArea(x, y)) {
       this.continueDrawing(x, y);
+      this.lastDrawTime = Date.now();
+      
+      // 优化：移动过程中取消评分
+      this.cancelPendingScoring();
     }
+  }
+
+  // 处理主界面触摸结束
+  handleTouchEnd(x, y) {
+    if (this.eventHandler.gameState.isDrawing) {
+      this.finishDrawing();
+      
+      // 优化：延迟触发智能评分
+      this.scheduleSmartScoring();
+    }
+  }
+
+  // 优化：取消待处理的评分
+  cancelPendingScoring() {
+    if (this.scoringTimer) {
+      clearTimeout(this.scoringTimer);
+      this.scoringTimer = null;
+    }
+    
+    // 取消当前的AI请求
+    this.eventHandler.aiService.cancelCurrentRequest();
+  }
+
+  // 优化：安排智能评分
+  scheduleSmartScoring() {
+    this.cancelPendingScoring();
+    
+    this.scoringTimer = setTimeout(() => {
+      this.triggerAIScoring();
+    }, 1000); // 1秒后触发评分
+  }
+
+  // 优化：触发AI评分
+  async triggerAIScoring() {
+    const gameState = this.eventHandler.gameState;
+    
+    // 检查是否满足评分条件
+    if (gameState.isDrawing || gameState.drawingPaths.length === 0) {
+      return;
+    }
+
+    await this.eventHandler.aiService.triggerSmartScoring(
+      this.eventHandler.canvas,
+      gameState,
+      () => {
+        this.eventHandler.uiManager.drawGameUI(gameState);
+      }
+    );
   }
 
   // 处理功能区点击
@@ -96,6 +153,9 @@ class MainTouchHandler {
   handleToolAction(toolIndex) {
     const gameState = this.eventHandler.gameState;
     
+    // 优化：工具操作时取消评分
+    this.cancelPendingScoring();
+    
     switch (toolIndex) {
       case 0: // 橡皮
         gameState.toggleEraser();
@@ -105,6 +165,7 @@ class MainTouchHandler {
         break;
       case 2: // 清空
         gameState.clear();
+        this.cancelPendingScoring(); // 清空时取消评分
         break;
       case 3: // 翻转
         wx.showToast({ title: '翻转功能开发中', icon: 'none' });
@@ -133,6 +194,9 @@ class MainTouchHandler {
 
   // 跳转操作
   handleJumpAction(buttonIndex) {
+    // 优化：跳转时取消评分
+    this.cancelPendingScoring();
+    
     switch (buttonIndex) {
       case 0: // 鱼缸
         this.eventHandler.handleFishTank();
@@ -182,15 +246,18 @@ class MainTouchHandler {
   async finishDrawing() {
     const gameState = this.eventHandler.gameState;
     if (gameState.completePath()) {
-      await this.eventHandler.aiService.getAIScore(
-        this.eventHandler.canvas, 
-        gameState, 
-        () => {
-          this.eventHandler.uiManager.drawGameUI(gameState);
-        }
-      );
+      // 优化：不再立即触发AI评分，改为延迟触发
+      console.log('绘画完成，将在空闲时触发AI评分');
     }
     gameState.isDrawing = false;
+    
+    // 立即更新UI
+    this.eventHandler.uiManager.drawGameUI(gameState);
+  }
+
+  // 新增：清理资源
+  cleanup() {
+    this.cancelPendingScoring();
   }
 }
 
