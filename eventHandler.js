@@ -1,5 +1,4 @@
-
-// eventHandler.js - 添加全局鱼列表管理
+// eventHandler.js - 修复我的鱼缸查询逻辑
 const { config, getAreaPositions } = require('./config.js');
 const AIService = require('./aiService.js');
 const DatabaseManager = require('./databaseManager.js');
@@ -69,11 +68,14 @@ class EventHandler {
     this.globalFishList = [];
     this.isFirstEnterTank = true; // 是否首次进入鱼缸
 
-    // 新增：用户openid - 直接从小程序API获取
-    this.userOpenid = this.getUserOpenid();
+    // 修改：完全移除openid初始化，使用时实时获取
+    this.userOpenid = null; // 设为null，不在构造函数中初始化
 
     // 新增：操作锁，防止重复点击
     this.isOperating = false;
+    // 新增：防止快速连续点击的计时器
+    this.lastInteractionTime = 0;
+    this.interactionCooldown = 1000; // 1秒冷却时间
 
     // 新增：我的鱼缸相关
     this.myFishTankList = []; // 用户自己的鱼列表
@@ -85,25 +87,66 @@ class EventHandler {
     this.bindEvents();
   }
 
-  // 修改：直接获取用户openid
-  getUserOpenid() {
-    try {
-      // 从小程序API直接获取openid
-      const accountInfo = wx.getAccountInfoSync();
-      if (accountInfo && accountInfo.miniProgram) {
-        console.log('获取小程序信息成功');
+  // 新增：获取真实用户openid的方法
+  async getRealUserOpenid() {
+    return new Promise((resolve, reject) => {
+      if (!wx.cloud) {
+        reject(new Error('云开发未初始化'));
+        return;
       }
 
-      // 在实际环境中，openid需要通过 wx.login 和后台接口获取
-      // 这里使用模拟openid用于开发测试
-      const testOpenid = 'test_openid_' + Math.random().toString(36).substr(2, 9);
-      console.log('使用测试openid:', testOpenid);
-      return testOpenid;
-    } catch (error) {
-      console.error('获取openid失败:', error);
-      // 使用模拟openid作为备选
-      return 'fallback_openid_' + Date.now();
+      console.log('开始调用getOpenid云函数...');
+
+      wx.cloud.callFunction({
+        name: 'getOpenid',
+        success: (res) => {
+          console.log('云函数返回完整结果:', res);
+          console.log('云函数返回的openid:', res.result.openid);
+
+          const openid = res.result.openid;
+          if (openid && !openid.startsWith('test_')) {
+            console.log('获取到真实openid:', openid);
+            resolve(openid);
+          } else {
+            console.error('获取到测试openid或无效openid:', openid);
+            reject(new Error('获取到测试openid'));
+          }
+        },
+        fail: (err) => {
+          console.error('调用云函数失败:', err);
+          reject(err);
+        }
+      });
+    });
+  }
+
+  // 新增：检查是否可以执行交互操作（防重复点击）
+  canPerformInteraction() {
+    const now = Date.now();
+    const timeSinceLastInteraction = now - this.lastInteractionTime;
+
+    if (this.isOperating) {
+      console.log('操作进行中，请等待');
+      return false;
     }
+
+    if (timeSinceLastInteraction < this.interactionCooldown) {
+      console.log('操作过于频繁，请稍后再试');
+      return false;
+    }
+
+    return true;
+  }
+
+  // 新增：标记交互开始
+  startInteraction() {
+    this.isOperating = true;
+    this.lastInteractionTime = Date.now();
+  }
+
+  // 新增：标记交互结束
+  endInteraction() {
+    this.isOperating = false;
   }
 
   bindEvents() {
@@ -273,7 +316,7 @@ class EventHandler {
     console.log(`进入${tankName}，当前鱼数量:`, fishCount);
   }
 
-  // 新增：加载我的鱼数据
+  // 修改 loadMyFishes 方法 - 使用真实openid
   async loadMyFishes() {
     try {
       console.log('加载我的鱼数据...');
@@ -284,18 +327,40 @@ class EventHandler {
         return;
       }
 
-      // 这里需要根据用户ID查询用户自己的鱼
-      // 由于当前数据库设计没有用户字段，这里先使用模拟数据或名称匹配
-      // 在实际应用中，应该在鱼数据中添加用户ID字段
-      const allFishes = await this.databaseManager.getRandomFishesFromDatabase(100);
+      // 获取真实openid
+      let userOpenid;
+      try {
+        userOpenid = await this.getRealUserOpenid();
+        console.log('已获取真实openid:', userOpenid);
+      } catch (error) {
+        console.error('获取openid失败，无法加载我的鱼数据:', error);
+        this.myFishTankList = [];
+        wx.showToast({
+          title: '获取用户信息失败',
+          icon: 'none',
+          duration: 2000
+        });
+        return;
+      }
 
-      // 模拟：假设用户自己画的鱼名称包含特定前缀
-      // 这里可以根据实际业务逻辑调整
-      this.myFishTankList = allFishes.filter(fish =>
-        fish.fishName && fish.fishName.startsWith('小鱼')
-      );
+      // 使用真实openid查询用户自己的鱼
+      this.myFishTankList = await this.databaseManager.getFishesByUserOpenid(userOpenid, 20);
 
       console.log('我的鱼数据加载完成，数量:', this.myFishTankList.length);
+
+      if (this.myFishTankList.length === 0) {
+        wx.showToast({
+          title: '你还没有鱼，快去画一条吧！',
+          icon: 'none',
+          duration: 2000
+        });
+      } else {
+        // 调试信息
+        console.log('我的鱼列表详情:');
+        this.myFishTankList.forEach((fish, index) => {
+          console.log(`我的鱼 ${index + 1}: ${fish.fishName} (openid: ${fish._openid})`);
+        });
+      }
 
       // 从我的鱼列表创建鱼对象并显示
       await this.createFishesFromMyList();
@@ -470,6 +535,7 @@ class EventHandler {
     await this.showRankingInterface();
   }
 
+  // 在eventHandler.js的showRankingInterface方法中确保正确调用：
   async showRankingInterface() {
     this.isRankingInterfaceVisible = true;
     this.isLoadingRanking = true;
@@ -491,6 +557,9 @@ class EventHandler {
         rankingFishes = await this.getWeeklyRankingDataWithImages();
       }
 
+      // 新增：为每条鱼加载用户交互状态
+      await this.loadRankingFishesUserInteractions(rankingFishes);
+
       this.rankingData = {
         fishes: rankingFishes,
         lastUpdate: new Date(),
@@ -505,6 +574,287 @@ class EventHandler {
     } finally {
       this.isLoadingRanking = false;
       this.uiManager.drawGameUI(this.gameState);
+    }
+  }
+
+  // 新增：为排行榜鱼数据加载用户交互状态
+  async loadRankingFishesUserInteractions(rankingFishes) {
+    if (!rankingFishes || rankingFishes.length === 0) {
+      return;
+    }
+
+    console.log('开始加载排行榜鱼的用户交互状态...');
+
+    // 获取用户openid
+    let userOpenid;
+    try {
+      userOpenid = await this.getRealUserOpenid();
+      console.log('已获取用户openid:', userOpenid);
+    } catch (error) {
+      console.warn('获取用户openid失败，无法加载交互状态:', error);
+      return;
+    }
+
+    // 批量查询用户交互状态
+    const interactionPromises = rankingFishes.map(async (fishItem) => {
+      try {
+        const interaction = await this.databaseManager.getUserInteraction(fishItem.fishData.fishName);
+        fishItem.userInteraction = interaction;
+      } catch (error) {
+        console.warn(`加载鱼 ${fishItem.fishData.fishName} 的交互状态失败:`, error);
+        fishItem.userInteraction = null;
+      }
+    });
+
+    await Promise.all(interactionPromises);
+    console.log('排行榜鱼用户交互状态加载完成');
+  }
+
+  // 修改：处理排行榜点赞操作 - 增加防重复点击
+  async handleRankingLikeAction(fishItem) {
+    if (!this.canPerformInteraction()) {
+      console.log('操作过于频繁，跳过点赞操作');
+      return;
+    }
+
+    this.startInteraction();
+
+    try {
+      const fishData = fishItem.fishData;
+      if (!fishData._id) {
+        console.warn('鱼数据没有ID，无法更新');
+        return;
+      }
+
+      const userInteraction = fishItem.userInteraction;
+      const currentAction = userInteraction ? userInteraction.action : null;
+
+      // 如果当前已经是点赞状态，则取消点赞
+      if (currentAction === 'star') {
+        await this.cancelRankingLikeAction(fishItem, userInteraction);
+      } else if (currentAction === 'unstar') {
+        // 如果当前是点踩状态，不允许切换操作
+        wx.showToast({ title: '请先取消点踩', icon: 'none', duration: 1500 });
+        return;
+      } else {
+        // 无交互状态，进行点赞操作
+        await this.performRankingLikeAction(fishItem);
+      }
+
+      // 重新加载用户交互状态
+      await this.loadUserInteractionForRankingFish(fishItem);
+
+      // 更新UI
+      this.uiManager.drawGameUI(this.gameState);
+
+    } catch (error) {
+      console.error('排行榜点赞操作失败:', error);
+      wx.showToast({ title: '操作失败，请重试', icon: 'none', duration: 1500 });
+    } finally {
+      this.endInteraction();
+    }
+  }
+
+  // 修改：处理排行榜点踩操作 - 增加防重复点击
+  async handleRankingDislikeAction(fishItem) {
+    if (!this.canPerformInteraction()) {
+      console.log('操作过于频繁，跳点点踩操作');
+      return;
+    }
+
+    this.startInteraction();
+
+    try {
+      const fishData = fishItem.fishData;
+      if (!fishData._id) {
+        console.warn('鱼数据没有ID，无法更新');
+        return;
+      }
+
+      const userInteraction = fishItem.userInteraction;
+      const currentAction = userInteraction ? userInteraction.action : null;
+
+      // 如果当前已经是点踩状态，则取消点踩
+      if (currentAction === 'unstar') {
+        await this.cancelRankingDislikeAction(fishItem, userInteraction);
+      } else if (currentAction === 'star') {
+        // 如果当前是点赞状态，不允许切换操作
+        wx.showToast({ title: '请先取消点赞', icon: 'none', duration: 1500 });
+        return;
+      } else {
+        // 无交互状态，进行点踩操作
+        await this.performRankingDislikeAction(fishItem);
+      }
+
+      // 重新加载用户交互状态
+      await this.loadUserInteractionForRankingFish(fishItem);
+
+      // 更新UI
+      this.uiManager.drawGameUI(this.gameState);
+
+    } catch (error) {
+      console.error('排行榜点踩操作失败:', error);
+      wx.showToast({ title: '操作失败，请重试', icon: 'none', duration: 1500 });
+    } finally {
+      this.endInteraction();
+    }
+  }
+
+  // 新增：执行排行榜点赞操作
+  async performRankingLikeAction(fishItem) {
+    const fishData = fishItem.fishData;
+    const newStarCount = (fishData.star || 0) + 1;
+    const newUnstarCount = fishData.unstar || 0;
+    const newScore = newStarCount - newUnstarCount;
+
+    fishData.star = newStarCount;
+    fishData.unstar = newUnstarCount;
+    fishData.score = newScore;
+
+    // 插入新的交互记录
+    let interactionSuccess = false;
+    try {
+      const userOpenid = await this.getRealUserOpenid();
+      if (userOpenid) {
+        interactionSuccess = await this.databaseManager.insertUserInteraction(
+          fishData.fishName,
+          'star'
+        );
+      }
+    } catch (error) {
+      console.warn('插入交互记录失败:', error);
+    }
+
+    const updateSuccess = await this.databaseManager.updateFishScore(
+      fishData._id,
+      newScore,
+      newStarCount,
+      newUnstarCount
+    );
+
+    if (updateSuccess) {
+      console.log('排行榜点赞操作成功');
+      wx.showToast({ title: '点赞成功', icon: 'success', duration: 1000 });
+    }
+  }
+
+  // 新增：执行排行榜点踩操作
+  async performRankingDislikeAction(fishItem) {
+    const fishData = fishItem.fishData;
+    const newUnstarCount = (fishData.unstar || 0) + 1;
+    const newStarCount = fishData.star || 0;
+    const newScore = newStarCount - newUnstarCount;
+
+    fishData.star = newStarCount;
+    fishData.unstar = newUnstarCount;
+    fishData.score = newScore;
+
+    // 插入新的交互记录
+    let interactionSuccess = false;
+    try {
+      const userOpenid = await this.getRealUserOpenid();
+      if (userOpenid) {
+        interactionSuccess = await this.databaseManager.insertUserInteraction(
+          fishData.fishName,
+          'unstar'
+        );
+      }
+    } catch (error) {
+      console.warn('插入交互记录失败:', error);
+    }
+
+    const updateSuccess = await this.databaseManager.updateFishScore(
+      fishData._id,
+      newScore,
+      newStarCount,
+      newUnstarCount
+    );
+
+    if (updateSuccess) {
+      console.log('排行榜点踩操作成功');
+      wx.showToast({ title: '点踩成功', icon: 'success', duration: 1000 });
+    }
+  }
+
+  // 新增：取消排行榜点赞操作
+  async cancelRankingLikeAction(fishItem, userInteraction) {
+    const fishData = fishItem.fishData;
+    const newStarCount = Math.max(0, (fishData.star || 0) - 1);
+    const newUnstarCount = fishData.unstar || 0;
+    const newScore = newStarCount - newUnstarCount;
+
+    fishData.star = newStarCount;
+    fishData.unstar = newUnstarCount;
+    fishData.score = newScore;
+
+    // 删除交互记录
+    let interactionSuccess = false;
+    if (userInteraction && userInteraction._id) {
+      interactionSuccess = await this.databaseManager.deleteUserInteraction(
+        userInteraction._id
+      );
+    }
+
+    const updateSuccess = await this.databaseManager.updateFishScore(
+      fishData._id,
+      newScore,
+      newStarCount,
+      newUnstarCount
+    );
+
+    if (updateSuccess) {
+      fishItem.userInteraction = null;
+      console.log('取消排行榜点赞成功');
+      wx.showToast({ title: '已取消点赞', icon: 'success', duration: 1000 });
+    }
+  }
+
+  // 新增：取消排行榜点踩操作
+  async cancelRankingDislikeAction(fishItem, userInteraction) {
+    const fishData = fishItem.fishData;
+    const newUnstarCount = Math.max(0, (fishData.unstar || 0) - 1);
+    const newStarCount = fishData.star || 0;
+    const newScore = newStarCount - newUnstarCount;
+
+    fishData.star = newStarCount;
+    fishData.unstar = newUnstarCount;
+    fishData.score = newScore;
+
+    // 删除交互记录
+    let interactionSuccess = false;
+    if (userInteraction && userInteraction._id) {
+      interactionSuccess = await this.databaseManager.deleteUserInteraction(
+        userInteraction._id
+      );
+    }
+
+    const updateSuccess = await this.databaseManager.updateFishScore(
+      fishData._id,
+      newScore,
+      newStarCount,
+      newUnstarCount
+    );
+
+    if (updateSuccess) {
+      fishItem.userInteraction = null;
+      console.log('取消排行榜点踩成功');
+      wx.showToast({ title: '已取消点踩', icon: 'success', duration: 1000 });
+    }
+  }
+
+  // 新增：为单个排行榜鱼加载用户交互状态
+  async loadUserInteractionForRankingFish(fishItem) {
+    try {
+      const userOpenid = await this.getRealUserOpenid();
+      if (!userOpenid) {
+        return;
+      }
+
+      const interaction = await this.databaseManager.getUserInteraction(fishItem.fishData.fishName);
+      fishItem.userInteraction = interaction;
+    } catch (error) {
+      console.error('加载排行榜鱼用户交互状态失败:', error);
+      fishItem.userInteraction = null;
     }
   }
 
@@ -833,12 +1183,13 @@ class EventHandler {
 
   // 新增：加载用户交互状态
   async loadUserInteraction(fishName) {
-    if (!this.userOpenid) {
-      console.warn('用户openid未获取，无法加载交互状态');
-      return;
-    }
-
     try {
+      const userOpenid = await this.getRealUserOpenid();
+      if (!userOpenid) {
+        console.warn('用户openid未获取，无法加载交互状态');
+        return;
+      }
+
       const interaction = await this.databaseManager.getUserInteraction(fishName);
       if (interaction) {
         this.selectedFishData.userInteraction = interaction;
@@ -855,10 +1206,14 @@ class EventHandler {
     this.uiManager.drawGameUI(this.gameState);
   }
 
-  // 修改：点赞操作 - 按照新逻辑实现
+  // 修改：点赞操作 - 按照新逻辑实现，增加防重复点击
   async handleLikeAction() {
-    if (this.isOperating) return;
-    this.isOperating = true;
+    if (!this.canPerformInteraction()) {
+      console.log('操作过于频繁，跳过点赞操作');
+      return;
+    }
+
+    this.startInteraction();
 
     try {
       if (!this.selectedFishData) return;
@@ -888,15 +1243,22 @@ class EventHandler {
       await this.loadUserInteraction(fishData.fishName);
       this.uiManager.drawGameUI(this.gameState);
 
+    } catch (error) {
+      console.error('点赞操作失败:', error);
+      wx.showToast({ title: '操作失败，请重试', icon: 'none', duration: 1500 });
     } finally {
-      this.isOperating = false;
+      this.endInteraction();
     }
   }
 
-  // 修改：点踩操作 - 按照新逻辑实现
+  // 修改：点踩操作 - 按照新逻辑实现，增加防重复点击
   async handleDislikeAction() {
-    if (this.isOperating) return;
-    this.isOperating = true;
+    if (!this.canPerformInteraction()) {
+      console.log('操作过于频繁，跳点点踩操作');
+      return;
+    }
+
+    this.startInteraction();
 
     try {
       if (!this.selectedFishData) return;
@@ -926,8 +1288,11 @@ class EventHandler {
       await this.loadUserInteraction(fishData.fishName);
       this.uiManager.drawGameUI(this.gameState);
 
+    } catch (error) {
+      console.error('点踩操作失败:', error);
+      wx.showToast({ title: '操作失败，请重试', icon: 'none', duration: 1500 });
     } finally {
-      this.isOperating = false;
+      this.endInteraction();
     }
   }
 
@@ -943,11 +1308,16 @@ class EventHandler {
 
     // 插入新的交互记录
     let interactionSuccess = false;
-    if (this.userOpenid) {
-      interactionSuccess = await this.databaseManager.insertUserInteraction(
-        fishData.fishName,
-        'star'
-      );
+    try {
+      const userOpenid = await this.getRealUserOpenid();
+      if (userOpenid) {
+        interactionSuccess = await this.databaseManager.insertUserInteraction(
+          fishData.fishName,
+          'star'
+        );
+      }
+    } catch (error) {
+      console.warn('插入交互记录失败:', error);
     }
 
     const updateSuccess = await this.databaseManager.updateFishScore(
@@ -957,13 +1327,9 @@ class EventHandler {
       newUnstarCount
     );
 
-//    if (updateSuccess && interactionSuccess) {
-//      console.log('点赞操作成功');
-//      wx.showToast({ title: '点赞成功', icon: 'success', duration: 1000 });
-//    } else {
-//      console.warn('点赞操作失败，但已更新本地数据');
-//      wx.showToast({ title: '操作失败', icon: 'none', duration: 1000 });
-//    }
+    if (updateSuccess) {
+      wx.showToast({ title: '点赞成功', icon: 'success', duration: 1000 });
+    }
   }
 
   // 新增：执行点踩操作（无交互状态时）
@@ -978,11 +1344,16 @@ class EventHandler {
 
     // 插入新的交互记录
     let interactionSuccess = false;
-    if (this.userOpenid) {
-      interactionSuccess = await this.databaseManager.insertUserInteraction(
-        fishData.fishName,
-        'unstar'
-      );
+    try {
+      const userOpenid = await this.getRealUserOpenid();
+      if (userOpenid) {
+        interactionSuccess = await this.databaseManager.insertUserInteraction(
+          fishData.fishName,
+          'unstar'
+        );
+      }
+    } catch (error) {
+      console.warn('插入交互记录失败:', error);
     }
 
     const updateSuccess = await this.databaseManager.updateFishScore(
@@ -992,13 +1363,9 @@ class EventHandler {
       newUnstarCount
     );
 
-//    if (updateSuccess && interactionSuccess) {
-//      console.log('点踩操作成功');
-//      wx.showToast({ title: '点踩成功', icon: 'success', duration: 1000 });
-//    } else {
-//      console.warn('点踩操作失败，但已更新本地数据');
-//      wx.showToast({ title: '操作失败', icon: 'none', duration: 1000 });
-//    }
+    if (updateSuccess) {
+      wx.showToast({ title: '点踩成功', icon: 'success', duration: 1000 });
+    }
   }
 
   // 修改：取消点赞操作
@@ -1029,14 +1396,7 @@ class EventHandler {
     if (updateSuccess) {
       // 无论交互记录删除是否成功，都更新本地状态
       this.selectedFishData.userInteraction = null;
-
-//      if (interactionSuccess) {
-//        console.log('取消点赞成功');
-//        wx.showToast({ title: '已取消点赞', icon: 'success', duration: 1000 });
-//      } else {
-//        console.log('取消点赞成功（本地状态已更新）');
-//        wx.showToast({ title: '已取消点赞', icon: 'success', duration: 1000 });
-//      }
+      wx.showToast({ title: '已取消点赞', icon: 'success', duration: 1000 });
     } else {
       console.warn('取消点赞失败');
       wx.showToast({ title: '操作失败', icon: 'none', duration: 1000 });
@@ -1071,14 +1431,7 @@ class EventHandler {
     if (updateSuccess) {
       // 无论交互记录删除是否成功，都更新本地状态
       this.selectedFishData.userInteraction = null;
-
-//      if (interactionSuccess) {
-//        console.log('取消点踩成功');
-//        wx.showToast({ title: '已取消点踩', icon: 'success', duration: 1000 });
-//      } else {
-//        console.log('取消点踩成功（本地状态已更新）');
-//        wx.showToast({ title: '已取消点踩', icon: 'success', duration: 1000 });
-//      }
+      wx.showToast({ title: '已取消点踩', icon: 'success', duration: 1000 });
     } else {
       console.warn('取消点踩失败');
       wx.showToast({ title: '操作失败', icon: 'none', duration: 1000 });

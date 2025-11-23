@@ -57,65 +57,37 @@ class UIManager {
       ctx.textAlign = 'left';
     }
 
-// 在 drawFishTankInterface() 方法中：
-// 绘制返回按钮
-Utils.drawModernButton(ctx, 20, 40, 50, 30, '返回', false, true);
+    // 在 drawFishTankInterface() 方法中：
+    // 绘制返回按钮
+    Utils.drawModernButton(ctx, 20, 40, 50, 30, '返回', false, true);
 
-// 绘制鱼缸切换按钮（现在在第二个位置）
-const switchButtonWidth = 120;
-const switchButtonX = 80; // 从中间位置移到第二个位置
-const switchButtonText = this.eventHandler.getSwitchButtonText();
+    // 绘制鱼缸切换按钮（现在在第二个位置）
+    const switchButtonWidth = 120;
+    const switchButtonX = 80; // 从中间位置移到第二个位置
+    const switchButtonText = this.eventHandler.getSwitchButtonText();
 
-Utils.drawModernButton(ctx, switchButtonX, 40, switchButtonWidth, 30, switchButtonText, false, false);
+    Utils.drawModernButton(ctx, switchButtonX, 40, switchButtonWidth, 30, switchButtonText, false, false);
 
-// 绘制刷新按钮（现在在第三个位置）
-const refreshButtonX = switchButtonX + switchButtonWidth; // 在切换按钮右边
-//Utils.drawModernButton(ctx, refreshButtonX, 40, 50, 30, '🔄', false, false);
-Utils.drawModernButton(ctx, refreshButtonX, 42, 50, 30, '🔄', false, false, false, true);
+    // 绘制刷新按钮（现在在第三个位置）
+    const refreshButtonX = switchButtonX + switchButtonWidth;
+    Utils.drawModernButton(ctx, refreshButtonX, 40, 50, 30, '🔄', false, false, false, true);
 
-
-//    // 绘制返回按钮
-//    Utils.drawModernButton(ctx, 20, 40, 50, 30, '返回', false, true);
-//
-//    // 绘制刷新按钮
-//    Utils.drawModernButton(ctx, 80, 40, 50, 30, '🔄', false, false);
-//
-//    // 修改：绘制鱼缸切换按钮（在屏幕中央）
-//    const switchButtonWidth = 120;
-//    const switchButtonX = (config.screenWidth - switchButtonWidth) / 2;
-//    const switchButtonText = this.eventHandler.getSwitchButtonText();
-//
-//    Utils.drawModernButton(
-//      ctx,
-//      switchButtonX,
-//      40,
-//      switchButtonWidth,
-//      30,
-//      switchButtonText,
-//      false,
-//      false
-//    );
-
-    // 修改：绘制当前鱼缸名称和鱼的数量
-    ctx.fillStyle = '#374151'; // 深蓝色，在浅蓝背景上更清晰
-    ctx.font = 'bold 20px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-    ctx.textAlign = 'center';
-
-//    const tankName = this.eventHandler.getCurrentTankName();
-//    const fishCount = this.eventHandler.getCurrentTankFishCount();
-//    ctx.fillText(tankName, Math.round(config.screenWidth / 2), 85);
-
-    // 绘制鱼的数量
-//    ctx.fillStyle = '#374151'; // 深灰色
-//    ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-//    ctx.fillText(`共有 ${fishCount} 条鱼`, Math.round(config.screenWidth / 2), 110);
-//    ctx.textAlign = 'left';
-
-    // 修改这里：提示文字使用深蓝色
+    // 修改这里：根据鱼缸模式显示不同的提示文字
     ctx.fillStyle = '#374151'; // 深蓝色
     ctx.font = 'bold 14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('双击屏幕投放鱼粮', Math.round(config.screenWidth / 2), config.screenHeight - 30);
+
+    if (this.eventHandler.currentTankMode === 'my') {
+      const fishCount = this.eventHandler.getCurrentTankFishCount();
+      if (fishCount === 0) {
+        ctx.fillText('你还没有鱼，快去画一条吧！', Math.round(config.screenWidth / 2), config.screenHeight - 30);
+      } else {
+        ctx.fillText(`你有 ${fishCount} 条鱼，双击屏幕投放鱼粮`, Math.round(config.screenWidth / 2), config.screenHeight - 30);
+      }
+    } else {
+      ctx.fillText('双击屏幕投放鱼粮', Math.round(config.screenWidth / 2), config.screenHeight - 30);
+    }
+
     ctx.textAlign = 'left';
   }
 
@@ -126,55 +98,24 @@ Utils.drawModernButton(ctx, refreshButtonX, 42, 50, 30, '🔄', false, false, fa
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
 
+    // 绘制返回按钮
+    Utils.drawModernButton(ctx, 20, 40, 50, 30, '返回', false, true);
 
+    // 绘制鱼缸切换按钮（现在在第二个位置）
+    const switchButtonWidth = 120;
+    const switchButtonX = 80; // 从中间位置移到第二个位置
+    const switchButtonText = this.eventHandler.getRankingSwitchButtonText();
 
-// 绘制返回按钮
-Utils.drawModernButton(ctx, 20, 40, 50, 30, '返回', false, true);
+    Utils.drawModernButton(ctx, switchButtonX, 40, switchButtonWidth, 30, switchButtonText, false, false);
 
-// 绘制鱼缸切换按钮（现在在第二个位置）
-const switchButtonWidth = 120;
-const switchButtonX = 80; // 从中间位置移到第二个位置
-const switchButtonText = this.eventHandler.getRankingSwitchButtonText();
-
-Utils.drawModernButton(ctx, switchButtonX, 40, switchButtonWidth, 30, switchButtonText, false, false);
-
-// 绘制刷新按钮（现在在第三个位置）
-const refreshButtonX = switchButtonX + switchButtonWidth ; // 在切换按钮右边
-//Utils.drawModernButton(ctx, refreshButtonX, 40, 50, 30, '🔄', false, false);
-Utils.drawModernButton(ctx, refreshButtonX, 42, 50,30, '🔄', false, false, false, true);
-
-
-
-//    // 绘制返回按钮
-//    Utils.drawModernButton(ctx, 20, 40, 50, 30, '返回', false, true);
-//
-//    // 绘制刷新按钮
-//    Utils.drawModernButton(ctx, 80, 40, 50, 30, '🔄', false, false);
-//
-//    // 新增：绘制排行榜模式切换按钮
-//    const switchButtonWidth = 120;
-//    const switchButtonX = (config.screenWidth - switchButtonWidth) / 2;
-//    const switchButtonText = this.eventHandler.getRankingSwitchButtonText();
-//
-//    Utils.drawModernButton(
-//      ctx,
-//      switchButtonX,
-//      40,
-//      switchButtonWidth,
-//      30,
-//      switchButtonText,
-//      false,
-//      false
-//    );
+    // 绘制刷新按钮（现在在第三个位置）
+    const refreshButtonX = switchButtonX + switchButtonWidth; // 在切换按钮右边
+    Utils.drawModernButton(ctx, refreshButtonX, 40, 50, 30, '🔄', false, false, false, true);
 
     // 绘制标题 - 上移50像素
     ctx.fillStyle = config.textColor;
     ctx.font = 'bold 20px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'center';
-
-//    // 根据当前模式显示不同标题
-//    const rankingTitle = this.eventHandler.currentRankingMode === 'cyber' ? '赛博排行榜' : '本周排行榜';
-//    ctx.fillText(rankingTitle, Math.round(config.screenWidth / 2), 60);
 
     ctx.textAlign = 'left';
 
@@ -224,7 +165,7 @@ Utils.drawModernButton(ctx, refreshButtonX, 42, 50,30, '🔄', false, false, fal
     ctx.clip();
 
     for (let i = 0; i < rankingFishes.length; i++) {
-      const { fishData, fishImage } = rankingFishes[i];
+      const fishItem = rankingFishes[i];
       const row = Math.floor(i / 2);
       const col = i % 2;
 
@@ -233,7 +174,7 @@ Utils.drawModernButton(ctx, refreshButtonX, 42, 50,30, '🔄', false, false, fal
 
       // 只绘制在可见区域内的卡片
       if (cardY + cardHeight > 100 && cardY < config.screenHeight) {
-        this.drawRankingCard(cardX, cardY, cardWidth, cardHeight, fishData, fishImage, i + 1);
+        this.drawRankingCard(cardX, cardY, cardWidth, cardHeight, fishItem, i + 1);
       }
     }
 
@@ -271,9 +212,11 @@ Utils.drawModernButton(ctx, refreshButtonX, 42, 50,30, '🔄', false, false, fal
     Utils.drawRoundedRect(ctx, indicatorRight - indicatorWidth, sliderY, indicatorWidth, sliderHeight, 2, true, false);
   }
 
-  // 绘制单个排行榜卡片
-  drawRankingCard(x, y, width, height, fishData, fishImage, rank) {
+  // 绘制单个排行榜卡片 - 修改：添加点赞点踩按钮
+  drawRankingCard(x, y, width, height, fishItem, rank) {
     const ctx = this.ctx;
+    const fishData = fishItem.fishData;
+    const userInteraction = fishItem.userInteraction; // 新增：用户交互状态
 
     // 确保坐标为整数
     x = Math.round(x);
@@ -296,13 +239,13 @@ Utils.drawModernButton(ctx, refreshButtonX, 42, 50,30, '🔄', false, false, fal
     this.drawRankBadge(x + 10, y + 10, rank);
 
     // 绘制鱼图片 - 确保高质量渲染
-    ctx.imageSmoothingEnabled = false; // 关闭图像平滑以获得更锐利的图像
+    ctx.imageSmoothingEnabled = false;
 
     const maxImageWidth = width - 20;
     const maxImageHeight = 80;
 
-    let imageWidth = fishImage.width;
-    let imageHeight = fishImage.height;
+    let imageWidth = fishItem.fishImage.width;
+    let imageHeight = fishItem.fishImage.height;
 
     if (imageWidth > maxImageWidth) {
       const scale = maxImageWidth / imageWidth;
@@ -319,7 +262,7 @@ Utils.drawModernButton(ctx, refreshButtonX, 42, 50,30, '🔄', false, false, fal
     const imageX = Math.round(x + (width - imageWidth) / 2);
     const imageY = Math.round(y + 40);
 
-    ctx.drawImage(fishImage.canvas, imageX, imageY, imageWidth, imageHeight);
+    ctx.drawImage(fishItem.fishImage.canvas, imageX, imageY, imageWidth, imageHeight);
 
     // 绘制文本信息
     const textStartY = Math.round(imageY + imageHeight + 15);
@@ -337,22 +280,60 @@ Utils.drawModernButton(ctx, refreshButtonX, 42, 50,30, '🔄', false, false, fal
     const createTime = Utils.formatTime(fishData.createdAt);
     ctx.fillText(createTime, Math.round(x + width / 2), textStartY + 20);
 
-    // 评分
-    ctx.fillStyle = Utils.getScoreColor(fishData.score || 0);
+    // 最终评分（点赞-点踩）
+    ctx.fillStyle = config.primaryColor;
     ctx.font = 'bold 14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-    const score = fishData.score || 0;
-    ctx.fillText(`评分: ${score}`, Math.round(x + width / 2), textStartY + 40);
+    const finalScore = (fishData.star || 0) - (fishData.unstar || 0);
+    ctx.fillText(`评分: ${finalScore}`, Math.round(x + width / 2), textStartY + 40);
 
-    // 点赞和点踩信息
-    const infoStartY = textStartY + 60;
+    // 新增：绘制点赞点踩按钮区域
+    this.drawRankingCardButtons(ctx, x, y, width, height, fishData, userInteraction);
+  }
 
-    ctx.fillStyle = config.lightTextColor;
+  // 修改后的 drawRankingCardButtons 方法：
+  drawRankingCardButtons(ctx, x, y, width, height, fishData, userInteraction) {
+    const buttonAreaY = y + height - 35;
+    const buttonHeight = 25;
+
+    // 检查用户交互状态
+    const hasInteracted = !!userInteraction;
+    const userAction = userInteraction ? userInteraction.action : null;
+    const isLiked = hasInteracted && userAction === 'star';
+    const isDisliked = hasInteracted && userAction === 'unstar';
+
+    // 点赞按钮（左侧）
+    const likeButtonX = x + 15;
+    const likeButtonWidth = 40;
+
+    // 点踩按钮（右侧）
+    const dislikeButtonX = x + width - 55;
+    const dislikeButtonWidth = 40;
+
+    // 绘制点赞按钮
+    ctx.fillStyle = isLiked ? config.primaryColor : '#F8F9FA';
+    Utils.drawRoundedRect(ctx, likeButtonX, buttonAreaY, likeButtonWidth, buttonHeight, 4, true, false);
+
+    ctx.strokeStyle = isLiked ? config.primaryColor : config.borderColor;
+    ctx.lineWidth = 1;
+    Utils.drawRoundedRect(ctx, likeButtonX, buttonAreaY, likeButtonWidth, buttonHeight, 4, false, true);
+
+    // 点赞图标（去掉数字）
+    ctx.fillStyle = isLiked ? '#FFFFFF' : config.textColor;
     ctx.font = 'bold 12px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillText(`👍 ${fishData.star || 0}`, Math.round(x + 15), infoStartY);
+    ctx.textAlign = 'center';
+    ctx.fillText(`👍`, likeButtonX + likeButtonWidth / 2, buttonAreaY + 16); // 去掉 ${fishData.star || 0}
 
-    ctx.textAlign = 'right';
-    ctx.fillText(`👎 ${fishData.unstar || 0}`, Math.round(x + width - 15), infoStartY);
+    // 绘制点踩按钮
+    ctx.fillStyle = isDisliked ? '#FF3B30' : '#F8F9FA';
+    Utils.drawRoundedRect(ctx, dislikeButtonX, buttonAreaY, dislikeButtonWidth, buttonHeight, 4, true, false);
+
+    ctx.strokeStyle = isDisliked ? '#FF3B30' : config.borderColor;
+    ctx.lineWidth = 1;
+    Utils.drawRoundedRect(ctx, dislikeButtonX, buttonAreaY, dislikeButtonWidth, buttonHeight, 4, false, true);
+
+    // 点踩图标（去掉数字）
+    ctx.fillStyle = isDisliked ? '#FFFFFF' : config.textColor;
+    ctx.fillText(`👎`, dislikeButtonX + dislikeButtonWidth / 2, buttonAreaY + 16); // 去掉 ${fishData.unstar || 0}
 
     ctx.textAlign = 'left';
   }

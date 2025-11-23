@@ -41,6 +41,83 @@ class DatabaseManager {
     }
   }
 
+  // 新增：按用户_openid查询鱼数据
+  async getFishesByUserOpenid(openid, limit = 20) {
+    if (!this.isCloudDbInitialized || !this.cloudDb) {
+      console.warn('云数据库未初始化，无法按用户查询鱼数据');
+      return [];
+    }
+
+    if (!openid) {
+      console.warn('openid为空，无法查询用户鱼数据');
+      return [];
+    }
+
+    try {
+      console.log(`查询用户 ${openid} 的鱼数据，限制: ${limit} 条`);
+
+      // 关键：显式指定_openid条件
+      const result = await this.cloudDb.collection('fishes')
+        .where({
+          _openid: openid  // 显式指定_openid条件
+        })
+        .orderBy('createTimestamp', 'desc') // 按创建时间倒序
+        .limit(limit)
+        .get();
+
+      console.log(`找到用户 ${openid} 的 ${result.data.length} 条鱼`);
+      return result.data;
+    } catch (error) {
+      console.error('按用户查询鱼数据失败:', error);
+      return [];
+    }
+  }
+
+  // 新增：随机获取用户鱼数据
+  async getRandomFishesByUserOpenid(openid, count = 20) {
+    if (!this.isCloudDbInitialized || !this.cloudDb) {
+      console.warn('云数据库未初始化，无法按用户查询随机鱼数据');
+      return [];
+    }
+
+    if (!openid) {
+      console.warn('openid为空，无法随机查询用户鱼数据');
+      return [];
+    }
+
+    try {
+      console.log(`随机查询用户 ${openid} 的 ${count} 条鱼数据`);
+
+      // 先获取用户的所有鱼
+      const allUserFishes = await this.cloudDb.collection('fishes')
+        .where({
+          _openid: openid  // 显式指定_openid条件
+        })
+        .get();
+
+      console.log(`用户 ${openid} 共有 ${allUserFishes.data.length} 条鱼`);
+
+      if (allUserFishes.data.length === 0) {
+        return [];
+      }
+
+      // 如果用户鱼的数量少于请求数量，返回所有鱼
+      if (allUserFishes.data.length <= count) {
+        return allUserFishes.data;
+      }
+
+      // 随机选择指定数量的鱼
+      const shuffled = [...allUserFishes.data].sort(() => 0.5 - Math.random());
+      const selectedFishes = shuffled.slice(0, count);
+
+      console.log(`随机选择了 ${selectedFishes.length} 条用户的鱼`);
+      return selectedFishes;
+    } catch (error) {
+      console.error('随机查询用户鱼数据失败:', error);
+      return [];
+    }
+  }
+
   // 新增：获取用户对某条鱼的交互记录
   async getUserInteraction(fishName) {
     if (!this.isCloudDbInitialized || !this.cloudDb) {
@@ -370,6 +447,36 @@ class DatabaseManager {
     } catch (error) {
       console.error('更新鱼评分失败:', error);
       return false;
+    }
+  }
+
+  // 新增：批量获取用户交互记录
+  async getUserInteractionsBatch(fishNames) {
+    if (!this.isCloudDbInitialized || !this.cloudDb || !fishNames || fishNames.length === 0) {
+      console.warn('云数据库未初始化或鱼名列表为空，无法批量获取交互记录');
+      return {};
+    }
+
+    try {
+      // 使用IN查询批量获取交互记录
+      const result = await this.cloudDb.collection('interaction')
+        .where({
+          fishName: this.cloudDb.command.in(fishNames)
+          // 系统会自动添加 _openid 查询条件
+        })
+        .get();
+
+      // 转换为以鱼名为键的对象，方便查找
+      const interactionsMap = {};
+      result.data.forEach(interaction => {
+        interactionsMap[interaction.fishName] = interaction;
+      });
+
+      console.log(`批量获取了 ${Object.keys(interactionsMap).length} 条交互记录`);
+      return interactionsMap;
+    } catch (error) {
+      console.error('批量获取用户交互记录失败:', error);
+      return {};
     }
   }
 }

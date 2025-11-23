@@ -11,6 +11,12 @@ class Game {
   init() {
     console.log('游戏初始化开始...');
 
+    // 小游戏云开发初始化
+    if (wx.cloud) {
+      wx.cloud.init();
+      console.log('小游戏云开发初始化成功');
+    }
+
     const systemInfo = wx.getSystemInfoSync();
     const pixelRatio = systemInfo.pixelRatio || 1;
 
