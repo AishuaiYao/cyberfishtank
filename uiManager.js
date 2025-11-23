@@ -36,13 +36,12 @@ class UIManager {
     this.eventHandler = eventHandler;
   }
 
-  // 修改：绘制鱼缸界面
+  // 修改：绘制鱼缸界面 - 简化背景绘制
   drawFishTankInterface() {
     const ctx = this.ctx;
 
-    // 纯白色背景
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
+    // 背景颜色已经在FishTank.draw()中绘制为水蓝色
+    // 这里只需要绘制UI元素
 
     // 绘制返回按钮
     Utils.drawModernButton(ctx, 20, 40, 50, 30, '返回', false, true);
@@ -51,23 +50,30 @@ class UIManager {
     Utils.drawModernButton(ctx, 80, 40, 50, 30, '刷新', false, false);
 
     // 绘制标题
-    ctx.fillStyle = config.textColor;
+    ctx.fillStyle = '#FFFFFF'; // 白色文字，在水蓝色背景上更清晰
     ctx.font = 'bold 20px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('赛博鱼缸', Math.round(config.screenWidth / 2), 100);
+    ctx.fillText('赛博鱼缸', Math.round(config.screenWidth / 2), 60);
 
     // 绘制鱼的数量
-    ctx.fillStyle = config.lightTextColor;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)'; // 半透明白色
     ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     const fishCount = this.eventHandler.fishTank ? this.eventHandler.fishTank.fishes.length : 0;
-    ctx.fillText(`共有 ${fishCount} 条鱼`, Math.round(config.screenWidth / 2), 130);
+    ctx.fillText(`共有 ${fishCount} 条鱼`, Math.round(config.screenWidth / 2), 85);
+    ctx.textAlign = 'left';
+
+    // 绘制提示文字
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.font = 'bold 14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('双击屏幕投放鱼粮', Math.round(config.screenWidth / 2), config.screenHeight - 30);
     ctx.textAlign = 'left';
 
     // 绘制鱼缸内容
     if (this.eventHandler.fishTank) {
       this.eventHandler.fishTank.draw();
     } else {
-      ctx.fillStyle = config.lightTextColor;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
       ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('鱼缸空空如也，快去画一条鱼吧！', Math.round(config.screenWidth / 2), Math.round(config.screenHeight / 2));

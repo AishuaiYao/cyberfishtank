@@ -1,5 +1,71 @@
 const { config } = require('./config.js');
 
+// 气泡类
+class Bubble {
+  constructor(x, y, size = 1) {
+    this.x = x;
+    this.y = y;
+    this.size = size; // 1: 小, 2: 中, 3: 大
+    this.speed = 0.5 + Math.random() * 0.5; // 上升速度
+    this.amplitude = 10 + Math.random() * 20; // 左右摆动幅度
+    this.phase = Math.random() * Math.PI * 2; // 相位
+    this.alpha = 0.3 + Math.random() * 0.4; // 透明度
+    this.wiggleSpeed = 0.5 + Math.random() * 1; // 摆动速度
+    this.maxY = 90; // 顶部边界
+  }
+
+  update(deltaTime) {
+    // 上升
+    this.y -= this.speed * (deltaTime / 16);
+
+    // 左右摆动
+    this.x += Math.sin(this.phase) * 0.2;
+    this.phase += this.wiggleSpeed * (deltaTime / 1000);
+
+    // 检查是否超出顶部边界
+    if (this.y <= this.maxY) {
+      return true; // 需要移除
+    }
+
+    return false; // 不需要移除
+  }
+
+  draw(ctx) {
+    ctx.save();
+    ctx.globalAlpha = this.alpha;
+
+    // 根据大小设置半径
+    let radius;
+    switch(this.size) {
+      case 1: // 小气泡
+        radius = 2;
+        break;
+      case 2: // 中气泡
+        radius = 4;
+        break;
+      case 3: // 大气泡
+        radius = 6;
+        break;
+      default:
+        radius = 3;
+    }
+
+    // 绘制气泡
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 添加高光
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.beginPath();
+    ctx.arc(this.x - radius * 0.3, this.y - radius * 0.3, radius * 0.4, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+}
+
 // 鱼粮类
 class FishFood {
   constructor(x, y) {
@@ -11,6 +77,7 @@ class FishFood {
     this.isEaten = false;
     this.alpha = 1;
     this.fadeSpeed = 0.02;
+    this.maxY = 90; // 顶部边界
   }
 
   update(deltaTime) {
@@ -23,8 +90,8 @@ class FishFood {
       // 缓慢下落
       this.y += this.speed * (deltaTime / 16);
 
-      // 检查是否超出屏幕底部
-      if (this.y > this.canvasHeight + 10) {
+      // 检查是否超出屏幕底部或顶部边界
+      if (this.y > this.canvasHeight + 10 || this.y < this.maxY) {
         return true; // 需要移除
       }
     }
@@ -90,6 +157,7 @@ class Fish {
     this.tailEnd = Math.floor(this.width * this.peduncle);
     this.time = 0;
     this.tankPadding = 20;
+    this.maxY = 90; // 顶部边界 - 距离顶端90像素
 
     // 鱼粮相关属性
     this.targetFood = null;
@@ -150,7 +218,7 @@ class Fish {
       this.normalSwim();
     }
 
-    // 边界检查
+    // 边界检查 - 修改为新的边界逻辑
     this.checkBoundaries();
 
     // 随机行为
@@ -231,11 +299,11 @@ class Fish {
     this.y += swimY * 0.1;
   }
 
-  // 检查边界
+  // 检查边界 - 修改为新的边界逻辑
   checkBoundaries() {
     const minX = this.tankPadding;
     const maxX = this.canvasWidth - this.width - this.tankPadding;
-    const minY = this.tankPadding + 150;
+    const minY = this.maxY; // 距离顶端90像素
     const maxY = this.canvasHeight - this.height - this.tankPadding;
 
     if (this.x <= minX) {
@@ -352,11 +420,14 @@ class FishTank {
   constructor(ctx, width, height) {
     this.fishes = [];
     this.fishFoods = []; // 鱼粮数组
+    this.bubbles = []; // 气泡数组
     this.ctx = ctx;
     this.width = width;
     this.height = height;
     this.tankPadding = 20;
     this.lastFoodSpawnTime = 0;
+    this.lastBubbleSpawnTime = 0;
+    this.maxY = 90; // 顶部边界
   }
 
   addFish(fish) {
@@ -366,13 +437,6 @@ class FishTank {
       console.warn(`鱼名称 "${fish.name}" 已存在，跳过添加`);
       return false;
     }
-
-    // 可选：检查图像相似性（根据需求决定是否启用）
-    // const existingFishByImage = this.findSimilarFish(fish);
-    // if (existingFishByImage) {
-    //   console.warn(`发现相似的鱼 "${existingFishByImage.name}"，跳过添加`);
-    //   return false;
-    // }
 
     fish.setCanvasSize(this.width, this.height);
     this.fishes.push(fish);
@@ -427,7 +491,37 @@ class FishTank {
     console.log(`生成了 ${count} 个鱼粮`);
   }
 
+  // 生成气泡
+  spawnBubbles() {
+    const currentTime = Date.now();
+    if (currentTime - this.lastBubbleSpawnTime > 500) { // 每500毫秒生成一次气泡
+      const bubbleCount = 1 + Math.floor(Math.random() * 3); // 每次生成1-3个气泡
+
+      for (let i = 0; i < bubbleCount; i++) {
+        const x = Math.random() * this.width;
+        const y = this.height - 10; // 从底部生成
+        const size = 1 + Math.floor(Math.random() * 3); // 随机大小
+        const bubble = new Bubble(x, y, size);
+        this.bubbles.push(bubble);
+      }
+
+      this.lastBubbleSpawnTime = currentTime;
+    }
+  }
+
   update(deltaTime) {
+    // 生成气泡
+    this.spawnBubbles();
+
+    // 更新气泡
+    for (let i = this.bubbles.length - 1; i >= 0; i--) {
+      const bubble = this.bubbles[i];
+      const shouldRemove = bubble.update(deltaTime);
+      if (shouldRemove) {
+        this.bubbles.splice(i, 1);
+      }
+    }
+
     // 更新鱼
     this.fishes.forEach(fish => {
       fish.update(deltaTime, this.fishFoods);
@@ -460,28 +554,21 @@ class FishTank {
   draw() {
     const ctx = this.ctx;
 
-    const tankX = this.tankPadding;
-    const tankY = this.tankPadding + 130;
-    const tankWidth = this.width - this.tankPadding * 2;
-    const tankHeight = this.height - this.tankPadding - 150;
+    // 绘制水蓝色背景 - 覆盖整个屏幕
+    ctx.fillStyle = '#87CEEB'; // 水蓝色
+    ctx.fillRect(0, 0, this.width, this.height);
 
-    ctx.clearRect(tankX, tankY, tankWidth, tankHeight);
+    // 先绘制气泡
+    this.bubbles.forEach(bubble => {
+      bubble.draw(ctx);
+    });
 
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(tankX, tankY, tankWidth, tankHeight);
-
-    ctx.strokeStyle = '#E5E5EA';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([5, 3]);
-    ctx.strokeRect(tankX, tankY, tankWidth, tankHeight);
-    ctx.setLineDash([]);
-
-    // 先绘制鱼粮
+    // 再绘制鱼粮
     this.fishFoods.forEach(food => {
       food.draw(ctx);
     });
 
-    // 再绘制鱼（鱼在鱼粮上面）
+    // 最后绘制鱼（鱼在最上面）
     this.fishes.forEach(fish => {
       fish.draw(ctx);
     });
@@ -495,5 +582,6 @@ class FishTank {
 module.exports = {
   Fish,
   FishTank,
-  FishFood
+  FishFood,
+  Bubble
 };
