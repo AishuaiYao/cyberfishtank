@@ -29,18 +29,44 @@ class RankingTouchHandler {
     }
 
     // 刷新按钮
-  const refreshButtonX = 80; // 从原来的屏幕右侧移到返回按钮旁边
-  const refreshButtonY = 40;
-  const refreshButtonWidth = 50;
-  const refreshButtonHeight = 30;
+//    const refreshButtonX = 80; // 从原来的屏幕右侧移到返回按钮旁边
+//    const refreshButtonY = 40;
+//    const refreshButtonWidth = 50;
+//    const refreshButtonHeight = 30;
+//
+//    if (x >= refreshButtonX && x <= refreshButtonX + refreshButtonWidth &&
+//        y >= refreshButtonY && y <= refreshButtonY + refreshButtonHeight) {
+//      console.log('点击刷新按钮');
+//      this.eventHandler.showRankingInterface();
+//      return;
+//    }
+//
+//    // 新增：排行榜模式切换按钮
+//    const switchButtonWidth = 120;
+//    const switchButtonX = (config.screenWidth - switchButtonWidth) / 2;
+//    const switchButtonY = 40;
+//    const switchButtonHeight = 30;
+//
+//    if (x >= switchButtonX && x <= switchButtonX + switchButtonWidth &&
+//        y >= switchButtonY && y <= switchButtonY + switchButtonHeight) {
+//      console.log('点击排行榜切换按钮');
+//      this.eventHandler.switchRankingMode();
+//      return;
+//    }
+// 排行榜切换按钮（现在在第二个位置）
+const switchButtonWidth = 120;
+const switchButtonX = 80;
+if (x >= switchButtonX && x <= switchButtonX + switchButtonWidth && y >= 40 && y <= 70) {
+  this.eventHandler.switchRankingMode();
+  return;
+}
 
-
-    if (x >= refreshButtonX && x <= refreshButtonX + refreshButtonWidth &&
-        y >= refreshButtonY && y <= refreshButtonY + refreshButtonHeight) {
-      console.log('点击刷新按钮');
-      this.eventHandler.showRankingInterface();
-      return;
-    }
+// 刷新按钮（现在在第三个位置）
+const refreshButtonX = switchButtonX + switchButtonWidth + 10;
+if (x >= refreshButtonX && x <= refreshButtonX + 50 && y >= 40 && y <= 70) {
+  this.eventHandler.showRankingInterface();
+  return;
+}
 
     // 处理卡片点击
     this.handleCardClick(x, y);

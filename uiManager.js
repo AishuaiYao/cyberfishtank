@@ -57,28 +57,42 @@ class UIManager {
       ctx.textAlign = 'left';
     }
 
-    // 重要：在鱼缸内容之上绘制UI按钮和文字
-    // 绘制返回按钮
-    Utils.drawModernButton(ctx, 20, 40, 50, 30, '返回', false, true);
+// 在 drawFishTankInterface() 方法中：
+// 绘制返回按钮
+Utils.drawModernButton(ctx, 20, 40, 50, 30, '返回', false, true);
 
-    // 绘制刷新按钮
-    Utils.drawModernButton(ctx, 80, 40, 50, 30, '刷新', false, false);
+// 绘制鱼缸切换按钮（现在在第二个位置）
+const switchButtonWidth = 120;
+const switchButtonX = 80; // 从中间位置移到第二个位置
+const switchButtonText = this.eventHandler.getSwitchButtonText();
 
-    // 修改：绘制鱼缸切换按钮（在屏幕中央）
-    const switchButtonWidth = 120;
-    const switchButtonX = (config.screenWidth - switchButtonWidth) / 2;
-    const switchButtonText = this.eventHandler.getSwitchButtonText();
+Utils.drawModernButton(ctx, switchButtonX, 40, switchButtonWidth, 30, switchButtonText, false, false);
 
-    Utils.drawModernButton(
-      ctx,
-      switchButtonX,
-      40,
-      switchButtonWidth,
-      30,
-      switchButtonText,
-      false,
-      false
-    );
+// 绘制刷新按钮（现在在第三个位置）
+const refreshButtonX = switchButtonX + switchButtonWidth + 10; // 在切换按钮右边
+Utils.drawModernButton(ctx, refreshButtonX, 40, 50, 30, '🔄', false, false);
+
+//    // 绘制返回按钮
+//    Utils.drawModernButton(ctx, 20, 40, 50, 30, '返回', false, true);
+//
+//    // 绘制刷新按钮
+//    Utils.drawModernButton(ctx, 80, 40, 50, 30, '🔄', false, false);
+//
+//    // 修改：绘制鱼缸切换按钮（在屏幕中央）
+//    const switchButtonWidth = 120;
+//    const switchButtonX = (config.screenWidth - switchButtonWidth) / 2;
+//    const switchButtonText = this.eventHandler.getSwitchButtonText();
+//
+//    Utils.drawModernButton(
+//      ctx,
+//      switchButtonX,
+//      40,
+//      switchButtonWidth,
+//      30,
+//      switchButtonText,
+//      false,
+//      false
+//    );
 
     // 修改：绘制当前鱼缸名称和鱼的数量
     ctx.fillStyle = '#374151'; // 深蓝色，在浅蓝背景上更清晰
@@ -103,24 +117,59 @@ class UIManager {
     ctx.textAlign = 'left';
   }
 
-  // 绘制排行榜界面
+  // 修改：绘制排行榜界面 - 添加模式切换按钮
   drawRankingInterface() {
     const ctx = this.ctx;
 
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
 
-    // 绘制返回按钮
-    Utils.drawModernButton(ctx, 20, 40, 50, 30, '返回', false, true);
 
-    // 绘制刷新按钮
-  Utils.drawModernButton(ctx, 80, 40, 50, 30, '刷新', false, false);
+
+// 绘制返回按钮
+Utils.drawModernButton(ctx, 20, 40, 50, 30, '返回', false, true);
+
+// 绘制鱼缸切换按钮（现在在第二个位置）
+const switchButtonWidth = 120;
+const switchButtonX = 80; // 从中间位置移到第二个位置
+const switchButtonText = this.eventHandler.getRankingSwitchButtonText();
+
+Utils.drawModernButton(ctx, switchButtonX, 40, switchButtonWidth, 30, switchButtonText, false, false);
+
+// 绘制刷新按钮（现在在第三个位置）
+const refreshButtonX = switchButtonX + switchButtonWidth + 10; // 在切换按钮右边
+Utils.drawModernButton(ctx, refreshButtonX, 40, 50, 30, '🔄', false, false);
+
+//    // 绘制返回按钮
+//    Utils.drawModernButton(ctx, 20, 40, 50, 30, '返回', false, true);
+//
+//    // 绘制刷新按钮
+//    Utils.drawModernButton(ctx, 80, 40, 50, 30, '🔄', false, false);
+//
+//    // 新增：绘制排行榜模式切换按钮
+//    const switchButtonWidth = 120;
+//    const switchButtonX = (config.screenWidth - switchButtonWidth) / 2;
+//    const switchButtonText = this.eventHandler.getRankingSwitchButtonText();
+//
+//    Utils.drawModernButton(
+//      ctx,
+//      switchButtonX,
+//      40,
+//      switchButtonWidth,
+//      30,
+//      switchButtonText,
+//      false,
+//      false
+//    );
 
     // 绘制标题 - 上移50像素
     ctx.fillStyle = config.textColor;
     ctx.font = 'bold 20px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('排行榜', Math.round(config.screenWidth / 2), 60);
+
+//    // 根据当前模式显示不同标题
+//    const rankingTitle = this.eventHandler.currentRankingMode === 'cyber' ? '赛博排行榜' : '本周排行榜';
+//    ctx.fillText(rankingTitle, Math.round(config.screenWidth / 2), 60);
 
     ctx.textAlign = 'left';
 

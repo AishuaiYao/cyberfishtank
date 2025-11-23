@@ -78,6 +78,9 @@ class EventHandler {
     this.myFishTankList = []; // 用户自己的鱼列表
     this.currentTankMode = 'public'; // 'public' 或 'my'
 
+    // 新增：排行榜模式
+    this.currentRankingMode = 'cyber'; // 'cyber' 或 'weekly'
+
     this.bindEvents();
   }
 
@@ -253,7 +256,7 @@ class EventHandler {
 
     // 修改这里：进入鱼缸时显示鱼的数量和模式
     const fishCount = mode === 'public' ? this.globalFishList.length : this.myFishTankList.length;
-    const tankName = mode === 'public' ? '切换到赛博鱼缸' : '切换到我的鱼缸';
+    const tankName = mode === 'public' ? '赛博鱼缸' : '我的鱼缸';
     wx.showToast({
       title: `${tankName}中有${fishCount}条鱼`,
       icon: 'success',
@@ -324,11 +327,6 @@ class EventHandler {
     await this.enterFishTank(null, newMode);
   }
 
-//  // 新增：获取当前鱼缸名称
-//  getCurrentTankName() {
-//    return this.currentTankMode === 'public' ? '赛博鱼缸' : '我的鱼缸';
-//  }
-
   // 新增：获取切换按钮文本
   getSwitchButtonText() {
     return this.currentTankMode === 'public' ? '切换到我的鱼缸' : '切换到赛博鱼缸';
@@ -341,6 +339,23 @@ class EventHandler {
     } else {
       return this.myFishTankList.length;
     }
+  }
+
+  // 新增：切换排行榜模式
+  async switchRankingMode() {
+    const newMode = this.currentRankingMode === 'cyber' ? 'weekly' : 'cyber';
+    this.currentRankingMode = newMode;
+
+    // 重新加载排行榜数据
+    await this.showRankingInterface();
+
+    const modeName = newMode === 'cyber' ? '赛博排行榜' : '本周排行榜';
+    console.log(`切换到${modeName}`);
+  }
+
+  // 新增：获取排行榜切换按钮文本
+  getRankingSwitchButtonText() {
+    return this.currentRankingMode === 'cyber' ? '📅本周排行榜' : '🌐赛博排行榜';
   }
 
   // 首次加载初始鱼数据
@@ -459,18 +474,27 @@ class EventHandler {
 
     try {
       console.log('加载排行榜数据...');
-      const rankingFishes = await this.getRankingDataWithImages();
+      let rankingFishes;
+
+      if (this.currentRankingMode === 'cyber') {
+        // 赛博排行榜：所有鱼按最终评分排序
+        rankingFishes = await this.getRankingDataWithImages();
+      } else {
+        // 本周排行榜：只显示本周创建的鱼
+        rankingFishes = await this.getWeeklyRankingDataWithImages();
+      }
 
       this.rankingData = {
         fishes: rankingFishes,
-        lastUpdate: new Date()
+        lastUpdate: new Date(),
+        mode: this.currentRankingMode
       };
 
-      console.log(`排行榜数据加载完成，共 ${rankingFishes.length} 条数据`);
+      console.log(`排行榜数据加载完成，模式: ${this.currentRankingMode}, 共 ${rankingFishes.length} 条数据`);
 
     } catch (error) {
       console.error('加载排行榜数据失败:', error);
-      this.rankingData = { fishes: [], lastUpdate: new Date() };
+      this.rankingData = { fishes: [], lastUpdate: new Date(), mode: this.currentRankingMode };
     } finally {
       this.isLoadingRanking = false;
       this.uiManager.drawGameUI(this.gameState);
@@ -513,6 +537,48 @@ class EventHandler {
 
     console.log(`成功创建 ${rankingFishes.length} 条排行榜鱼的图像，已按最终评分（点赞-点踩）降序排列`);
     return rankingFishes;
+  }
+
+  // 新增：获取本周排行榜数据
+  async getWeeklyRankingDataWithImages() {
+    // 获取本周的起始时间（周一00:00:00）
+    const startOfWeek = this.getStartOfWeek();
+    console.log('本周起始时间:', startOfWeek);
+
+    const weeklyData = await this.databaseManager.getWeeklyRankingData(100, startOfWeek);
+    const weeklyFishes = [];
+
+    for (const fishData of weeklyData) {
+      try {
+        const fishImage = await this.fishManager.data.base64ToCanvas(fishData.base64);
+        weeklyFishes.push({
+          fishData: fishData,
+          fishImage: fishImage
+        });
+      } catch (error) {
+        console.warn('创建本周排行榜鱼图像失败:', error);
+      }
+    }
+
+    // 按照最终评分（点赞数-点踩数）由大到小排序
+    weeklyFishes.sort((a, b) => {
+      const finalScoreA = (a.fishData.star || 0) - (a.fishData.unstar || 0);
+      const finalScoreB = (b.fishData.star || 0) - (b.fishData.unstar || 0);
+      return finalScoreB - finalScoreA;
+    });
+
+    console.log(`成功创建 ${weeklyFishes.length} 条本周排行榜鱼的图像，已按最终评分降序排列`);
+    return weeklyFishes;
+  }
+
+  // 新增：获取本周起始时间（周一00:00:00）
+  getStartOfWeek() {
+    const now = new Date();
+    const day = now.getDay(); // 0是周日，1是周一，...，6是周六
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1); // 调整到周一
+    const startOfWeek = new Date(now.setDate(diff));
+    startOfWeek.setHours(0, 0, 0, 0);
+    return startOfWeek;
   }
 
   // 对话框功能

@@ -15,21 +15,37 @@ class SwimTouchHandler {
       return;
     }
 
-    // 修改：刷新按钮 (在返回按钮旁边)
-    if (x >= 80 && x <= 130 && y >= 40 && y <= 70) {
-      this.eventHandler.refreshFishTank();
-      return;
-    }
+//    // 修改：刷新按钮 (在返回按钮旁边)
+//    if (x >= 80 && x <= 130 && y >= 40 && y <= 70) {
+//      this.eventHandler.refreshFishTank();
+//      return;
+//    }
+//
+//    // 新增：鱼缸切换按钮（在屏幕中央）
+//    const switchButtonWidth = 120;
+//    const switchButtonX = (this.eventHandler.canvas.width / this.eventHandler.uiManager.pixelRatio - switchButtonWidth) / 2;
+//
+//    if (x >= switchButtonX && x <= switchButtonX + switchButtonWidth &&
+//        y >= 40 && y <= 70) {
+//      this.eventHandler.switchTankMode();
+//      return;
+//    }
+// 鱼缸切换按钮（现在在第二个位置）
+const switchButtonWidth = 120;
+const switchButtonX = 80;
+if (x >= switchButtonX && x <= switchButtonX + switchButtonWidth && y >= 40 && y <= 70) {
+  this.eventHandler.switchTankMode();
+  return;
+}
 
-    // 新增：鱼缸切换按钮（在屏幕中央）
-    const switchButtonWidth = 120;
-    const switchButtonX = (this.eventHandler.canvas.width / this.eventHandler.uiManager.pixelRatio - switchButtonWidth) / 2;
+// 刷新按钮（现在在第三个位置）
+const refreshButtonX = switchButtonX + switchButtonWidth + 10;
+if (x >= refreshButtonX && x <= refreshButtonX + 50 && y >= 40 && y <= 70) {
+  this.eventHandler.refreshFishTank();
+  return;
+}
 
-    if (x >= switchButtonX && x <= switchButtonX + switchButtonWidth &&
-        y >= 40 && y <= 70) {
-      this.eventHandler.switchTankMode();
-      return;
-    }
+
 
     // 检测双击
     this.handleDoubleTap(x, y);

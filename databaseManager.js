@@ -232,6 +232,59 @@ class DatabaseManager {
     }
   }
 
+  // 新增：获取本周排行榜数据
+  async getWeeklyRankingData(limit = 100, startOfWeek) {
+    if (!this.isCloudDbInitialized || !this.cloudDb) {
+      console.warn('云数据库未初始化，无法获取本周排行榜数据');
+      return [];
+    }
+
+    try {
+      console.log(`开始获取本周排行榜数据，目标: ${limit} 条，起始时间: ${startOfWeek}`);
+
+      let allData = [];
+      let skip = 0;
+      const batchSize = 20;
+
+      while (allData.length < limit) {
+        const result = await this.cloudDb.collection('fishes')
+          .where({
+            // 筛选本周创建的鱼
+            createdAt: this.cloudDb.command.gte(startOfWeek)
+          })
+          .orderBy('score', 'desc')
+          .skip(skip)
+          .limit(batchSize)
+          .get();
+
+        if (result.data.length === 0) {
+          break; // 没有更多数据了
+        }
+
+        allData = allData.concat(result.data);
+        skip += batchSize;
+
+        console.log(`已获取 ${allData.length} 条本周数据`);
+      }
+
+      // 限制最终数量
+      const finalData = allData.slice(0, limit);
+      console.log(`最终获取 ${finalData.length} 条本周排行榜数据`);
+
+      const validRankingData = finalData.filter(fish =>
+        fish.base64 && fish.base64.length > 0
+      );
+
+      console.log(`有效本周数据: ${validRankingData.length} 条`);
+      return validRankingData;
+    } catch (error) {
+      console.error('获取本周排行榜数据失败:', error);
+
+      // 备选方案：如果时间筛选失败，返回空数组
+      return [];
+    }
+  }
+
   // 向数据库插入鱼数据
   async insertFishToDatabase(fishData) {
     if (!this.isCloudDbInitialized || !this.cloudDb) {
