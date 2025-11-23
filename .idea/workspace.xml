@@ -4,16 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="刷新button调大">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/databaseManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/databaseManager.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/eventHandler.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/game.js" beforeDir="false" afterPath="$PROJECT_DIR$/game.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/game.json" beforeDir="false" afterPath="$PROJECT_DIR$/game.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/touchHandlers/fishDetailTouchHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/fishDetailTouchHandler.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/touchHandlers/rankingTouchHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/rankingTouchHandler.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uiManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/uiManager.js" afterDir="false" />
-    </list>
+    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="修复自己鱼缸不能显示自己的鱼问题" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -77,14 +68,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00011" summary="0.0.2">
-      <option name="closed" value="true" />
-      <created>1763259893599</created>
-      <option name="number" value="00011" />
-      <option name="presentableId" value="LOCAL-00011" />
-      <option name="project" value="LOCAL" />
-      <updated>1763259893599</updated>
     </task>
     <task id="LOCAL-00012" summary="可以裁剪图片">
       <option name="closed" value="true" />
@@ -470,11 +453,18 @@
       <option name="project" value="LOCAL" />
       <updated>1763886964684</updated>
     </task>
-    <option name="localTasksCounter" value="60" />
+    <task id="LOCAL-00060" summary="修复自己鱼缸不能显示自己的鱼问题">
+      <option name="closed" value="true" />
+      <created>1763896343499</created>
+      <option name="number" value="00060" />
+      <option name="presentableId" value="LOCAL-00060" />
+      <option name="project" value="LOCAL" />
+      <updated>1763896343499</updated>
+    </task>
+    <option name="localTasksCounter" value="61" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="base：不能滑动" />
     <MESSAGE value="base：不能滑动,未完全解决" />
     <MESSAGE value="base：重构代码" />
     <MESSAGE value="base：重构代码2" />
@@ -499,6 +489,7 @@
     <MESSAGE value="添加水草" />
     <MESSAGE value="优化绘画中断" />
     <MESSAGE value="刷新button调大" />
-    <option name="LAST_COMMIT_MESSAGE" value="刷新button调大" />
+    <MESSAGE value="修复自己鱼缸不能显示自己的鱼问题" />
+    <option name="LAST_COMMIT_MESSAGE" value="修复自己鱼缸不能显示自己的鱼问题" />
   </component>
 </project>
