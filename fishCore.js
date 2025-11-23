@@ -50,19 +50,24 @@ class Bubble {
         radius = 3;
     }
 
-    // 绘制气泡
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, radius, 0, Math.PI * 2);
-    ctx.fill();
+  // 修改这里：使用纯白色，完全不透明
+  ctx.fillStyle = '#FFFFFF'; // 纯白色
+  ctx.beginPath();
+  ctx.arc(this.x, this.y, radius, 0, Math.PI * 2);
+  ctx.fill();
 
-    // 添加高光
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-    ctx.beginPath();
-    ctx.arc(this.x - radius * 0.3, this.y - radius * 0.3, radius * 0.4, 0, Math.PI * 2);
-    ctx.fill();
+  // 修改这里：添加白色边框增强效果
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.lineWidth = 1;
+  ctx.stroke();
 
-    ctx.restore();
+  // 修改这里：更亮的高光
+  ctx.fillStyle = '#FFFFFF'; // 纯白色高光
+  ctx.beginPath();
+  ctx.arc(this.x - radius * 0.2, this.y - radius * 0.2, radius * 0.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
   }
 }
 
@@ -491,23 +496,24 @@ class FishTank {
     console.log(`生成了 ${count} 个鱼粮`);
   }
 
-  // 生成气泡
-  spawnBubbles() {
-    const currentTime = Date.now();
-    if (currentTime - this.lastBubbleSpawnTime > 500) { // 每500毫秒生成一次气泡
-      const bubbleCount = 1 + Math.floor(Math.random() * 3); // 每次生成1-3个气泡
-
-      for (let i = 0; i < bubbleCount; i++) {
-        const x = Math.random() * this.width;
-        const y = this.height - 10; // 从底部生成
-        const size = 1 + Math.floor(Math.random() * 3); // 随机大小
-        const bubble = new Bubble(x, y, size);
-        this.bubbles.push(bubble);
-      }
-
-      this.lastBubbleSpawnTime = currentTime;
+spawnBubbles() {
+  const currentTime = Date.now();
+  // 修改这里：每5秒生成一次气泡，每次生成5个
+  if (currentTime - this.lastBubbleSpawnTime > 5000) {
+    // 修改这里：生成5个气泡
+    for (let i = 0; i < 5; i++) {
+      const x = Math.random() * this.width;
+      const y = this.height - 10; // 从底部生成
+      const size = 1 + Math.floor(Math.random() * 3); // 随机大小
+      const bubble = new Bubble(x, y, size);
+      this.bubbles.push(bubble);
     }
+
+    this.lastBubbleSpawnTime = currentTime;
+    console.log('生成5个气泡');
   }
+}
+
 
   update(deltaTime) {
     // 生成气泡
@@ -555,10 +561,10 @@ class FishTank {
     const ctx = this.ctx;
 
     // 绘制水蓝色背景 - 覆盖整个屏幕
-    ctx.fillStyle = '#87CEEB'; // 水蓝色
+    ctx.fillStyle = '#E6F7FF'; // 水蓝色
     ctx.fillRect(0, 0, this.width, this.height);
 
-    // 先绘制气泡
+    // 先绘制气泡（在最底层）
     this.bubbles.forEach(bubble => {
       bubble.draw(ctx);
     });

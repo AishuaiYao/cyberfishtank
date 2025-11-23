@@ -36,49 +36,72 @@ class UIManager {
     this.eventHandler = eventHandler;
   }
 
-  // 修改：绘制鱼缸界面 - 简化背景绘制
+  // 修改：绘制鱼缸界面 - 确保按钮在最上层
   drawFishTankInterface() {
     const ctx = this.ctx;
 
     // 背景颜色已经在FishTank.draw()中绘制为水蓝色
     // 这里只需要绘制UI元素
 
-    // 绘制返回按钮
-    Utils.drawModernButton(ctx, 20, 40, 50, 30, '返回', false, true);
-
-    // 新增：绘制刷新按钮
-    Utils.drawModernButton(ctx, 80, 40, 50, 30, '刷新', false, false);
-
-    // 绘制标题
-    ctx.fillStyle = '#FFFFFF'; // 白色文字，在水蓝色背景上更清晰
-    ctx.font = 'bold 20px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('赛博鱼缸', Math.round(config.screenWidth / 2), 60);
-
-    // 绘制鱼的数量
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)'; // 半透明白色
-    ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-    const fishCount = this.eventHandler.fishTank ? this.eventHandler.fishTank.fishes.length : 0;
-    ctx.fillText(`共有 ${fishCount} 条鱼`, Math.round(config.screenWidth / 2), 85);
-    ctx.textAlign = 'left';
-
-    // 绘制提示文字
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-    ctx.font = 'bold 14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('双击屏幕投放鱼粮', Math.round(config.screenWidth / 2), config.screenHeight - 30);
-    ctx.textAlign = 'left';
-
-    // 绘制鱼缸内容
+    // 绘制鱼缸内容（背景、气泡、鱼粮、鱼）
     if (this.eventHandler.fishTank) {
       this.eventHandler.fishTank.draw();
     } else {
+      ctx.fillStyle = '#87CEEB'; // 水蓝色背景
+      ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
+
       ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
       ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('鱼缸空空如也，快去画一条鱼吧！', Math.round(config.screenWidth / 2), Math.round(config.screenHeight / 2));
       ctx.textAlign = 'left';
     }
+
+    // 重要：在鱼缸内容之上绘制UI按钮和文字
+    // 绘制返回按钮
+    Utils.drawModernButton(ctx, 20, 40, 50, 30, '返回', false, true);
+
+    // 绘制刷新按钮
+    Utils.drawModernButton(ctx, 80, 40, 50, 30, '刷新', false, false);
+
+    // 绘制标题
+//    ctx.fillStyle = '#FFFFFF'; // 白色文字，在水蓝色背景上更清晰
+//    ctx.font = 'bold 20px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+//    ctx.textAlign = 'center';
+//    ctx.fillText('赛博鱼缸', Math.round(config.screenWidth / 2), 60);
+//
+//    // 绘制鱼的数量
+//    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)'; // 半透明白色
+//    ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+//    const fishCount = this.eventHandler.fishTank ? this.eventHandler.fishTank.fishes.length : 0;
+//    ctx.fillText(`共有 ${fishCount} 条鱼`, Math.round(config.screenWidth / 2), 85);
+//    ctx.textAlign = 'left';
+//
+//    // 绘制提示文字
+//    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+//    ctx.font = 'bold 14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+//    ctx.textAlign = 'center';
+//    ctx.fillText('双击屏幕投放鱼粮', Math.round(config.screenWidth / 2), config.screenHeight - 30);
+//    ctx.textAlign = 'left';
+// 修改这里：标题使用深蓝色
+  ctx.fillStyle = '#374151'; // 深蓝色，在浅蓝背景上更清晰
+  ctx.font = 'bold 20px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('赛博鱼缸', Math.round(config.screenWidth / 2), 60);
+
+  // 修改这里：鱼数量使用深灰色
+//  ctx.fillStyle = '#374151'; // 深灰色
+//  ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+//  const fishCount = this.eventHandler.fishTank ? this.eventHandler.fishTank.fishes.length : 0;
+//  ctx.fillText(`共有 ${fishCount} 条鱼`, Math.round(config.screenWidth / 2), 85);
+//  ctx.textAlign = 'left';
+
+  // 修改这里：提示文字使用深蓝色
+  ctx.fillStyle = '#374151'; // 深蓝色
+  ctx.font = 'bold 14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('双击屏幕投放鱼粮', Math.round(config.screenWidth / 2), config.screenHeight - 30);
+  ctx.textAlign = 'left';
   }
 
   // 绘制排行榜界面
