@@ -210,37 +210,46 @@ class EventHandler {
     }
   }
 
-  // 新增：进入鱼缸的统一方法
-  async enterFishTank(newFishName = null) {
-    this.isSwimInterfaceVisible = true;
-    this.swimInterfaceData = { mode: 'fishTank' };
+// 修改：进入鱼缸的统一方法
+async enterFishTank(newFishName = null) {
+  this.isSwimInterfaceVisible = true;
+  this.swimInterfaceData = { mode: 'fishTank' };
 
-    if (!this.fishTank) {
-      const { FishTank } = require('./fishCore.js');
-      this.fishTank = new FishTank(this.ctx, config.screenWidth, config.screenHeight);
-    }
-
-    // 清空当前鱼缸显示
-    this.fishTank.fishes = [];
-    this.addedUserFishNames.clear();
-
-    // 首次进入：从数据库加载并初始化全局列表
-    if (this.isFirstEnterTank) {
-      await this.loadInitialFishes();
-      this.isFirstEnterTank = false;
-    }
-
-    // 如果有指定新鱼（从"让它游起来"来的），确保它在列表中
-    if (newFishName) {
-      await this.ensureFishInList(newFishName);
-    }
-
-    // 从全局列表创建鱼对象并显示
-    await this.createFishesFromGlobalList();
-
-    this.fishManager.animator.startAnimationLoop();
-    console.log('进入鱼缸，当前鱼数量:', this.globalFishList.length);
+  if (!this.fishTank) {
+    const { FishTank } = require('./fishCore.js');
+    this.fishTank = new FishTank(this.ctx, config.screenWidth, config.screenHeight);
   }
+
+  // 清空当前鱼缸显示
+  this.fishTank.fishes = [];
+  this.addedUserFishNames.clear();
+
+  // 首次进入：从数据库加载并初始化全局列表
+  if (this.isFirstEnterTank) {
+    await this.loadInitialFishes();
+    this.isFirstEnterTank = false;
+  }
+
+  // 如果有指定新鱼（从"让它游起来"来的），确保它在列表中
+  if (newFishName) {
+    await this.ensureFishInList(newFishName);
+  }
+
+  // 从全局列表创建鱼对象并显示
+  await this.createFishesFromGlobalList();
+
+  this.fishManager.animator.startAnimationLoop();
+
+  // 修改这里：进入鱼缸时显示鱼的数量
+  const fishCount = this.globalFishList.length;
+  wx.showToast({
+    title: `鱼缸中有${fishCount}条鱼`,
+    icon: 'success',
+    duration: 2000
+  });
+
+  console.log('进入鱼缸，当前鱼数量:', fishCount);
+}
 
   // 新增：首次加载初始鱼数据
   async loadInitialFishes() {
@@ -294,29 +303,34 @@ class EventHandler {
     console.log('成功创建鱼对象:', validFishes.length);
   }
 
-  // 新增：刷新鱼缸数据
-  async refreshFishTank() {
-    console.log('手动刷新鱼缸数据...');
-    wx.showLoading({ title: '刷新中...', mask: true });
+// 修改：刷新鱼缸数据
+async refreshFishTank() {
+  console.log('手动刷新鱼缸数据...');
+  wx.showLoading({ title: '刷新中...', mask: true });
 
-    try {
-      // 重新从数据库随机加载
-      const newFishes = await this.databaseManager.getRandomFishesFromDatabase(20);
-      this.globalFishList = newFishes;
+  try {
+    // 重新从数据库随机加载
+    const newFishes = await this.databaseManager.getRandomFishesFromDatabase(20);
+    this.globalFishList = newFishes;
 
-      // 清空并重新创建鱼对象
-      this.fishTank.fishes = [];
-      this.addedUserFishNames.clear();
-      await this.createFishesFromGlobalList();
+    // 清空并重新创建鱼对象
+    this.fishTank.fishes = [];
+    this.addedUserFishNames.clear();
+    await this.createFishesFromGlobalList();
 
-      wx.showToast({ title: `刷新完成，${newFishes.length}条鱼`, icon: 'success', duration: 1500 });
-    } catch (error) {
-      console.error('刷新鱼缸失败:', error);
-      wx.showToast({ title: '刷新失败', icon: 'none', duration: 1500 });
-    } finally {
-      wx.hideLoading();
-    }
+    // 修改这里：刷新完成后显示鱼的数量
+    wx.showToast({
+      title: `刷新完成，${newFishes.length}条鱼`,
+      icon: 'success',
+      duration: 1500
+    });
+  } catch (error) {
+    console.error('刷新鱼缸失败:', error);
+    wx.showToast({ title: '刷新失败', icon: 'none', duration: 1500 });
+  } finally {
+    wx.hideLoading();
   }
+}
 
   hideSwimInterface() {
     this.isSwimInterfaceVisible = false;
