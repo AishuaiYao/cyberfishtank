@@ -68,7 +68,7 @@ class AIService {
         method: 'POST',
         header: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer sk-943f95da67d04893b70c02be400e2935'
+          'Authorization': 'Bearer sk-ad3c50fe6e16438a8fac5e8b2d7b3829'
         },
         data: {
           model: "qwen3-vl-plus",
