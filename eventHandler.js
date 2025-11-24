@@ -1,4 +1,4 @@
-// eventHandler.js - 修复我的鱼缸查询逻辑
+// eventHandler.js - 修复我的鱼缸查询逻辑，添加多点触控支持
 const { config, getAreaPositions } = require('./config.js');
 const AIService = require('./aiService.js');
 const DatabaseManager = require('./databaseManager.js');
@@ -66,29 +66,29 @@ class EventHandler {
 
     // 新增：全局鱼列表
     this.globalFishList = [];
-    this.isFirstEnterTank = true; // 是否首次进入鱼缸
+    this.isFirstEnterTank = true;
 
     // 修改：完全移除openid初始化，使用时实时获取
-    this.userOpenid = null; // 设为null，不在构造函数中初始化
+    this.userOpenid = null;
 
     // 新增：操作锁，防止重复点击
     this.isOperating = false;
-    // 新增：防止快速连续点击的计时器
     this.lastInteractionTime = 0;
-    this.interactionCooldown = 1000; // 1秒冷却时间
+    this.interactionCooldown = 1000;
 
     // 新增：我的鱼缸相关
-    this.myFishTankList = []; // 用户自己的鱼列表
-    this.currentTankMode = 'public'; // 'public' 或 'my'
+    this.myFishTankList = [];
+    this.currentTankMode = 'public';
 
     // 新增：排行榜模式
-    this.currentRankingMode = 'cyber'; // 'cyber' 或 'weekly'
+    this.currentRankingMode = 'cyber';
 
-    // 新增：本地交互状态缓存 - 用于即时UI更新
-    this.localInteractionCache = new Map(); // key: fishName, value: {action, timestamp, originalState}
+    // 新增：本地交互状态缓存
+    this.localInteractionCache = new Map();
 
     this.bindEvents();
   }
+
 
   // 新增：获取真实用户openid的方法
   async getRealUserOpenid() {
@@ -184,83 +184,96 @@ class EventHandler {
     }
   }
 
-  bindEvents() {
+ bindEvents() {
+    // 单点触控事件（保持兼容性）
     wx.onTouchStart((e) => this.handleTouchStart(e));
     wx.onTouchMove((e) => this.handleTouchMove(e));
     wx.onTouchEnd((e) => this.handleTouchEnd(e));
     wx.onTouchCancel((e) => this.handleTouchCancel(e));
   }
 
-  // 修复：分别处理不同的触摸事件
+  // 修改：处理触摸开始事件，支持多点触控
   handleTouchStart(e) {
     if (!e.touches || e.touches.length === 0) return;
 
-    const touch = e.touches[0];
-    const x = touch.clientX;
-    const y = touch.clientY;
+    // 处理所有触摸点
+    for (const touch of e.touches) {
+      const x = touch.clientX;
+      const y = touch.clientY;
+      const identifier = touch.identifier || 0;
 
-    console.log('触摸开始:', x, y, '界面状态:', {
-      ranking: this.isRankingInterfaceVisible,
-      fishDetail: this.isFishDetailVisible,
-      dialog: this.isDialogVisible,
-      swim: this.isSwimInterfaceVisible
-    });
+      console.log('触摸开始:', x, y, '标识符:', identifier, '触摸点数量:', e.touches.length);
 
-    // 根据当前界面状态路由到对应的触摸处理器
-    if (this.isRankingInterfaceVisible) {
-      console.log('路由到排行榜处理器');
-      this.touchHandlers.ranking.handleTouchStart(x, y);
-      // 立即处理触摸，因为返回按钮需要响应点击
-      this.touchHandlers.ranking.handleTouch(x, y);
-    } else if (this.isFishDetailVisible) {
-      this.touchHandlers.fishDetail.handleTouch(x, y);
-    } else if (this.isDialogVisible) {
-      this.touchHandlers.dialog.handleTouch(x, y);
-    } else if (this.isSwimInterfaceVisible) {
-      this.touchHandlers.swim.handleTouch(x, y);
-    } else {
-      // 主界面
-      this.touchHandlers.main.handleTouchStart(x, y);
+      // 根据当前界面状态路由到对应的触摸处理器
+      if (this.isRankingInterfaceVisible) {
+        // 排行榜界面只处理单点触摸
+        if (e.touches.length === 1) {
+          this.touchHandlers.ranking.handleTouchStart(x, y);
+          this.touchHandlers.ranking.handleTouch(x, y);
+        }
+      } else if (this.isFishDetailVisible) {
+        this.touchHandlers.fishDetail.handleTouch(x, y);
+      } else if (this.isDialogVisible) {
+        this.touchHandlers.dialog.handleTouch(x, y);
+      } else if (this.isSwimInterfaceVisible) {
+        this.touchHandlers.swim.handleTouch(x, y);
+      } else {
+        // 主界面：支持多点触控
+        this.touchHandlers.main.handleTouchStart(x, y, identifier);
+      }
     }
   }
 
+  // 修改：处理触摸移动事件，支持多点触控
   handleTouchMove(e) {
     if (!e.touches || e.touches.length === 0) return;
 
-    const touch = e.touches[0];
-    const x = touch.clientX;
-    const y = touch.clientY;
+    // 处理所有触摸点
+    for (const touch of e.touches) {
+      const x = touch.clientX;
+      const y = touch.clientY;
+      const identifier = touch.identifier || 0;
 
-    // 根据界面状态路由
-    if (this.isRankingInterfaceVisible) {
-      this.touchHandlers.ranking.handleTouchMove(x, y);
-    } else if (this.isFishDetailVisible) {
-      // 鱼详情界面不需要处理移动
-    } else if (this.isDialogVisible) {
-      // 对话框界面不需要处理移动
-    } else if (this.isSwimInterfaceVisible) {
-      // 游泳界面不需要处理移动
-    } else {
-      // 主界面
-      this.touchHandlers.main.handleTouchMove(x, y);
+      // 根据界面状态路由
+      if (this.isRankingInterfaceVisible) {
+        this.touchHandlers.ranking.handleTouchMove(x, y);
+      } else if (this.isFishDetailVisible) {
+        // 鱼详情界面不需要处理移动
+      } else if (this.isDialogVisible) {
+        // 对话框界面不需要处理移动
+      } else if (this.isSwimInterfaceVisible) {
+        // 游泳界面不需要处理移动
+      } else {
+        // 主界面：支持多点触控
+        this.touchHandlers.main.handleTouchMove(x, y, identifier);
+      }
     }
   }
 
+  // 修改：处理触摸结束事件，支持多点触控
   handleTouchEnd(e) {
-    console.log('触摸结束');
+    console.log('触摸结束，触摸点数量:', e.touches ? e.touches.length : 0);
 
-    // 触摸结束事件
-    if (this.isRankingInterfaceVisible) {
-      this.touchHandlers.ranking.handleTouchEnd();
-    } else if (this.isFishDetailVisible) {
-      // 鱼详情界面不需要处理触摸结束
-    } else if (this.isDialogVisible) {
-      // 对话框界面不需要处理触摸结束
-    } else if (this.isSwimInterfaceVisible) {
-      // 游泳界面不需要处理触摸结束
-    } else {
-      // 主界面
-      this.touchHandlers.main.handleTouchEnd();
+    // 处理结束的触摸点
+    if (e.changedTouches && e.changedTouches.length > 0) {
+      for (const touch of e.changedTouches) {
+        const x = touch.clientX;
+        const y = touch.clientY;
+        const identifier = touch.identifier || 0;
+
+        if (this.isRankingInterfaceVisible) {
+          this.touchHandlers.ranking.handleTouchEnd();
+        } else if (this.isFishDetailVisible) {
+          // 鱼详情界面不需要处理触摸结束
+        } else if (this.isDialogVisible) {
+          // 对话框界面不需要处理触摸结束
+        } else if (this.isSwimInterfaceVisible) {
+          // 游泳界面不需要处理触摸结束
+        } else {
+          // 主界面：支持多点触控
+          this.touchHandlers.main.handleTouchEnd(x, y, identifier);
+        }
+      }
     }
   }
 
@@ -269,14 +282,17 @@ class EventHandler {
     if (this.isRankingInterfaceVisible) {
       this.touchHandlers.ranking.handleTouchEnd();
     }
+
+    // 新增：取消所有触摸点
+    if (e.changedTouches) {
+      for (const touch of e.changedTouches) {
+        const identifier = touch.identifier || 0;
+        this.touchHandlers.main.handleTouchEnd(0, 0, identifier);
+      }
+    }
   }
 
-  // 修改：鱼缸功能 - 使用全局列表
-  async handleFishTank() {
-    await this.enterFishTank(); // 不传参数，只是进入鱼缸
-  }
-
-  // 修改：让它游起来处理
+  // 修改：让它游起来处理 - 添加缩放图像处理
   async handleMakeItSwim() {
     // 优化：检查是否正在评分
     if (this.gameState.scoringState.isRequesting) {
@@ -295,6 +311,11 @@ class EventHandler {
     }
 
     try {
+      // 新增：退出缩放模式（如果有）
+      if (this.gameState.isZoomMode()) {
+        this.gameState.disableZoomMode();
+      }
+
       await this.fishManager.processor.processFishImage();
     } catch (error) {
       console.error('处理鱼图像失败:', error);
