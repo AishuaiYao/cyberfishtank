@@ -122,7 +122,7 @@ class UIManager {
 
     // 检查加载状态
     if (this.eventHandler.isLoadingRanking) {
-      this.drawLoadingMessage('加载中...');
+      this.drawLoadingMessage('等会儿哈，马上！');
       return;
     }
 

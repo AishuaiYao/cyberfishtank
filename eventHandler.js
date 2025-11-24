@@ -333,107 +333,119 @@ class EventHandler {
     }
   }
 
-  // 修改：进入鱼缸的统一方法
-  async enterFishTank(newFishName = null, mode = 'public') {
-    this.isSwimInterfaceVisible = true;
-    this.swimInterfaceData = { mode: mode };
-    this.currentTankMode = mode;
+// 修改 enterFishTank 方法，让首次进入也使用随机模式
+async enterFishTank(newFishName = null, mode = 'public') {
+  this.isSwimInterfaceVisible = true;
+  this.swimInterfaceData = { mode: mode };
+  this.currentTankMode = mode;
 
-    if (!this.fishTank) {
-      const { FishTank } = require('./fishCore.js');
-      this.fishTank = new FishTank(this.ctx, config.screenWidth, config.screenHeight);
-    }
-
-    // 清空当前鱼缸显示
-    this.fishTank.fishes = [];
-    this.addedUserFishNames.clear();
-
-    if (mode === 'public') {
-      // 公共鱼缸逻辑
-      // 首次进入：从数据库加载并初始化全局列表
-      if (this.isFirstEnterTank) {
-        await this.loadInitialFishes();
-        this.isFirstEnterTank = false;
-      }
-
-      // 如果有指定新鱼（从"让它游起来"来的），确保它在列表中
-      if (newFishName) {
-        await this.ensureFishInList(newFishName);
-      }
-
-      // 从全局列表创建鱼对象并显示
-      await this.createFishesFromGlobalList();
-    } else {
-      // 我的鱼缸逻辑
-      await this.loadMyFishes();
-    }
-
-    this.fishManager.animator.startAnimationLoop();
-
-    // 修改这里：进入鱼缸时显示鱼的数量和模式
-    const fishCount = mode === 'public' ? this.globalFishList.length : this.myFishTankList.length;
-    const tankName = mode === 'public' ? '赛博鱼缸' : '我的鱼缸';
-    wx.showToast({
-      title: `${tankName}中有${fishCount}条鱼`,
-      icon: 'success',
-      duration: 2000
-    });
-
-    console.log(`进入${tankName}，当前鱼数量:`, fishCount);
+  if (!this.fishTank) {
+    const { FishTank } = require('./fishCore.js');
+    this.fishTank = new FishTank(this.ctx, config.screenWidth, config.screenHeight);
   }
 
-  // 修改 loadMyFishes 方法 - 使用缓存的openid
-  async loadMyFishes() {
-    try {
-      console.log('加载我的鱼数据...');
+  // 清空当前鱼缸显示
+  this.fishTank.fishes = [];
+  this.addedUserFishNames.clear();
 
-      if (!this.databaseManager.isCloudDbInitialized || !this.databaseManager.cloudDb) {
-        console.warn('云数据库未初始化，无法加载我的鱼数据');
-        this.myFishTankList = [];
-        return;
-      }
+  if (mode === 'public') {
+    // 公共鱼缸逻辑保持不变
+    if (this.isFirstEnterTank) {
+      await this.loadInitialFishes();
+      this.isFirstEnterTank = false;
+    }
 
-      // 使用缓存的openid
-      if (!this.userOpenid) {
-        console.warn('用户openid未初始化，无法加载我的鱼数据');
-        this.myFishTankList = [];
-        wx.showToast({
-          title: '用户信息未准备好',
-          icon: 'none',
-          duration: 2000
-        });
-        return;
-      }
+    if (newFishName) {
+      await this.ensureFishInList(newFishName);
+    }
 
-      console.log('使用缓存的openid:', this.userOpenid);
+    await this.createFishesFromGlobalList();
+  } else {
+    // 我的鱼缸逻辑：使用随机模式，让每次进入都看到不同的鱼
+    await this.loadMyFishes(true); // true 表示随机模式
+  }
 
-      // 使用缓存的openid查询用户自己的鱼
-      this.myFishTankList = await this.databaseManager.getFishesByUserOpenid(this.userOpenid, 20);
+  this.fishManager.animator.startAnimationLoop();
 
-      console.log('我的鱼数据加载完成，数量:', this.myFishTankList.length);
+  // 修改这里：进入鱼缸时显示鱼的数量和模式
+  const fishCount = mode === 'public' ? this.globalFishList.length : this.myFishTankList.length;
+  const tankName = mode === 'public' ? '赛博鱼缸' : '我的鱼缸';
+  wx.showToast({
+    title: `${tankName}中有${fishCount}条鱼`,
+    icon: 'success',
+    duration: 2000
+  });
 
-      if (this.myFishTankList.length === 0) {
-        wx.showToast({
-          title: '你还没有鱼，快去画一条吧！',
-          icon: 'none',
-          duration: 2000
-        });
-      } else {
-        // 调试信息
-        console.log('我的鱼列表详情:');
-        this.myFishTankList.forEach((fish, index) => {
-          console.log(`我的鱼 ${index + 1}: ${fish.fishName} (openid: ${fish._openid})`);
-        });
-      }
+  console.log(`进入${tankName}，当前鱼数量:`, fishCount);
+}
+// 修改 loadMyFishes 方法，添加随机模式参数
+async loadMyFishes(randomMode = false) {
+  try {
+    console.log('加载我的鱼数据...', randomMode ? '(随机模式)' : '(时间倒序模式)');
 
-      // 从我的鱼列表创建鱼对象并显示
-      await this.createFishesFromMyList();
-
-    } catch (error) {
-      console.error('加载我的鱼数据失败:', error);
+    if (!this.databaseManager.isCloudDbInitialized || !this.databaseManager.cloudDb) {
+      console.warn('云数据库未初始化，无法加载我的鱼数据');
       this.myFishTankList = [];
+      return;
     }
+
+    // 使用缓存的openid
+    if (!this.userOpenid) {
+      console.warn('用户openid未初始化，无法加载我的鱼数据');
+      this.myFishTankList = [];
+      wx.showToast({
+        title: '用户信息未准备好',
+        icon: 'none',
+        duration: 2000
+      });
+      return;
+    }
+
+    console.log('使用缓存的openid:', this.userOpenid);
+
+    // 关键修复：彻底清空鱼缸和名称缓存
+    if (this.fishTank) {
+      this.fishTank.fishes = [];
+    }
+    this.addedUserFishNames.clear();
+    console.log('已清空鱼缸显示和名称缓存');
+
+    // 修改：根据模式选择查询方式
+    if (randomMode) {
+      // 随机模式：使用新的随机查询方法
+      console.log('使用随机查询模式');
+      this.myFishTankList = await this.databaseManager.getRandomFishesByUserOpenid(this.userOpenid, 20);
+    } else {
+      // 时间倒序模式：原有逻辑
+      console.log('使用时间倒序查询模式');
+      this.myFishTankList = await this.databaseManager.getFishesByUserOpenid(this.userOpenid, 20);
+    }
+
+    console.log('我的鱼数据加载完成，数量:', this.myFishTankList.length);
+
+    if (this.myFishTankList.length === 0) {
+      wx.showToast({
+        title: '你还没有鱼，快去画一条吧！',
+        icon: 'none',
+        duration: 2000
+      });
+    } else {
+      // 调试信息
+      console.log('我的鱼列表详情:');
+      this.myFishTankList.forEach((fish, index) => {
+        console.log(`我的鱼 ${index + 1}: ${fish.fishName} (openid: ${fish._openid})`);
+      });
+    }
+
+    // 从我的鱼列表创建鱼对象并显示
+    await this.createFishesFromMyList();
+
+  } catch (error) {
+    console.error('加载我的鱼数据失败:', error);
+    this.myFishTankList = [];
   }
+}
+
 
   // 新增：从我的鱼列表创建鱼对象
   async createFishesFromMyList() {
@@ -546,44 +558,47 @@ class EventHandler {
     console.log('成功创建鱼对象:', validFishes.length);
   }
 
-  // 修改：刷新鱼缸数据
-  async refreshFishTank() {
-    console.log('手动刷新鱼缸数据...');
-    wx.showLoading({ title: '刷新中...', mask: true });
+// 修改 refreshFishTank 方法
+async refreshFishTank() {
+  console.log('手动刷新鱼缸数据...');
+  console.log('当前模式:', this.currentTankMode);
 
-    try {
-      if (this.currentTankMode === 'public') {
-        // 重新从数据库随机加载
-        const newFishes = await this.databaseManager.getRandomFishesFromDatabase(20);
-        this.globalFishList = newFishes;
+  wx.showLoading({ title: '刷新中...', mask: true });
 
-        // 清空并重新创建鱼对象
-        this.fishTank.fishes = [];
-        this.addedUserFishNames.clear();
-        await this.createFishesFromGlobalList();
+  try {
+    if (this.currentTankMode === 'public') {
+      // 公共鱼缸逻辑：使用赛博鱼缸的随机逻辑
+      const newFishes = await this.databaseManager.getRandomFishesFromDatabase(20);
+      this.globalFishList = newFishes;
 
-        wx.showToast({
-          title: `刷新完成，${newFishes.length}条鱼`,
-          icon: 'success',
-          duration: 1500
-        });
-      } else {
-        // 刷新我的鱼缸
-        await this.loadMyFishes();
+      // 清空并重新创建鱼对象
+      this.fishTank.fishes = [];
+      this.addedUserFishNames.clear();
+      await this.createFishesFromGlobalList();
 
-        wx.showToast({
-          title: `刷新完成，${this.myFishTankList.length}条鱼`,
-          icon: 'success',
-          duration: 1500
-        });
-      }
-    } catch (error) {
-      console.error('刷新鱼缸失败:', error);
-      wx.showToast({ title: '刷新失败', icon: 'none', duration: 1500 });
-    } finally {
-      wx.hideLoading();
+      wx.showToast({
+        title: `刷新完成，${newFishes.length}条鱼`,
+        icon: 'success',
+        duration: 1500
+      });
+    } else {
+      // 我的鱼缸逻辑：使用新的随机查询（限制在当前用户的鱼中）
+      console.log('刷新我的鱼缸，使用随机查询...');
+      await this.loadMyFishes(true); // true 表示随机模式
+
+      wx.showToast({
+        title: `刷新完成，${this.myFishTankList.length}条鱼`,
+        icon: 'success',
+        duration: 1500
+      });
     }
+  } catch (error) {
+    console.error('刷新鱼缸失败:', error);
+    wx.showToast({ title: '刷新失败', icon: 'none', duration: 1500 });
+  } finally {
+    wx.hideLoading();
   }
+}
 
   hideSwimInterface() {
     this.isSwimInterfaceVisible = false;

@@ -494,6 +494,81 @@ class DatabaseManager {
       return {};
     }
   }
+
+  // 新增：在我的鱼缸中随机获取用户的鱼（参考赛博鱼缸逻辑）
+async getRandomFishesByUserOpenid(openid, count = 20) {
+  if (!this.isCloudDbInitialized || !this.cloudDb) {
+    console.warn('云数据库未初始化，无法随机查询用户鱼数据');
+    return [];
+  }
+
+  if (!openid) {
+    console.warn('openid为空，无法随机查询用户鱼数据');
+    return [];
+  }
+
+  try {
+    console.log(`随机查询用户 ${openid} 的 ${count} 条鱼数据`);
+
+    // 方法1：使用数据库的aggregate + sample实现真随机（参考赛博鱼缸）
+    try {
+      const result = await this.cloudDb.collection('fishes')
+        .aggregate()
+        .match({
+          _openid: openid  // 关键：添加_openid限制，只查询当前用户的鱼
+        })
+        .sample({ size: count })
+        .end();
+
+      console.log(`使用数据库真随机获取了用户 ${openid} 的 ${result.list.length} 条鱼`);
+      return result.list;
+    } catch (aggregateError) {
+      console.warn('数据库aggregate随机不支持，使用备选方案:', aggregateError);
+
+      // 方法2：备选方案 - 获取用户所有鱼后随机选择（参考赛博鱼缸备选方案）
+      return await this.getRandomFishesByUserFallback(openid, count);
+    }
+
+  } catch (error) {
+    console.error('随机查询用户鱼数据失败:', error);
+    return [];
+  }
+}
+
+// 新增：我的鱼缸随机备选方案
+async getRandomFishesByUserFallback(openid, count = 20) {
+  try {
+    console.log(`使用备选方案随机查询用户 ${openid} 的 ${count} 条鱼数据`);
+
+    // 先获取用户的所有鱼
+    const allUserFishes = await this.cloudDb.collection('fishes')
+      .where({
+        _openid: openid  // 关键：只查询当前用户的鱼
+      })
+      .get();
+
+    console.log(`用户 ${openid} 共有 ${allUserFishes.data.length} 条鱼`);
+
+    if (allUserFishes.data.length === 0) {
+      return [];
+    }
+
+    // 如果用户鱼的数量少于请求数量，返回所有鱼
+    if (allUserFishes.data.length <= count) {
+      return allUserFishes.data;
+    }
+
+    // 使用更好的洗牌算法随机选择指定数量的鱼（复用赛博鱼缸的逻辑）
+    const shuffled = this.betterShuffle([...allUserFishes.data]);
+    const selectedFishes = shuffled.slice(0, count);
+
+    console.log(`随机选择了用户 ${openid} 的 ${selectedFishes.length} 条鱼`);
+    return selectedFishes;
+  } catch (error) {
+    console.error('备选方案随机查询用户鱼数据失败:', error);
+    return [];
+  }
+}
 }
 
 module.exports = DatabaseManager;
