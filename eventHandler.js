@@ -1,4 +1,4 @@
-// eventHandler.js - 修复我的鱼缸查询逻辑，添加多点触控支持
+// eventHandler.js - 修复我的鱼缸查询逻辑
 const { config, getAreaPositions } = require('./config.js');
 const AIService = require('./aiService.js');
 const DatabaseManager = require('./databaseManager.js');
@@ -66,32 +66,63 @@ class EventHandler {
 
     // 新增：全局鱼列表
     this.globalFishList = [];
-    this.isFirstEnterTank = true;
+    this.isFirstEnterTank = true; // 是否首次进入鱼缸
 
-    // 修改：完全移除openid初始化，使用时实时获取
-    this.userOpenid = null;
+    // 修改：在构造函数中初始化时获取openid
+    this.userOpenid = null; // 初始为null，在init中获取
 
     // 新增：操作锁，防止重复点击
     this.isOperating = false;
+    // 新增：防止快速连续点击的计时器
     this.lastInteractionTime = 0;
-    this.interactionCooldown = 1000;
+    this.interactionCooldown = 1000; // 1秒冷却时间
 
     // 新增：我的鱼缸相关
-    this.myFishTankList = [];
-    this.currentTankMode = 'public';
+    this.myFishTankList = []; // 用户自己的鱼列表
+    this.currentTankMode = 'public'; // 'public' 或 'my'
 
     // 新增：排行榜模式
-    this.currentRankingMode = 'cyber';
+    this.currentRankingMode = 'cyber'; // 'cyber' 或 'weekly'
 
-    // 新增：本地交互状态缓存
-    this.localInteractionCache = new Map();
+    // 新增：本地交互状态缓存 - 用于即时UI更新
+    this.localInteractionCache = new Map(); // key: fishName, value: {action, timestamp, originalState}
 
     this.bindEvents();
+    this.initUserOpenid(); // 新增：初始化时获取用户openid
   }
 
+  // 新增：初始化用户openid
+  async initUserOpenid() {
+    try {
+      console.log('开始初始化用户openid...');
+      this.userOpenid = await this.fetchOpenidFromCloud();
+      console.log('用户openid初始化成功:', this.userOpenid);
+    } catch (error) {
+      console.error('用户openid初始化失败:', error);
+      this.userOpenid = null;
+    }
+  }
 
-  // 新增：获取真实用户openid的方法
+  // 修改：获取真实用户openid的方法 - 使用缓存
   async getRealUserOpenid() {
+    // 如果已经有缓存的openid，直接返回
+    if (this.userOpenid) {
+      return this.userOpenid;
+    }
+
+    // 否则重新获取
+    try {
+      console.log('重新获取用户openid...');
+      this.userOpenid = await this.fetchOpenidFromCloud();
+      return this.userOpenid;
+    } catch (error) {
+      console.error('重新获取用户openid失败:', error);
+      throw error;
+    }
+  }
+
+  // 新增：从云端获取openid的核心方法
+  async fetchOpenidFromCloud() {
     return new Promise((resolve, reject) => {
       if (!wx.cloud) {
         reject(new Error('云开发未初始化'));
@@ -184,96 +215,83 @@ class EventHandler {
     }
   }
 
- bindEvents() {
-    // 单点触控事件（保持兼容性）
+  bindEvents() {
     wx.onTouchStart((e) => this.handleTouchStart(e));
     wx.onTouchMove((e) => this.handleTouchMove(e));
     wx.onTouchEnd((e) => this.handleTouchEnd(e));
     wx.onTouchCancel((e) => this.handleTouchCancel(e));
   }
 
-  // 修改：处理触摸开始事件，支持多点触控
+  // 修复：分别处理不同的触摸事件
   handleTouchStart(e) {
     if (!e.touches || e.touches.length === 0) return;
 
-    // 处理所有触摸点
-    for (const touch of e.touches) {
-      const x = touch.clientX;
-      const y = touch.clientY;
-      const identifier = touch.identifier || 0;
+    const touch = e.touches[0];
+    const x = touch.clientX;
+    const y = touch.clientY;
 
-      console.log('触摸开始:', x, y, '标识符:', identifier, '触摸点数量:', e.touches.length);
+    console.log('触摸开始:', x, y, '界面状态:', {
+      ranking: this.isRankingInterfaceVisible,
+      fishDetail: this.isFishDetailVisible,
+      dialog: this.isDialogVisible,
+      swim: this.isSwimInterfaceVisible
+    });
 
-      // 根据当前界面状态路由到对应的触摸处理器
-      if (this.isRankingInterfaceVisible) {
-        // 排行榜界面只处理单点触摸
-        if (e.touches.length === 1) {
-          this.touchHandlers.ranking.handleTouchStart(x, y);
-          this.touchHandlers.ranking.handleTouch(x, y);
-        }
-      } else if (this.isFishDetailVisible) {
-        this.touchHandlers.fishDetail.handleTouch(x, y);
-      } else if (this.isDialogVisible) {
-        this.touchHandlers.dialog.handleTouch(x, y);
-      } else if (this.isSwimInterfaceVisible) {
-        this.touchHandlers.swim.handleTouch(x, y);
-      } else {
-        // 主界面：支持多点触控
-        this.touchHandlers.main.handleTouchStart(x, y, identifier);
-      }
+    // 根据当前界面状态路由到对应的触摸处理器
+    if (this.isRankingInterfaceVisible) {
+      console.log('路由到排行榜处理器');
+      this.touchHandlers.ranking.handleTouchStart(x, y);
+      // 立即处理触摸，因为返回按钮需要响应点击
+      this.touchHandlers.ranking.handleTouch(x, y);
+    } else if (this.isFishDetailVisible) {
+      this.touchHandlers.fishDetail.handleTouch(x, y);
+    } else if (this.isDialogVisible) {
+      this.touchHandlers.dialog.handleTouch(x, y);
+    } else if (this.isSwimInterfaceVisible) {
+      this.touchHandlers.swim.handleTouch(x, y);
+    } else {
+      // 主界面
+      this.touchHandlers.main.handleTouchStart(x, y);
     }
   }
 
-  // 修改：处理触摸移动事件，支持多点触控
   handleTouchMove(e) {
     if (!e.touches || e.touches.length === 0) return;
 
-    // 处理所有触摸点
-    for (const touch of e.touches) {
-      const x = touch.clientX;
-      const y = touch.clientY;
-      const identifier = touch.identifier || 0;
+    const touch = e.touches[0];
+    const x = touch.clientX;
+    const y = touch.clientY;
 
-      // 根据界面状态路由
-      if (this.isRankingInterfaceVisible) {
-        this.touchHandlers.ranking.handleTouchMove(x, y);
-      } else if (this.isFishDetailVisible) {
-        // 鱼详情界面不需要处理移动
-      } else if (this.isDialogVisible) {
-        // 对话框界面不需要处理移动
-      } else if (this.isSwimInterfaceVisible) {
-        // 游泳界面不需要处理移动
-      } else {
-        // 主界面：支持多点触控
-        this.touchHandlers.main.handleTouchMove(x, y, identifier);
-      }
+    // 根据界面状态路由
+    if (this.isRankingInterfaceVisible) {
+      this.touchHandlers.ranking.handleTouchMove(x, y);
+    } else if (this.isFishDetailVisible) {
+      // 鱼详情界面不需要处理移动
+    } else if (this.isDialogVisible) {
+      // 对话框界面不需要处理移动
+    } else if (this.isSwimInterfaceVisible) {
+      // 游泳界面不需要处理移动
+    } else {
+      // 主界面
+      this.touchHandlers.main.handleTouchMove(x, y);
     }
   }
 
-  // 修改：处理触摸结束事件，支持多点触控
   handleTouchEnd(e) {
-    console.log('触摸结束，触摸点数量:', e.touches ? e.touches.length : 0);
+    console.log('触摸结束');
 
-    // 处理结束的触摸点
-    if (e.changedTouches && e.changedTouches.length > 0) {
-      for (const touch of e.changedTouches) {
-        const x = touch.clientX;
-        const y = touch.clientY;
-        const identifier = touch.identifier || 0;
-
-        if (this.isRankingInterfaceVisible) {
-          this.touchHandlers.ranking.handleTouchEnd();
-        } else if (this.isFishDetailVisible) {
-          // 鱼详情界面不需要处理触摸结束
-        } else if (this.isDialogVisible) {
-          // 对话框界面不需要处理触摸结束
-        } else if (this.isSwimInterfaceVisible) {
-          // 游泳界面不需要处理触摸结束
-        } else {
-          // 主界面：支持多点触控
-          this.touchHandlers.main.handleTouchEnd(x, y, identifier);
-        }
-      }
+    // 触摸结束事件
+    if (this.isRankingInterfaceVisible) {
+      this.touchHandlers.ranking.handleTouchEnd();
+    } else if (this.isFishDetailVisible) {
+      // 鱼详情界面不需要处理触摸结束
+    } else if (this.isDialogVisible) {
+      // 对话框界面不需要处理触摸结束
+    } else if (this.isSwimInterfaceVisible) {
+      // 游泳界面不需要处理触摸结束
+    } else {
+      // 主界面
+      this.touchHandlers.main.handleTouchEnd();
     }
   }
 
@@ -282,17 +300,14 @@ class EventHandler {
     if (this.isRankingInterfaceVisible) {
       this.touchHandlers.ranking.handleTouchEnd();
     }
-
-    // 新增：取消所有触摸点
-    if (e.changedTouches) {
-      for (const touch of e.changedTouches) {
-        const identifier = touch.identifier || 0;
-        this.touchHandlers.main.handleTouchEnd(0, 0, identifier);
-      }
-    }
   }
 
-  // 修改：让它游起来处理 - 添加缩放图像处理
+  // 修改：鱼缸功能 - 使用全局列表
+  async handleFishTank() {
+    await this.enterFishTank(); // 不传参数，只是进入鱼缸
+  }
+
+  // 修改：让它游起来处理
   async handleMakeItSwim() {
     // 优化：检查是否正在评分
     if (this.gameState.scoringState.isRequesting) {
@@ -311,11 +326,6 @@ class EventHandler {
     }
 
     try {
-      // 新增：退出缩放模式（如果有）
-      if (this.gameState.isZoomMode()) {
-        this.gameState.disableZoomMode();
-      }
-
       await this.fishManager.processor.processFishImage();
     } catch (error) {
       console.error('处理鱼图像失败:', error);
@@ -372,7 +382,7 @@ class EventHandler {
     console.log(`进入${tankName}，当前鱼数量:`, fishCount);
   }
 
-  // 修改 loadMyFishes 方法 - 使用真实openid
+  // 修改 loadMyFishes 方法 - 使用缓存的openid
   async loadMyFishes() {
     try {
       console.log('加载我的鱼数据...');
@@ -383,24 +393,22 @@ class EventHandler {
         return;
       }
 
-      // 获取真实openid
-      let userOpenid;
-      try {
-        userOpenid = await this.getRealUserOpenid();
-        console.log('已获取真实openid:', userOpenid);
-      } catch (error) {
-        console.error('获取openid失败，无法加载我的鱼数据:', error);
+      // 使用缓存的openid
+      if (!this.userOpenid) {
+        console.warn('用户openid未初始化，无法加载我的鱼数据');
         this.myFishTankList = [];
         wx.showToast({
-          title: '获取用户信息失败',
+          title: '用户信息未准备好',
           icon: 'none',
           duration: 2000
         });
         return;
       }
 
-      // 使用真实openid查询用户自己的鱼
-      this.myFishTankList = await this.databaseManager.getFishesByUserOpenid(userOpenid, 20);
+      console.log('使用缓存的openid:', this.userOpenid);
+
+      // 使用缓存的openid查询用户自己的鱼
+      this.myFishTankList = await this.databaseManager.getFishesByUserOpenid(this.userOpenid, 20);
 
       console.log('我的鱼数据加载完成，数量:', this.myFishTankList.length);
 
@@ -633,7 +641,7 @@ class EventHandler {
     }
   }
 
-  // 新增：为排行榜鱼数据加载用户交互状态
+  // 修改：为排行榜鱼数据加载用户交互状态 - 使用缓存的openid
   async loadRankingFishesUserInteractions(rankingFishes) {
     if (!rankingFishes || rankingFishes.length === 0) {
       return;
@@ -641,20 +649,18 @@ class EventHandler {
 
     console.log('开始加载排行榜鱼的用户交互状态...');
 
-    // 获取用户openid
-    let userOpenid;
-    try {
-      userOpenid = await this.getRealUserOpenid();
-      console.log('已获取用户openid:', userOpenid);
-    } catch (error) {
-      console.warn('获取用户openid失败，无法加载交互状态:', error);
+    // 使用缓存的openid
+    if (!this.userOpenid) {
+      console.warn('用户openid未初始化，无法加载交互状态');
       return;
     }
+
+    console.log('使用缓存的openid加载交互状态:', this.userOpenid);
 
     // 批量查询用户交互状态
     const interactionPromises = rankingFishes.map(async (fishItem) => {
       try {
-        const interaction = await this.databaseManager.getUserInteraction(fishItem.fishData.fishName);
+        const interaction = await this.databaseManager.getUserInteraction(fishItem.fishData.fishName, this.userOpenid);
         fishItem.userInteraction = interaction;
       } catch (error) {
         console.warn(`加载鱼 ${fishItem.fishData.fishName} 的交互状态失败:`, error);
@@ -666,7 +672,7 @@ class EventHandler {
     console.log('排行榜鱼用户交互状态加载完成');
   }
 
-  // 修改：处理排行榜点赞操作 - 优化为即时UI更新
+  // 修改：处理排行榜点赞操作 - 使用缓存的openid
   async handleRankingLikeAction(fishItem) {
     if (!this.canPerformInteraction()) {
       console.log('操作过于频繁，跳过点赞操作');
@@ -713,7 +719,7 @@ class EventHandler {
     }
   }
 
-  // 修改：处理排行榜点踩操作 - 优化为即时UI更新
+  // 修改：处理排行榜点踩操作 - 使用缓存的openid
   async handleRankingDislikeAction(fishItem) {
     if (!this.canPerformInteraction()) {
       console.log('操作过于频繁，跳点点踩操作');
@@ -760,7 +766,7 @@ class EventHandler {
     }
   }
 
-  // 修改：执行排行榜点赞操作 - 添加即时UI更新
+  // 修改：执行排行榜点赞操作 - 使用缓存的openid
   async performRankingLikeAction(fishItem, originalState) {
     const fishData = fishItem.fishData;
     const fishName = fishData.fishName;
@@ -786,11 +792,11 @@ class EventHandler {
       // 插入新的交互记录
       let interactionSuccess = false;
       try {
-        const userOpenid = await this.getRealUserOpenid();
-        if (userOpenid) {
+        if (this.userOpenid) {
           interactionSuccess = await this.databaseManager.insertUserInteraction(
             fishName,
-            'star'
+            'star',
+            this.userOpenid
           );
         }
       } catch (error) {
@@ -824,7 +830,7 @@ class EventHandler {
     }
   }
 
-  // 修改：执行排行榜点踩操作 - 添加即时UI更新
+  // 修改：执行排行榜点踩操作 - 使用缓存的openid
   async performRankingDislikeAction(fishItem, originalState) {
     const fishData = fishItem.fishData;
     const fishName = fishData.fishName;
@@ -850,11 +856,11 @@ class EventHandler {
       // 插入新的交互记录
       let interactionSuccess = false;
       try {
-        const userOpenid = await this.getRealUserOpenid();
-        if (userOpenid) {
+        if (this.userOpenid) {
           interactionSuccess = await this.databaseManager.insertUserInteraction(
             fishName,
-            'unstar'
+            'unstar',
+            this.userOpenid
           );
         }
       } catch (error) {
@@ -888,7 +894,7 @@ class EventHandler {
     }
   }
 
-  // 修改：取消排行榜点赞操作 - 添加即时UI更新
+  // 修改：取消排行榜点赞操作 - 使用缓存的openid
   async cancelRankingLikeAction(fishItem, userInteraction, originalState) {
     const fishData = fishItem.fishData;
     const fishName = fishData.fishName;
@@ -945,7 +951,7 @@ class EventHandler {
     }
   }
 
-  // 修改：取消排行榜点踩操作 - 添加即时UI更新
+  // 修改：取消排行榜点踩操作 - 使用缓存的openid
   async cancelRankingDislikeAction(fishItem, userInteraction, originalState) {
     const fishData = fishItem.fishData;
     const fishName = fishData.fishName;
@@ -1016,15 +1022,14 @@ class EventHandler {
     this.immediatelyUpdateUI();
   }
 
-  // 新增：为单个排行榜鱼加载用户交互状态
+  // 修改：为单个排行榜鱼加载用户交互状态 - 使用缓存的openid
   async loadUserInteractionForRankingFish(fishItem) {
     try {
-      const userOpenid = await this.getRealUserOpenid();
-      if (!userOpenid) {
+      if (!this.userOpenid) {
         return;
       }
 
-      const interaction = await this.databaseManager.getUserInteraction(fishItem.fishData.fishName);
+      const interaction = await this.databaseManager.getUserInteraction(fishItem.fishData.fishName, this.userOpenid);
       fishItem.userInteraction = interaction;
     } catch (error) {
       console.error('加载排行榜鱼用户交互状态失败:', error);
@@ -1362,16 +1367,15 @@ class EventHandler {
     this.uiManager.drawGameUI(this.gameState);
   }
 
-  // 新增：加载用户交互状态
+  // 修改：加载用户交互状态 - 使用缓存的openid
   async loadUserInteraction(fishName) {
     try {
-      const userOpenid = await this.getRealUserOpenid();
-      if (!userOpenid) {
-        console.warn('用户openid未获取，无法加载交互状态');
+      if (!this.userOpenid) {
+        console.warn('用户openid未初始化，无法加载交互状态');
         return;
       }
 
-      const interaction = await this.databaseManager.getUserInteraction(fishName);
+      const interaction = await this.databaseManager.getUserInteraction(fishName, this.userOpenid);
       if (interaction) {
         this.selectedFishData.userInteraction = interaction;
         console.log(`用户对鱼 ${fishName} 的交互状态:`, interaction.action);
@@ -1393,7 +1397,7 @@ class EventHandler {
     this.uiManager.drawGameUI(this.gameState);
   }
 
-  // 修改：点赞操作 - 优化为即时UI更新
+  // 修改：点赞操作 - 使用缓存的openid
   async handleLikeAction() {
     if (!this.canPerformInteraction()) {
       console.log('操作过于频繁，跳过点赞操作');
@@ -1442,7 +1446,7 @@ class EventHandler {
     }
   }
 
-  // 修改：点踩操作 - 优化为即时UI更新
+  // 修改：点踩操作 - 使用缓存的openid
   async handleDislikeAction() {
     if (!this.canPerformInteraction()) {
       console.log('操作过于频繁，跳点点踩操作');
@@ -1491,7 +1495,7 @@ class EventHandler {
     }
   }
 
-  // 修改：执行点赞操作 - 添加即时UI更新
+  // 修改：执行点赞操作 - 使用缓存的openid
   async performLikeAction(fishData, originalState) {
     const fishName = fishData.fishName;
 
@@ -1515,11 +1519,11 @@ class EventHandler {
       // 插入新的交互记录
       let interactionSuccess = false;
       try {
-        const userOpenid = await this.getRealUserOpenid();
-        if (userOpenid) {
+        if (this.userOpenid) {
           interactionSuccess = await this.databaseManager.insertUserInteraction(
             fishName,
-            'star'
+            'star',
+            this.userOpenid
           );
         }
       } catch (error) {
@@ -1553,7 +1557,7 @@ class EventHandler {
     }
   }
 
-  // 修改：执行点踩操作 - 添加即时UI更新
+  // 修改：执行点踩操作 - 使用缓存的openid
   async performDislikeAction(fishData, originalState) {
     const fishName = fishData.fishName;
 
@@ -1577,11 +1581,11 @@ class EventHandler {
       // 插入新的交互记录
       let interactionSuccess = false;
       try {
-        const userOpenid = await this.getRealUserOpenid();
-        if (userOpenid) {
+        if (this.userOpenid) {
           interactionSuccess = await this.databaseManager.insertUserInteraction(
             fishName,
-            'unstar'
+            'unstar',
+            this.userOpenid
           );
         }
       } catch (error) {
@@ -1615,7 +1619,7 @@ class EventHandler {
     }
   }
 
-  // 修改：取消点赞操作 - 添加即时UI更新
+  // 修改：取消点赞操作 - 使用缓存的openid
   async cancelLikeAction(fishData, userInteraction, originalState) {
     const fishName = fishData.fishName;
 
@@ -1671,7 +1675,7 @@ class EventHandler {
     }
   }
 
-  // 修改：取消点踩操作 - 添加即时UI更新
+  // 修改：取消点踩操作 - 使用缓存的openid
   async cancelDislikeAction(fishData, userInteraction, originalState) {
     const fishName = fishData.fishName;
 

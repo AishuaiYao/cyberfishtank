@@ -1,6 +1,6 @@
 const { config } = require('../config.js');
 
-// fishManager/fishProcessor.js - 修复边界计算，支持缩放绘制
+// fishManager/fishProcessor.js - 修复边界计算，排除边框区域，添加翻转支持
 class FishProcessor {
   constructor(eventHandler) {
     this.eventHandler = eventHandler;
@@ -17,7 +17,7 @@ class FishProcessor {
     try {
       wx.showLoading({ title: '处理中...', mask: true });
 
-      // 使用修复后的边界计算，支持缩放绘制
+      // 使用修复后的边界计算，排除边框区域
       const boundingBox = this.calculateScaledBoundingBox();
       if (!boundingBox || boundingBox.width === 0 || boundingBox.height === 0) {
         throw new Error('无法计算有效的外接矩形');
@@ -27,7 +27,7 @@ class FishProcessor {
 
       const subImage = await this.cropWithCorrectScaling(boundingBox);
 
-      // 如果画布被翻转，处理翻转后的图像
+      // 新增：如果画布被翻转，处理翻转后的图像
       const finalImage = this.eventHandler.gameState.isFlipped ?
         await this.flipImage(subImage) : subImage;
 
@@ -45,7 +45,7 @@ class FishProcessor {
     }
   }
 
-  // 翻转图像
+  // 新增：翻转图像
   async flipImage(subImage) {
     return new Promise((resolve, reject) => {
       try {
@@ -75,7 +75,7 @@ class FishProcessor {
     });
   }
 
-  // 修复：边界计算时考虑缩放绘制
+  // 修复：边界计算时排除绘制区域的边框
   calculateScaledBoundingBox() {
     const gameState = this.eventHandler.gameState;
     if (gameState.drawingPaths.length === 0) return null;
@@ -104,10 +104,10 @@ class FishProcessor {
     const margin = 10 + lineMargin;
 
     // 绘制区域的实际边界（排除边框）
-    const drawingAreaLeft = 12;
-    const drawingAreaTop = this.getDrawingAreaTop();
-    const drawingAreaRight = config.screenWidth - 12;
-    const drawingAreaBottom = drawingAreaTop + config.drawingAreaHeight;
+    const drawingAreaLeft = 12;    // 左边框位置
+    const drawingAreaTop = this.getDrawingAreaTop(); // 绘制区域顶部位置
+    const drawingAreaRight = config.screenWidth - 12;  // 右边框位置
+    const drawingAreaBottom = drawingAreaTop + config.drawingAreaHeight; // 底部边框位置
 
     // 计算逻辑像素边界，确保在绘制区域内
     const logicalX = Math.max(drawingAreaLeft, Math.round(minX - margin));
@@ -152,7 +152,7 @@ class FishProcessor {
     };
   }
 
-  // 获取绘制区域顶部位置
+  // 新增：获取绘制区域顶部位置
   getDrawingAreaTop() {
     const { getAreaPositions } = require('../config.js');
     const positions = getAreaPositions();
@@ -240,8 +240,8 @@ class FishProcessor {
         // 5. 使用 drawImage 进行缩放（保持原逻辑）
         scaledCtx.drawImage(
           subImage.canvas,
-          0, 0, width, height,
-          0, 0, scaledWidth, scaledHeight
+          0, 0, width, height,           // 源图像区域
+          0, 0, scaledWidth, scaledHeight // 目标区域
         );
 
         console.log('缩放完成:', {

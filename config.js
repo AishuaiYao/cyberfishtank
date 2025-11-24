@@ -7,7 +7,7 @@ const pixelRatio = systemInfo.pixelRatio || 1;
 const config = {
   screenWidth,
   screenHeight,
-  pixelRatio,
+  pixelRatio, // 新增像素比配置
   topMargin: 90,
   partHeight: 70,
   indicatorHeight: 90,
@@ -28,21 +28,13 @@ const config = {
   lightTextColor: '#8E8E93',
   borderColor: '#E5E5EA',
 
-  // 新增：缩放绘制配置
-  zoomDrawing: {
-    minScale: 0.5,
-    maxScale: 3.0,
-    initialScale: 1.0,
-    scaleStep: 0.1
-  },
-
   // 新增：排行榜配置
   rankingCard: {
-    width: 0,
-    height: 200,
+    width: 0, // 动态计算
+    height: 200, // 增加高度以容纳更多内容
     margin: 20,
     image: {
-      maxWidth: 0,
+      maxWidth: 0, // 动态计算
       maxHeight: 80
     }
   }
@@ -51,7 +43,7 @@ const config = {
 // 计算各区域位置
 function getAreaPositions() {
   const functionAreaY = config.topMargin;
-  const indicatorAreaY = functionAreaY + config.partHeight * 3 - 10;
+  const indicatorAreaY = functionAreaY + config.partHeight * 3 - 10; // 修复：功能区有3行，每行高度为partHeight
   const drawingAreaY = indicatorAreaY + config.indicatorHeight -80;
   const scoreAreaY = drawingAreaY + config.drawingAreaHeight + 10;
   const jumpAreaY = scoreAreaY + config.scoreHeight;

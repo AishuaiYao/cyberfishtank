@@ -6,16 +6,22 @@ class InterfaceRenderer {
   constructor(ctx, pixelRatio = 1) {
     this.ctx = ctx;
     this.pixelRatio = pixelRatio;
+    // 初始化时优化渲染设置
     this.optimizeRendering();
   }
 
-  // 优化渲染设置
+  // 新增：优化渲染设置
   optimizeRendering() {
     const ctx = this.ctx;
 
-    ctx.imageSmoothingEnabled = false;
+    // 设置高质量图像渲染
+    ctx.imageSmoothingEnabled = false; // 关闭图像平滑以获得更锐利的图像
     ctx.imageSmoothingQuality = 'high';
+
+    // 设置文本渲染优化
     ctx.textRendering = 'geometricPrecision';
+
+    // 设置清晰的线条渲染
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
@@ -25,6 +31,8 @@ class InterfaceRenderer {
   // 绘制背景
   drawBackground() {
     const ctx = this.ctx;
+
+    // 使用纯色背景避免渐变模糊
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
   }
@@ -34,7 +42,7 @@ class InterfaceRenderer {
     const startY = positions.functionAreaY;
     const ctx = this.ctx;
 
-    // 颜色选择
+    // 颜色选择 - 使用更清晰的阴影
     Utils.drawCard(ctx, 15, startY, config.screenWidth - 30, config.partHeight - 20);
     this.drawColorButtons(startY + 10, gameState);
 
@@ -57,6 +65,7 @@ class InterfaceRenderer {
       const x = Math.round(startX + i * (config.colorButtonSize + 18));
       const isSelected = config.colors[i] === gameState.currentColor && !gameState.isEraser;
 
+      // 使用更清晰的阴影
       ctx.shadowColor = 'rgba(0,0,0,0.08)';
       ctx.shadowBlur = 3;
       ctx.shadowOffsetX = 0;
@@ -75,13 +84,13 @@ class InterfaceRenderer {
       ctx.lineWidth = config.colors[i] === '#FFFFFF' ? 1 : 0;
       ctx.stroke();
 
-      // 选中状态
+      // 选中状态 - 使用更清晰的边框
       if (isSelected) {
         ctx.beginPath();
         ctx.arc(x + config.colorButtonSize/2, startY + config.colorButtonSize/2,
                 config.colorButtonSize/2 + 3, 0, Math.PI * 2);
         ctx.strokeStyle = config.primaryColor;
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 2; // 减少线宽提高清晰度
         ctx.stroke();
 
         ctx.beginPath();
@@ -94,55 +103,58 @@ class InterfaceRenderer {
     }
   }
 
-  // 绘制画笔大小控制
-  drawBrushSizeControl(startY, gameState) {
-    const ctx = this.ctx;
-    const adjustedY = startY - 10;
+// 绘制画笔大小控制
+drawBrushSizeControl(startY, gameState) {
+  const ctx = this.ctx;
 
-    ctx.fillStyle = config.textColor;
-    ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillText('画笔大小:', 25, adjustedY);
+  // 上移10像素
+  const adjustedY = startY - 10;
 
-    const sliderX = 100;
-    const sliderWidth = config.screenWidth - 140;
-    const progressWidth = (gameState.brushSize / 20) * sliderWidth;
+  // 使用调整后的Y坐标
+  ctx.fillStyle = config.textColor;
+  ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('画笔大小:', 25, adjustedY);
 
-    // 滑动条轨道
-    ctx.fillStyle = '#E5E5EA';
-    Utils.drawRoundedRect(ctx, sliderX, adjustedY - 6, sliderWidth, 3, 1.5, true, false);
+  const sliderX = 100;
+  const sliderWidth = config.screenWidth - 140;
+  const progressWidth = (gameState.brushSize / 20) * sliderWidth;
 
-    // 进度填充
-    ctx.fillStyle = config.primaryColor;
-    Utils.drawRoundedRect(ctx, sliderX, adjustedY - 6, progressWidth, 3, 1.5, true, false);
+  // 滑动条轨道 - 使用调整后的Y坐标
+  ctx.fillStyle = '#E5E5EA';
+  Utils.drawRoundedRect(ctx, sliderX, adjustedY - 6, sliderWidth, 3, 1.5, true, false);
 
-    // 滑动块
-    const sliderPos = sliderX + progressWidth;
-    ctx.shadowColor = 'rgba(0,122,255,0.15)';
-    ctx.shadowBlur = 3;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 1;
+  // 进度填充
+  ctx.fillStyle = config.primaryColor;
+  Utils.drawRoundedRect(ctx, sliderX, adjustedY - 6, progressWidth, 3, 1.5, true, false);
 
-    ctx.fillStyle = config.primaryColor;
-    ctx.beginPath();
-    ctx.arc(sliderPos, adjustedY - 6, 8, 0, Math.PI * 2);
-    ctx.fill();
+  // 滑动块
+  const sliderPos = sliderX + progressWidth;
+  ctx.shadowColor = 'rgba(0,122,255,0.15)';
+  ctx.shadowBlur = 3;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 1;
 
-    ctx.shadowColor = 'transparent';
-    ctx.fillStyle = '#FFFFFF';
-    ctx.beginPath();
-    ctx.arc(sliderPos, adjustedY - 6, 3, 0, Math.PI * 2);
-    ctx.fill();
+  ctx.fillStyle = config.primaryColor;
+  ctx.beginPath();
+  ctx.arc(sliderPos, adjustedY - 6, 8, 0, Math.PI * 2);
+  ctx.fill();
 
-    // 大小显示
-    ctx.fillStyle = config.primaryColor;
-    ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-    ctx.textAlign = 'right';
-    ctx.fillText(`${gameState.brushSize}px`, config.screenWidth - 25, adjustedY);
-    ctx.textAlign = 'left';
-  }
+  ctx.shadowColor = 'transparent';
+  ctx.fillStyle = '#FFFFFF';
+  ctx.beginPath();
+  ctx.arc(sliderPos, adjustedY - 6, 3, 0, Math.PI * 2);
+  ctx.fill();
 
-  // 绘制工具按钮 - 修改：添加缩放模式指示
+  // 大小显示
+  ctx.fillStyle = config.primaryColor;
+  ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText(`${gameState.brushSize}px`, config.screenWidth - 25, adjustedY);
+  ctx.textAlign = 'left';
+}
+
+  // 绘制工具按钮 - 修改：翻转按钮显示状态
   drawToolButtons(startY, gameState) {
     const toolButtons = [
       { name: '橡皮', icon: '◻' },
@@ -156,9 +168,11 @@ class InterfaceRenderer {
       const x = 30 + i * toolWidth;
       let isActive = false;
 
+      // 设置激活状态
       if (i === 0 && gameState.isEraser) {
         isActive = true;
       } else if (i === 3 && gameState.isFlipped) {
+        // 新增：翻转按钮激活状态
         isActive = true;
       }
 
@@ -166,72 +180,37 @@ class InterfaceRenderer {
                             `${toolButtons[i].icon} ${toolButtons[i].name}`,
                             isActive, false);
     }
-
-    // 新增：绘制缩放模式指示器
-    if (gameState.isZoomMode()) {
-      this.drawZoomIndicator(startY, gameState);
-    }
   }
 
-  // 新增：绘制缩放模式指示器
-  drawZoomIndicator(startY, gameState) {
+  // 绘制指示区
+  drawIndicatorArea(positions) {
+    const startY = positions.indicatorAreaY;
     const ctx = this.ctx;
-    const zoomState = gameState.zoomState;
 
-    const indicatorX = config.screenWidth - 120;
-    const indicatorY = startY - 25;
+    Utils.drawCard(ctx, 15, startY - 45, config.screenWidth - 30, config.indicatorHeight - 40);
 
-    // 绘制缩放指示器背景
-    ctx.fillStyle = 'rgba(0, 122, 255, 0.1)';
-    Utils.drawRoundedRect(ctx, indicatorX, indicatorY, 100, 20, 10, true, false);
-
-    // 绘制边框
-    ctx.strokeStyle = config.primaryColor;
-    ctx.lineWidth = 1;
-    Utils.drawRoundedRect(ctx, indicatorX, indicatorY, 100, 20, 10, false, true);
-
-    // 绘制缩放文本
-    ctx.fillStyle = config.primaryColor;
-    ctx.font = 'bold 12px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+    // 使用更清晰的字体
+    ctx.fillStyle = config.textColor;
+    ctx.font = 'bold 18px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(`缩放: ${zoomState.scale.toFixed(1)}x`, indicatorX + 50, indicatorY + 10);
+
+    ctx.fillStyle = config.textColor;
+    ctx.font = 'bold 18px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+    ctx.fillText('🎨画一条鱼吧!', config.screenWidth / 2, startY - 25);
+
+    ctx.fillStyle = config.lightTextColor;
+    ctx.font = '14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+    ctx.fillText('鱼头请朝右', config.screenWidth / 2, startY - 5);
 
     ctx.textAlign = 'left';
-    ctx.textBaseline = 'alphabetic';
   }
 
-  // 绘制指示区 - 修改：添加缩放提示
-drawIndicatorArea(positions) {
-  const startY = positions.indicatorAreaY;
-  const ctx = this.ctx;
-
-  Utils.drawCard(ctx, 15, startY - 45, config.screenWidth - 30, config.indicatorHeight - 40);
-
-  ctx.fillStyle = config.textColor;
-  ctx.font = 'bold 18px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-  ctx.textAlign = 'center';
-
-  ctx.fillStyle = config.textColor;
-  ctx.font = 'bold 18px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-  ctx.fillText('🎨画一条鱼吧!', config.screenWidth / 2, startY - 25);
-
-  ctx.fillStyle = config.lightTextColor;
-  ctx.font = '14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-
-  // 修复：移除对 gameState 的引用，使用固定提示文本
-  const hintText = '双指缩放画布·鱼头请朝右';
-  ctx.fillText(hintText, config.screenWidth / 2, startY - 5);
-
-  ctx.textAlign = 'left';
-}
-
-  // 绘制绘画区 - 修改：支持缩放绘制
+  // 绘制绘画区 - 修改：支持翻转状态显示
   drawDrawingArea(gameState, positions) {
     const startY = positions.drawingAreaY;
     const ctx = this.ctx;
 
-    // 绘画区域卡片
+    // 绘画区域卡片 - 使用更清晰的阴影
     ctx.shadowColor = 'rgba(0,0,0,0.05)';
     ctx.shadowBlur = 6;
     ctx.shadowOffsetX = 0;
@@ -247,7 +226,7 @@ drawIndicatorArea(positions) {
     ctx.lineWidth = 1;
     Utils.drawRoundedRect(ctx, 12, startY, config.screenWidth - 24, config.drawingAreaHeight, config.borderRadius, false, true);
 
-    // 网格背景
+    // 网格背景 - 使用更清晰的线条
     ctx.strokeStyle = '#F8F9FA';
     ctx.lineWidth = 1;
 
@@ -265,36 +244,21 @@ drawIndicatorArea(positions) {
       ctx.stroke();
     }
 
-    // 绘制路径 - 支持缩放状态
+    // 绘制路径
     this.redrawAllPaths(gameState, startY);
-
-    // 新增：绘制缩放视图框
-    if (gameState && gameState.isZoomMode()) {
-      this.drawZoomViewport(gameState, startY);
-    }
   }
 
-  // 重新绘制所有路径 - 修改：支持缩放和翻转
+  // 重新绘制所有路径 - 修改：支持翻转状态
   redrawAllPaths(gameState, drawingAreaY) {
     const ctx = this.ctx;
 
-    // 保存当前状态
-    ctx.save();
-
-    // 应用翻转变换
+    // 如果处于翻转状态，应用翻转变换
     if (gameState.isFlipped) {
+      ctx.save();
       ctx.translate(config.screenWidth, 0);
       ctx.scale(-1, 1);
     }
 
-    // 应用缩放变换
-    if (gameState.isZoomMode()) {
-      const zoom = gameState.zoomState;
-      ctx.translate(zoom.offsetX, zoom.offsetY);
-      ctx.scale(zoom.scale, zoom.scale);
-    }
-
-    // 绘制所有路径
     gameState.drawingPaths.forEach(path => {
       if (path.points.length > 0) {
         ctx.beginPath();
@@ -312,41 +276,9 @@ drawIndicatorArea(positions) {
       }
     });
 
-    // 恢复状态
-    ctx.restore();
-  }
-
-  // 新增：绘制缩放视图框
-  drawZoomViewport(gameState, drawingAreaY) {
-    const ctx = this.ctx;
-    const zoom = gameState.zoomState;
-
-    // 计算视图框在画布中的位置和大小
-    const viewportX = 12;
-    const viewportY = drawingAreaY;
-    const viewportWidth = config.screenWidth - 24;
-    const viewportHeight = config.drawingAreaHeight;
-
-    // 绘制视图框边框
-    ctx.strokeStyle = config.primaryColor;
-    ctx.lineWidth = 2;
-    ctx.setLineDash([5, 5]);
-    ctx.strokeRect(viewportX, viewportY, viewportWidth, viewportHeight);
-    ctx.setLineDash([]);
-
-    // 绘制缩放区域指示
-    const scale = 1 / zoom.scale;
-    const indicatorWidth = viewportWidth * scale;
-    const indicatorHeight = viewportHeight * scale;
-    const indicatorX = viewportX - zoom.offsetX * scale;
-    const indicatorY = viewportY - zoom.offsetY * scale;
-
-    ctx.fillStyle = 'rgba(0, 122, 255, 0.1)';
-    ctx.fillRect(indicatorX, indicatorY, indicatorWidth, indicatorHeight);
-
-    ctx.strokeStyle = config.primaryColor;
-    ctx.lineWidth = 1;
-    ctx.strokeRect(indicatorX, indicatorY, indicatorWidth, indicatorHeight);
+    if (gameState.isFlipped) {
+      ctx.restore();
+    }
   }
 
   // 绘制得分区

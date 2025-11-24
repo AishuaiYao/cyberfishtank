@@ -6,143 +6,40 @@ class MainTouchHandler {
     this.positions = getAreaPositions();
     this.lastDrawTime = 0;
     this.scoringTimer = null;
-
-    // 新增：多点触控状态
-    this.touches = new Map();
-    this.isPinching = false;
   }
 
   // 处理主界面触摸开始
-  handleTouchStart(x, y, identifier = 0) {
-    // 记录触摸点
-    this.touches.set(identifier, { x, y });
-
-    // 检查是否进入缩放模式（双指触摸）
-    if (this.touches.size >= 2 && !this.eventHandler.gameState.zoomState.isPinching) {
-      this.startPinchGesture();
-      return;
-    }
-
-    // 单指触摸：绘画或点击按钮
-    if (this.isInDrawingArea(x, y) && this.touches.size === 1) {
-      // 如果在缩放模式下，转换为平移操作
-      if (this.eventHandler.gameState.isZoomMode()) {
-        this.eventHandler.gameState.zoomState.isPanning = true;
-        this.eventHandler.gameState.zoomState.lastPanX = x;
-        this.eventHandler.gameState.zoomState.lastPanY = y;
-      } else {
-        this.cancelPendingScoring();
-        this.startDrawing(x, y);
-      }
+  handleTouchStart(x, y) {
+    // 只在开始绘画时取消可能的评分请求
+    if (this.isInDrawingArea(x, y)) {
+      this.cancelPendingScoring();
+      this.startDrawing(x, y);
     } else {
       this.handleFunctionAreaClick(x, y);
     }
   }
 
   // 处理主界面触摸移动
-  handleTouchMove(x, y, identifier = 0) {
-    // 更新触摸点位置
-    if (this.touches.has(identifier)) {
-      this.touches.set(identifier, { x, y });
-    }
+  handleTouchMove(x, y) {
+    if (!this.eventHandler.gameState.isDrawing) return;
 
-    // 处理双指缩放
-    if (this.touches.size >= 2) {
-      this.handlePinchGesture();
-      return;
-    }
+    if (this.isInDrawingArea(x, y)) {
+      this.continueDrawing(x, y);
+      this.lastDrawTime = Date.now();
 
-    // 单指移动：绘画或平移
-    const gameState = this.eventHandler.gameState;
-
-    if (gameState.isDrawing && this.touches.size === 1) {
-      if (this.isInDrawingArea(x, y)) {
-        // 修复：在缩放模式下也要能够绘画
-        if (gameState.isZoomMode()) {
-          // 在缩放模式下，如果已经开始绘画，就继续绘画
-          this.continueDrawing(x, y);
-          this.lastDrawTime = Date.now();
-          this.cancelPendingScoring();
-        } else {
-          this.continueDrawing(x, y);
-          this.lastDrawTime = Date.now();
-          this.cancelPendingScoring();
-        }
-      }
-    } else if (gameState.isZoomMode() &&
-               gameState.zoomState.isPanning) {
-      // 处理平移
-      this.handlePanGesture(x, y);
+      // 优化：只在绘画移动时取消评分
+      this.cancelPendingScoring();
     }
   }
 
   // 处理主界面触摸结束
-  handleTouchEnd(x, y, identifier = 0) {
-    // 移除触摸点
-    this.touches.delete(identifier);
-
-    // 结束捏合手势
-    if (this.touches.size < 2) {
-      this.eventHandler.gameState.endPinch();
-      this.isPinching = false;
-    }
-
-    // 结束平移
-    if (this.eventHandler.gameState.zoomState.isPanning) {
-      this.eventHandler.gameState.zoomState.isPanning = false;
-    }
-
-    // 结束绘画
-    if (this.eventHandler.gameState.isDrawing && this.touches.size === 0) {
+  handleTouchEnd(x, y) {
+    if (this.eventHandler.gameState.isDrawing) {
       this.finishDrawing();
+
+      // 优化：延迟触发智能评分
       this.scheduleSmartScoring();
     }
-  }
-
-  // 新增：开始捏合手势
-  startPinchGesture() {
-    const touchArray = Array.from(this.touches.values());
-    if (touchArray.length < 2) return;
-
-    const [touch1, touch2] = touchArray;
-    this.eventHandler.gameState.startPinch(
-      touch1.x, touch1.y,
-      touch2.x, touch2.y
-    );
-    this.isPinching = true;
-
-    // 启用缩放模式
-    this.eventHandler.gameState.enableZoomMode();
-  }
-
-  // 新增：处理捏合手势
-  handlePinchGesture() {
-    const touchArray = Array.from(this.touches.values());
-    if (touchArray.length < 2) return;
-
-    const [touch1, touch2] = touchArray;
-    this.eventHandler.gameState.updatePinch(
-      touch1.x, touch1.y,
-      touch2.x, touch2.y
-    );
-
-    // 强制重绘UI
-    this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
-  }
-
-  // 新增：处理平移手势
-  handlePanGesture(x, y) {
-    const zoomState = this.eventHandler.gameState.zoomState;
-    const deltaX = x - zoomState.lastPanX;
-    const deltaY = y - zoomState.lastPanY;
-
-    this.eventHandler.gameState.pan(deltaX, deltaY);
-
-    zoomState.lastPanX = x;
-    zoomState.lastPanY = y;
-
-    // 强制重绘UI
-    this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
   }
 
   // 优化：取消待处理的评分
@@ -152,6 +49,7 @@ class MainTouchHandler {
       this.scoringTimer = null;
     }
 
+    // 取消当前的AI请求
     this.eventHandler.aiService.cancelCurrentRequest();
   }
 
@@ -161,13 +59,14 @@ class MainTouchHandler {
 
     this.scoringTimer = setTimeout(() => {
       this.triggerAIScoring();
-    }, 400);
+    }, 400); // 400ms后触发评分
   }
 
   // 优化：触发AI评分
   async triggerAIScoring() {
     const gameState = this.eventHandler.gameState;
 
+    // 检查是否满足评分条件
     if (gameState.isDrawing || gameState.drawingPaths.length === 0) {
       return;
     }
@@ -189,10 +88,10 @@ class MainTouchHandler {
     if (this.handleJumpButtonClick(x, y)) return;
   }
 
-  // 颜色按钮点击
+  // 颜色按钮点击 - 修改：不取消评分
   handleColorButtonClick(x, y) {
     const functionAreaY = this.positions.functionAreaY;
-    const colorButtonsY = functionAreaY + 10;
+    const colorButtonsY = functionAreaY + 10; // 调整为与UI一致
     const totalWidth = config.colorButtonSize * 7 + 18 * 6;
     const startX = (config.screenWidth - totalWidth) / 2;
 
@@ -211,18 +110,20 @@ class MainTouchHandler {
     return false;
   }
 
-  // 画笔大小点击
+  // 画笔大小点击 - 修改：不取消评分
   handleBrushSizeClick(x, y) {
     const functionAreaY = this.positions.functionAreaY;
+    // 调整为与UI一致的位置
     const sizeControlY = functionAreaY + config.partHeight - 5;
     const sliderX = 100;
     const sliderWidth = config.screenWidth - 140;
 
+    // 扩大触摸区域，便于操作
     if (y >= sizeControlY - 15 && y <= sizeControlY + 15 &&
         x >= sliderX - 10 && x <= sliderX + sliderWidth + 10) {
 
       const progress = Math.max(0, Math.min(1, (x - sliderX) / sliderWidth));
-      const newSize = Math.round(progress * 19) + 1;
+      const newSize = Math.round(progress * 19) + 1; // 1-20范围
       this.eventHandler.gameState.setBrushSize(newSize);
       this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
       return true;
@@ -230,9 +131,10 @@ class MainTouchHandler {
     return false;
   }
 
-  // 工具按钮点击
+  // 工具按钮点击 - 修复：调整触摸区域与UI一致
   handleToolButtonClick(x, y) {
     const functionAreaY = this.positions.functionAreaY;
+    // 调整为与UI一致的位置
     const toolsY = functionAreaY + config.partHeight * 2 - 40;
     const toolWidth = (config.screenWidth - 50) / 4;
 
@@ -240,6 +142,7 @@ class MainTouchHandler {
       const buttonX = 30 + i * toolWidth;
       const buttonWidth = toolWidth - 10;
 
+      // 调整触摸区域与UI按钮完全一致
       if (x >= buttonX && x <= buttonX + buttonWidth &&
           y >= toolsY && y <= toolsY + config.buttonHeight) {
 
@@ -250,29 +153,29 @@ class MainTouchHandler {
     return false;
   }
 
-  // 工具操作
+  // 工具操作 - 修改：实现翻转功能
   handleToolAction(toolIndex) {
     const gameState = this.eventHandler.gameState;
 
     switch (toolIndex) {
-      case 0: // 橡皮
+      case 0: // 橡皮 - 不取消评分
         gameState.toggleEraser();
         break;
-      case 1: // 撤销
+      case 1: // 撤销 - 不取消评分
         gameState.undo();
         break;
-      case 2: // 清空
+      case 2: // 清空 - 需要取消评分，因为内容完全变了
         gameState.clear();
         this.cancelPendingScoring();
         break;
-      case 3: // 翻转
+      case 3: // 翻转 - 实现翻转功能
         this.handleFlipAction();
         break;
     }
     this.eventHandler.uiManager.drawGameUI(gameState);
   }
 
-  // 处理翻转操作
+  // 新增：处理翻转操作
   handleFlipAction() {
     const gameState = this.eventHandler.gameState;
 
@@ -285,28 +188,36 @@ class MainTouchHandler {
       return;
     }
 
+    // 执行翻转
     const isFlipped = gameState.flipCanvas();
+
+    // 重新绘制所有路径（翻转后）
     this.redrawAllPathsFlipped();
+
   }
 
-  // 重新绘制所有路径（翻转后）
+  // 新增：重新绘制所有路径（翻转后）
   redrawAllPathsFlipped() {
     const gameState = this.eventHandler.gameState;
     const ctx = this.eventHandler.canvas.getContext('2d');
     const drawingAreaY = this.positions.drawingAreaY;
 
+    // 清除绘画区域
     ctx.clearRect(12, drawingAreaY, config.screenWidth - 24, config.drawingAreaHeight);
 
+    // 如果处于翻转状态，应用翻转变换
     if (gameState.isFlipped) {
       ctx.save();
       ctx.translate(config.screenWidth, 0);
       ctx.scale(-1, 1);
     }
 
+    // 重新绘制所有路径
     gameState.drawingPaths.forEach(path => {
       if (path.points.length > 0) {
         ctx.beginPath();
 
+        // 应用翻转变换到坐标
         const startPoint = gameState.isFlipped ?
           { x: config.screenWidth - path.points[0].x, y: path.points[0].y } :
           path.points[0];
@@ -334,7 +245,7 @@ class MainTouchHandler {
     }
   }
 
-  // 跳转按钮点击
+  // 跳转按钮点击 - 修复：调整触摸区域与UI一致
   handleJumpButtonClick(x, y) {
     const jumpAreaY = this.positions.jumpAreaY;
     const jumpButtonWidth = (config.screenWidth - 50) / 3;
@@ -343,6 +254,7 @@ class MainTouchHandler {
       const buttonX = 30 + i * jumpButtonWidth;
       const buttonWidth = jumpButtonWidth - 10;
 
+      // 调整触摸区域与UI按钮完全一致
       if (x >= buttonX && x <= buttonX + buttonWidth &&
           y >= jumpAreaY + 13 && y <= jumpAreaY + 13 + config.buttonHeight) {
 
@@ -353,7 +265,7 @@ class MainTouchHandler {
     return false;
   }
 
-  // 跳转操作
+  // 跳转操作 - 修改：不取消评分
   handleJumpAction(buttonIndex) {
     switch (buttonIndex) {
       case 0: // 鱼缸
@@ -379,55 +291,35 @@ class MainTouchHandler {
     const gameState = this.eventHandler.gameState;
     gameState.isDrawing = true;
 
-    // 应用缩放和翻转变换到起始坐标
-    const transformedPoint = this.applyTransformations(x, y, gameState);
-    gameState.lastX = transformedPoint.x;
-    gameState.lastY = transformedPoint.y;
-    gameState.startNewPath(transformedPoint.x, transformedPoint.y);
+    // 应用翻转变换到起始坐标
+    const startX = gameState.isFlipped ? config.screenWidth - x : x;
+    const startY = y;
 
-    console.log('开始绘画，原始坐标:', x, y, '变换后坐标:', transformedPoint);
+    gameState.lastX = startX;
+    gameState.lastY = startY;
+    gameState.startNewPath(startX, startY);
   }
 
   continueDrawing(x, y) {
     const ctx = this.eventHandler.canvas.getContext('2d');
     const gameState = this.eventHandler.gameState;
 
-    // 应用缩放和翻转变换到坐标
-    const transformedPoint = this.applyTransformations(x, y, gameState);
+    // 应用翻转变换到坐标
+    const currentX = gameState.isFlipped ? config.screenWidth - x : x;
+    const currentY = y;
 
     ctx.beginPath();
     ctx.moveTo(gameState.lastX, gameState.lastY);
-    ctx.lineTo(transformedPoint.x, transformedPoint.y);
+    ctx.lineTo(currentX, currentY);
     ctx.strokeStyle = gameState.isEraser ? '#FFFFFF' : gameState.currentColor;
     ctx.lineWidth = gameState.brushSize;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.stroke();
 
-    gameState.addPointToPath(transformedPoint.x, transformedPoint.y);
-    gameState.lastX = transformedPoint.x;
-    gameState.lastY = transformedPoint.y;
-  }
-
-  // 修复：应用缩放和翻转变换
-  applyTransformations(x, y, gameState) {
-    let transformedX = x;
-    let transformedY = y;
-
-    // 应用缩放变换 - 修复逻辑
-    if (gameState.isZoomMode()) {
-      const zoom = gameState.zoomState;
-      // 正确的逆变换：将屏幕坐标转换回画布坐标
-      transformedX = (x - zoom.offsetX) / zoom.scale;
-      transformedY = (y - zoom.offsetY) / zoom.scale;
-    }
-
-    // 应用翻转变换
-    if (gameState.isFlipped) {
-      transformedX = config.screenWidth - transformedX;
-    }
-
-    return { x: transformedX, y: transformedY };
+    gameState.addPointToPath(currentX, currentY);
+    gameState.lastX = currentX;
+    gameState.lastY = currentY;
   }
 
   async finishDrawing() {
@@ -437,13 +329,13 @@ class MainTouchHandler {
     }
     gameState.isDrawing = false;
 
+    // 立即更新UI
     this.eventHandler.uiManager.drawGameUI(gameState);
   }
 
   // 新增：清理资源
   cleanup() {
     this.cancelPendingScoring();
-    this.touches.clear();
   }
 }
 

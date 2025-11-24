@@ -8,7 +8,7 @@ class Game {
     this.init();
   }
 
-  init() {
+  async init() {
     console.log('游戏初始化开始...');
 
     // 小游戏云开发初始化
@@ -47,6 +47,16 @@ class Game {
 
     // 关键：建立双向引用
     this.uiManager.setEventHandler(this.eventHandler);
+
+    // 等待用户openid初始化完成
+    try {
+      console.log('等待用户openid初始化...');
+      // 给一点时间让openid初始化完成
+      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('用户openid初始化状态:', this.eventHandler.userOpenid ? '成功' : '失败');
+    } catch (error) {
+      console.warn('用户openid初始化等待过程中出现异常:', error);
+    }
 
     this.uiManager.drawGameUI(this.gameState);
 
