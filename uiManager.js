@@ -381,7 +381,7 @@ class UIManager {
     ctx.textBaseline = 'alphabetic';
   }
 
-  // 修改：绘制鱼详情界面 - 使用最终交互状态
+  // 修改：绘制鱼详情界面 - 使用最终交互状态，新增删除按钮
   drawFishDetailInterface() {
     const ctx = this.ctx;
     const fishData = this.eventHandler.selectedFishData.fishData;
@@ -507,16 +507,42 @@ class UIManager {
       false
     );
 
-    // 显示操作提示
-    ctx.fillStyle = config.lightTextColor;
-    ctx.font = 'bold 12px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-    ctx.textAlign = 'center';
+    // 新增：删除按钮（只在"我的鱼缸"模式下显示）
+    if (this.eventHandler.isMyFish()) {
+      const deleteButtonWidth = 80;
+      const deleteButtonHeight = 36;
+      const deleteButtonX = detailX + (detailWidth - deleteButtonWidth) / 2;
+      const deleteButtonY = buttonY + 50;
 
-    if (hasInteracted) {
-      const actionText = userAction === 'star' ? '已点赞' : userAction === 'unstar' ? '已点踩' : '已投票';
-      ctx.fillText(`您${actionText}，点击可取消`, detailX + detailWidth / 2, buttonY + 50);
+      Utils.drawModernButton(
+        ctx,
+        deleteButtonX,
+        deleteButtonY,
+        deleteButtonWidth,
+        deleteButtonHeight,
+        '🗑️ 删除',
+        false,
+        false,
+        false
+      );
+
+      // 删除按钮提示文字
+      ctx.fillStyle = config.lightTextColor;
+      ctx.font = 'bold 12px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('删除后将无法恢复', detailX + detailWidth / 2, deleteButtonY + 50);
     } else {
-      ctx.fillText('点击按钮表达您的态度', detailX + detailWidth / 2, buttonY + 50);
+      // 显示操作提示（非我的鱼缸模式）
+      ctx.fillStyle = config.lightTextColor;
+      ctx.font = 'bold 12px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+      ctx.textAlign = 'center';
+
+      if (hasInteracted) {
+        const actionText = userAction === 'star' ? '已点赞' : userAction === 'unstar' ? '已点踩' : '已投票';
+        ctx.fillText(`您${actionText}，点击可取消`, detailX + detailWidth / 2, buttonY + 50);
+      } else {
+        ctx.fillText('点击按钮表达您的态度', detailX + detailWidth / 2, buttonY + 50);
+      }
     }
 
     ctx.textAlign = 'left';

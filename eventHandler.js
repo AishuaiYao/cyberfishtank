@@ -91,6 +91,157 @@ class EventHandler {
     this.initUserOpenid(); // 新增：初始化时获取用户openid
   }
 
+  // 新增：检查当前选中的鱼是否是用户自己的鱼
+  isMyFish() {
+    if (!this.selectedFishData || !this.selectedFishData.fishData) {
+      return false;
+    }
+
+    // 只有在"我的鱼缸"模式下才显示删除按钮
+    if (this.currentTankMode !== 'my') {
+      return false;
+    }
+
+    // 检查鱼的_openid是否与当前用户openid匹配
+    const fishData = this.selectedFishData.fishData;
+    return fishData._openid === this.userOpenid;
+  }
+
+  // 新增：处理删除操作
+  async handleDeleteAction() {
+    if (!this.canPerformInteraction()) {
+      console.log('操作过于频繁，跳过删除操作');
+      return;
+    }
+
+    this.startInteraction();
+
+    try {
+      if (!this.selectedFishData) {
+        console.warn('没有选中的鱼数据');
+        return;
+      }
+
+      const fishData = this.selectedFishData.fishData;
+      const fishName = fishData.fishName;
+
+      // 确认删除
+      wx.showModal({
+        title: '确认删除',
+        content: `确定要删除"${fishName}"吗？删除后将无法恢复。`,
+        confirmText: '删除',
+        confirmColor: '#FF3B30',
+        cancelText: '取消',
+        success: async (res) => {
+          if (res.confirm) {
+            await this.performDeleteAction(fishData);
+          } else {
+            this.endInteraction();
+          }
+        },
+        fail: () => {
+          this.endInteraction();
+        }
+      });
+
+    } catch (error) {
+      console.error('删除操作失败:', error);
+      wx.showToast({ title: '操作失败，请重试', icon: 'none', duration: 1500 });
+      this.endInteraction();
+    }
+  }
+
+  // 新增：执行删除操作
+  async performDeleteAction(fishData) {
+    wx.showLoading({ title: '删除中...', mask: true });
+
+    try {
+      // 1. 从数据库中删除鱼数据
+      const deleteSuccess = await this.deleteFishFromDatabase(fishData._id);
+
+      if (deleteSuccess) {
+        // 2. 从本地列表中移除
+        this.removeFishFromLocalLists(fishData.fishName);
+
+        // 3. 从鱼缸显示中移除
+        this.removeFishFromTank(fishData.fishName);
+
+        wx.hideLoading();
+        wx.showToast({ title: '删除成功', icon: 'success', duration: 1500 });
+
+        // 4. 关闭详情界面
+        this.hideFishDetail();
+
+        // 5. 刷新鱼缸显示
+        await this.refreshFishTank();
+      } else {
+        wx.hideLoading();
+        wx.showToast({ title: '删除失败', icon: 'none', duration: 1500 });
+      }
+    } catch (error) {
+      wx.hideLoading();
+      console.error('删除鱼失败:', error);
+      wx.showToast({ title: '删除失败，请重试', icon: 'none', duration: 1500 });
+    } finally {
+      this.endInteraction();
+    }
+  }
+
+  // 新增：从数据库删除鱼
+  async deleteFishFromDatabase(fishId) {
+    if (!this.databaseManager.isCloudDbInitialized || !this.databaseManager.cloudDb) {
+      console.warn('云数据库未初始化，无法删除鱼数据');
+      return false;
+    }
+
+    try {
+      console.log(`删除鱼数据，ID: ${fishId}`);
+
+      const result = await this.databaseManager.cloudDb.collection('fishes')
+        .doc(fishId)
+        .remove();
+
+      console.log('鱼数据删除成功:', result);
+      return true;
+    } catch (error) {
+      console.error('删除鱼数据失败:', error);
+      return false;
+    }
+  }
+
+  // 新增：从本地列表中移除鱼
+  removeFishFromLocalLists(fishName) {
+    // 从我的鱼缸列表中移除
+    this.myFishTankList = this.myFishTankList.filter(fish =>
+      fish.fishName !== fishName
+    );
+
+    // 从全局鱼列表中移除（如果存在）
+    this.globalFishList = this.globalFishList.filter(fish =>
+      fish.fishName !== fishName
+    );
+
+    // 从已添加名称缓存中移除
+    this.addedUserFishNames.delete(fishName);
+
+    console.log(`从本地列表中移除鱼: ${fishName}`);
+  }
+
+  // 新增：从鱼缸显示中移除鱼
+  removeFishFromTank(fishName) {
+    if (this.fishTank) {
+      const initialCount = this.fishTank.fishes.length;
+      this.fishTank.fishes = this.fishTank.fishes.filter(fish =>
+        fish.name !== fishName
+      );
+      const removedCount = initialCount - this.fishTank.fishes.length;
+
+      if (removedCount > 0) {
+        console.log(`从鱼缸显示中移除 ${removedCount} 条名为 "${fishName}" 的鱼`);
+      }
+    }
+  }
+
   // 新增：初始化用户openid
   async initUserOpenid() {
     try {
@@ -378,6 +529,7 @@ async enterFishTank(newFishName = null, mode = 'public') {
 
   console.log(`进入${tankName}，当前鱼数量:`, fishCount);
 }
+
 // 修改 loadMyFishes 方法，添加随机模式参数
 async loadMyFishes(randomMode = false) {
   try {
@@ -445,7 +597,6 @@ async loadMyFishes(randomMode = false) {
     this.myFishTankList = [];
   }
 }
-
 
   // 新增：从我的鱼列表创建鱼对象
   async createFishesFromMyList() {

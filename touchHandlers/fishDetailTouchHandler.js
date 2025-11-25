@@ -27,6 +27,12 @@ class FishDetailTouchHandler {
       return;
     }
 
+    // 删除按钮（新增）
+    const deleteButtonWidth = 80;
+    const deleteButtonHeight = 36;
+    const deleteButtonX = detailX + (detailWidth - deleteButtonWidth) / 2;
+    const deleteButtonY = this.calculateButtonY() + 50; // 在点赞点踩按钮下方
+
     // 点赞按钮
     const buttonWidth = (detailWidth - 60) / 2;
     const buttonY = this.calculateButtonY();
@@ -42,6 +48,15 @@ class FishDetailTouchHandler {
     // 使用事件处理器的统一防重复点击检查
     if (!this.eventHandler.canPerformInteraction()) {
       console.log('操作过于频繁，跳过');
+      return;
+    }
+
+    // 新增：删除按钮点击
+    if (this.eventHandler.isMyFish() &&
+        x >= deleteButtonX && x <= deleteButtonX + deleteButtonWidth &&
+        y >= deleteButtonY && y <= deleteButtonY + deleteButtonHeight) {
+      console.log('点击删除按钮');
+      this.eventHandler.handleDeleteAction();
       return;
     }
 

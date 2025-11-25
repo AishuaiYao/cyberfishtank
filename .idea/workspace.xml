@@ -4,10 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="优化了openid在初始化获取">
+    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="修复了个人鱼缸随机刷新问题">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/databaseManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/databaseManager.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/eventHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/eventHandler.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/touchHandlers/fishDetailTouchHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/fishDetailTouchHandler.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/uiManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/uiManager.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -73,22 +73,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00020" summary="base：写入数据库成功">
-      <option name="closed" value="true" />
-      <created>1763301892327</created>
-      <option name="number" value="00020" />
-      <option name="presentableId" value="LOCAL-00020" />
-      <option name="project" value="LOCAL" />
-      <updated>1763301892327</updated>
-    </task>
-    <task id="LOCAL-00021" summary="base：写入数据库成功-补充base64">
-      <option name="closed" value="true" />
-      <created>1763302546391</created>
-      <option name="number" value="00021" />
-      <option name="presentableId" value="LOCAL-00021" />
-      <option name="project" value="LOCAL" />
-      <updated>1763302546391</updated>
     </task>
     <task id="LOCAL-00022" summary="base：写入数据库成功-可以加载历史鱼群">
       <option name="closed" value="true" />
@@ -466,11 +450,26 @@
       <option name="project" value="LOCAL" />
       <updated>1763993578040</updated>
     </task>
-    <option name="localTasksCounter" value="69" />
+    <task id="LOCAL-00069" summary="修复了个人鱼缸随机刷新问题">
+      <option name="closed" value="true" />
+      <created>1763994962714</created>
+      <option name="number" value="00069" />
+      <option name="presentableId" value="LOCAL-00069" />
+      <option name="project" value="LOCAL" />
+      <updated>1763994962714</updated>
+    </task>
+    <task id="LOCAL-00070" summary="修复了个人鱼缸随机刷新问题">
+      <option name="closed" value="true" />
+      <created>1763995347834</created>
+      <option name="number" value="00070" />
+      <option name="presentableId" value="LOCAL-00070" />
+      <option name="project" value="LOCAL" />
+      <updated>1763995347834</updated>
+    </task>
+    <option name="localTasksCounter" value="71" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="重复添加鱼" />
     <MESSAGE value="重复添加鱼fix" />
     <MESSAGE value="优化UI" />
     <MESSAGE value="鱼缸渲染重复" />
@@ -495,6 +494,7 @@
     <MESSAGE value="实现了翻转功能" />
     <MESSAGE value="放大功能" />
     <MESSAGE value="优化了openid在初始化获取" />
-    <option name="LAST_COMMIT_MESSAGE" value="优化了openid在初始化获取" />
+    <MESSAGE value="修复了个人鱼缸随机刷新问题" />
+    <option name="LAST_COMMIT_MESSAGE" value="修复了个人鱼缸随机刷新问题" />
   </component>
 </project>
