@@ -213,6 +213,21 @@ class UIManager {
     Utils.drawRoundedRect(ctx, indicatorRight - indicatorWidth, sliderY, indicatorWidth, sliderHeight, 2, true, false);
   }
 
+  // 新增：通用的交互按钮绘制函数
+  drawInteractionButton(ctx, x, y, width, height, text, isActive, isPrimary = false) {
+    Utils.drawModernButton(
+      ctx,
+      x,
+      y,
+      width,
+      height,
+      text,
+      isActive,
+      isPrimary,
+      false
+    );
+  }
+
   // 绘制单个排行榜卡片 - 修改：添加点赞点踩按钮
   drawRankingCard(x, y, width, height, fishItem, rank) {
     const ctx = this.ctx;
@@ -310,38 +325,17 @@ class UIManager {
     // 点赞按钮（左侧）
     const likeButtonX = x + 15;
     const likeButtonWidth = 40;
+    const likeButtonText = '👍';
 
     // 点踩按钮（右侧）
     const dislikeButtonX = x + width - 55;
     const dislikeButtonWidth = 40;
+    const dislikeButtonText = '👎';
 
     // 绘制点赞按钮
-    ctx.fillStyle = isLiked ? config.primaryColor : '#F8F9FA';
-    Utils.drawRoundedRect(ctx, likeButtonX, buttonAreaY, likeButtonWidth, buttonHeight, 4, true, false);
-
-    ctx.strokeStyle = isLiked ? config.primaryColor : config.borderColor;
-    ctx.lineWidth = 1;
-    Utils.drawRoundedRect(ctx, likeButtonX, buttonAreaY, likeButtonWidth, buttonHeight, 4, false, true);
-
-    // 点赞图标
-    ctx.fillStyle = isLiked ? '#FFFFFF' : config.textColor;
-    ctx.font = 'bold 12px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(`👍`, likeButtonX + likeButtonWidth / 2, buttonAreaY + 16);
-
+    this.drawInteractionButton(ctx, likeButtonX, buttonAreaY, likeButtonWidth, buttonHeight, likeButtonText, isLiked, false);
     // 绘制点踩按钮
-    ctx.fillStyle = isDisliked ? config.primaryColor : '#F8F9FA';
-    Utils.drawRoundedRect(ctx, dislikeButtonX, buttonAreaY, dislikeButtonWidth, buttonHeight, 4, true, false);
-
-    ctx.strokeStyle = isDisliked ? config.primaryColor : config.borderColor;
-    ctx.lineWidth = 1;
-    Utils.drawRoundedRect(ctx, dislikeButtonX, buttonAreaY, dislikeButtonWidth, buttonHeight, 4, false, true);
-
-    // 点踩图标
-    ctx.fillStyle = isDisliked ? '#FFFFFF' : config.textColor;
-    ctx.fillText(`👎`, dislikeButtonX + dislikeButtonWidth / 2, buttonAreaY + 16);
-
-    ctx.textAlign = 'left';
+    this.drawInteractionButton(ctx, dislikeButtonX, buttonAreaY, dislikeButtonWidth, buttonHeight, dislikeButtonText, isDisliked, false);
   }
 
   // 绘制排名徽章
@@ -480,7 +474,7 @@ class UIManager {
     // 点赞按钮
     const isLiked = hasInteracted && userAction === 'star';
     const likeButtonText = isLiked ? `取消点赞` : `👍`;
-    Utils.drawModernButton(
+    this.drawInteractionButton(
       ctx,
       detailX + 20,
       buttonY,
@@ -488,14 +482,13 @@ class UIManager {
       36,
       likeButtonText,
       isLiked,
-      false,
       false
     );
 
     // 点踩按钮
     const isDisliked = hasInteracted && userAction === 'unstar';
     const dislikeButtonText = isDisliked ? `取消点踩` : `👎`;
-    Utils.drawModernButton(
+    this.drawInteractionButton(
       ctx,
       detailX + buttonWidth + 40,
       buttonY,
@@ -503,7 +496,6 @@ class UIManager {
       36,
       dislikeButtonText,
       isDisliked,
-      false,
       false
     );
 

@@ -145,6 +145,36 @@ class Utils {
     if (!text || text.length <= maxLength) return text;
     return text.substring(0, maxLength) + '...';
   }
+
+  // 通用洗牌算法
+  static shuffleArray(array) {
+    const shuffled = [...array];
+    // Fisher-Yates洗牌算法
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  }
+
+  // 通用Toast消息函数
+  static showToast(title, icon = 'none', duration = 1500) {
+    wx.showToast({
+      title: title,
+      icon: icon,
+      duration: duration
+    });
+  }
+
+  // 显示成功消息
+  static showSuccess(title, duration = 1500) {
+    this.showToast(title, 'success', duration);
+  }
+
+  // 显示错误消息
+  static showError(title, duration = 1500) {
+    this.showToast(title, 'none', duration);
+  }
 }
 
 module.exports = Utils;

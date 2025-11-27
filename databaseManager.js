@@ -217,7 +217,8 @@ class DatabaseManager {
       console.log(`备选方案获取了 ${result.data.length} 条鱼数据`);
 
       // 随机选择指定数量的鱼
-      const shuffled = result.data.sort(() => 0.5 - Math.random());
+      const Utils = require('./utils.js');
+      const shuffled = Utils.shuffleArray(result.data);
       const selectedFishes = shuffled.slice(0, count);
 
       console.log(`备选方案随机选择了 ${selectedFishes.length} 条鱼`);
@@ -513,8 +514,9 @@ async getRandomFishesByUserFallback(openid, count = 20) {
       return allUserFishes.data;
     }
 
-    // 使用更好的洗牌算法随机选择指定数量的鱼（复用赛博鱼缸的逻辑）
-    const shuffled = this.betterShuffle([...allUserFishes.data]);
+    // 使用通用的洗牌算法随机选择指定数量的鱼（复用赛博鱼缸的逻辑）
+    const Utils = require('./utils.js');
+    const shuffled = Utils.shuffleArray([...allUserFishes.data]);
     const selectedFishes = shuffled.slice(0, count);
 
     console.log(`随机选择了用户 ${openid} 的 ${selectedFishes.length} 条鱼`);
