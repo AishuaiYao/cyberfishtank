@@ -179,14 +179,11 @@ class MainTouchHandler {
   handleFlipAction() {
     const gameState = this.eventHandler.gameState;
 
-    if (gameState.drawingPaths.length === 0) {
-      wx.showToast({
-        title: '请先画一些内容',
-        icon: 'none',
-        duration: 1500
-      });
-      return;
-    }
+      if (gameState.drawingPaths.length === 0) {
+        const Utils = require('../utils.js');
+        Utils.showError('请先画一些内容');
+        return;
+      }
 
     // 执行翻转
     const isFlipped = gameState.flipCanvas();

@@ -40,8 +40,9 @@ class FishProcessor {
 
     } catch (error) {
       wx.hideLoading();
-      console.error('处理失败:', error);
-      wx.showToast({ title: '处理失败，请重试', icon: 'none', duration: 2000 });
+      const Utils = require('../utils.js');
+      Utils.handleError(error, '处理失败');
+      Utils.showError('处理失败，请重试', 2000);
     }
   }
 

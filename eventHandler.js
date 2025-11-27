@@ -1,7 +1,8 @@
 // eventHandler.js - 修复我的鱼缸查询逻辑
-const { config, getAreaPositions } = require('./config.js');
+const { config } = require('./config.js');
 const AIService = require('./aiService.js');
 const DatabaseManager = require('./databaseManager.js');
+const Utils = require('./utils.js');
 
 // 导入各个模块
 const MainTouchHandler = require('./touchHandlers/mainTouchHandler.js');
@@ -13,7 +14,7 @@ const FishProcessor = require('./fishManager/fishProcessor.js');
 const FishAnimator = require('./fishManager/fishAnimator.js');
 const FishDataManager = require('./fishManager/fishDataManager.js');
 
-const { Fish, FishTank } = require('./fishCore.js');
+const { FishTank } = require('./fishCore.js');
 
 class EventHandler {
   constructor(canvas, ctx, gameState, uiManager) {
@@ -21,7 +22,7 @@ class EventHandler {
     this.ctx = ctx;
     this.gameState = gameState;
     this.uiManager = uiManager;
-    this.positions = getAreaPositions();
+    this.positions = require('./config.js').getAreaPositions();
     this.aiService = new AIService();
     this.databaseManager = new DatabaseManager();
 
@@ -145,8 +146,8 @@ class EventHandler {
       });
 
     } catch (error) {
-      console.error('删除操作失败:', error);
-      wx.showToast({ title: '操作失败，请重试', icon: 'none', duration: 1500 });
+      Utils.handleError(error, '删除操作失败');
+      Utils.showError('操作失败，请重试');
       this.endInteraction();
     }
   }
@@ -176,7 +177,7 @@ class EventHandler {
         this.removeFishFromTank(fishData.fishName);
 
         wx.hideLoading();
-        wx.showToast({ title: '删除成功', icon: 'success', duration: 1500 });
+        Utils.showSuccess('删除成功');
 
         // 5. 关闭详情界面
         this.hideFishDetail();
@@ -184,13 +185,13 @@ class EventHandler {
         // 6. 刷新鱼缸显示
         await this.refreshFishTank();
       } else {
-        wx.hideLoading();
-        wx.showToast({ title: '删除失败', icon: 'none', duration: 1500 });
+      wx.hideLoading();
+      Utils.showError('删除失败');
       }
     } catch (error) {
       wx.hideLoading();
-      console.error('删除鱼失败:', error);
-      wx.showToast({ title: '删除失败，请重试', icon: 'none', duration: 1500 });
+      Utils.handleError(error, '删除鱼失败');
+      Utils.showError('删除失败，请重试');
     } finally {
       this.endInteraction();
     }
@@ -198,32 +199,24 @@ class EventHandler {
 
   // 新增：从数据库删除鱼
   async deleteFishFromDatabase(fishId) {
-    if (!this.databaseManager.isCloudDbInitialized || !this.databaseManager.cloudDb) {
-      console.warn('云数据库未初始化，无法删除鱼数据');
-      return false;
-    }
+    if (!Utils.checkDatabaseInitialization(this.databaseManager, '删除鱼数据')) return false;
 
     try {
       console.log(`删除鱼数据，ID: ${fishId}`);
-
-      const result = await this.databaseManager.cloudDb.collection('fishes')
+      await this.databaseManager.cloudDb.collection('fishes')
         .doc(fishId)
         .remove();
 
-      console.log('鱼数据删除成功:', result);
+      console.log('鱼数据删除成功');
       return true;
     } catch (error) {
-      console.error('删除鱼数据失败:', error);
-      return false;
+      return Utils.handleDatabaseError(error, '删除鱼数据', false);
     }
   }
 
   // 新增：从interaction集合中删除相关交互记录
   async deleteFishInteractions(fishName) {
-    if (!this.databaseManager.isCloudDbInitialized || !this.databaseManager.cloudDb) {
-      console.warn('云数据库未初始化，无法删除交互记录');
-      return false;
-    }
+    if (!Utils.checkDatabaseInitialization(this.databaseManager, '删除交互记录')) return false;
 
     try {
       console.log(`删除鱼 ${fishName} 的交互记录`);
@@ -249,13 +242,12 @@ class EventHandler {
           .remove()
       );
 
-      const deleteResults = await Promise.all(deletePromises);
-      console.log(`成功删除 ${deleteResults.length} 条交互记录`);
+      await Promise.all(deletePromises);
+      console.log(`成功删除 ${result.data.length} 条交互记录`);
 
       return true;
     } catch (error) {
-      console.error('删除交互记录失败:', error);
-      return false;
+      return Utils.handleDatabaseError(error, '删除交互记录', false);
     }
   }
 
@@ -299,7 +291,7 @@ class EventHandler {
       this.userOpenid = await this.fetchOpenidFromCloud();
       console.log('用户openid初始化成功:', this.userOpenid);
     } catch (error) {
-      console.error('用户openid初始化失败:', error);
+      Utils.handleError(error, '用户openid初始化失败');
       this.userOpenid = null;
     }
   }
@@ -307,9 +299,7 @@ class EventHandler {
   // 修改：获取真实用户openid的方法 - 使用缓存
   async getRealUserOpenid() {
     // 如果已经有缓存的openid，直接返回
-    if (this.userOpenid) {
-      return this.userOpenid;
-    }
+    if (this.userOpenid) return this.userOpenid;
 
     // 否则重新获取
     try {
@@ -317,7 +307,7 @@ class EventHandler {
       this.userOpenid = await this.fetchOpenidFromCloud();
       return this.userOpenid;
     } catch (error) {
-      console.error('重新获取用户openid失败:', error);
+      Utils.handleError(error, '重新获取用户openid失败');
       throw error;
     }
   }
@@ -336,19 +326,18 @@ class EventHandler {
         name: 'getOpenid',
         success: (res) => {
           console.log('云函数返回完整结果:', res);
-          console.log('云函数返回的openid:', res.result.openid);
-
           const openid = res.result.openid;
+          
           if (openid && !openid.startsWith('test_')) {
             console.log('获取到真实openid:', openid);
             resolve(openid);
           } else {
-            console.error('获取到测试openid或无效openid:', openid);
+            Utils.handleError('获取到测试openid或无效openid');
             reject(new Error('获取到测试openid'));
           }
         },
         fail: (err) => {
-          console.error('调用云函数失败:', err);
+          Utils.handleError(err, '调用云函数失败');
           reject(err);
         }
       });
@@ -443,10 +432,21 @@ class EventHandler {
 
       if (updateSuccess) {
         console.log(`${isRanking ? '排行榜' : ''}${isStar ? '点赞' : '点踩'}操作成功`);
-        // 成功后重新加载用户交互状态
-        if (isRanking) {
-          await this.loadUserInteractionForRankingFish({ fishData });
-        } else {
+        // 成功后更新本地交互状态
+        if (isRanking && this.rankingData && this.rankingData.fishes) {
+          // 在排行榜模式下，找到对应的鱼并更新其交互状态
+          const fishItem = this.rankingData.fishes.find(item => 
+            item.fishData.fishName === fishName
+          );
+          if (fishItem) {
+            fishItem.userInteraction = {
+              fishName: fishName,
+              action: action,
+              _openid: this.userOpenid
+            };
+          }
+        } else if (!isRanking) {
+          // 在详情页模式下，更新选中鱼的交互状态
           await this.loadUserInteraction(fishData.fishName);
         }
       } else {
@@ -455,8 +455,10 @@ class EventHandler {
           this.rollbackRankingState({ fishData }, originalState);
         } else {
           this.rollbackDetailState(originalState);
+          // 在详情页模式下，需要重新加载用户交互状态
+          await this.loadUserInteraction(fishData.fishName);
         }
-        wx.showToast({ title: '操作失败，请重试', icon: 'none', duration: 1500 });
+        Utils.showError('操作失败，请重试', 1500);
       }
     } catch (error) {
       console.error('数据库操作失败:', error);
@@ -520,10 +522,12 @@ class EventHandler {
       );
 
       if (updateSuccess) {
-        if (isRanking) {
+        if (isRanking && this.rankingData && this.rankingData.fishes) {
           // 在排行榜情况下，清除userInteraction
-          const fishItem = { fishData };
-          if (fishItem.userInteraction) {
+          const fishItem = this.rankingData.fishes.find(item => 
+            item.fishData.fishName === fishName
+          );
+          if (fishItem) {
             fishItem.userInteraction = null;
           }
         }
@@ -534,8 +538,10 @@ class EventHandler {
           this.rollbackRankingState({ fishData }, originalState);
         } else {
           this.rollbackDetailState(originalState);
+          // 在详情页模式下，需要重新加载用户交互状态
+          await this.loadUserInteraction(fishData.fishName);
         }
-        wx.showToast({ title: '操作失败', icon: 'none', duration: 1000 });
+        Utils.showError('操作失败', 1000);
       }
     } catch (error) {
       console.error('数据库操作失败:', error);
@@ -641,25 +647,21 @@ class EventHandler {
     }
   }
 
-  handleTouchEnd(e) {
+  handleTouchEnd() {
     console.log('触摸结束');
 
     // 触摸结束事件
     if (this.isRankingInterfaceVisible) {
       this.touchHandlers.ranking.handleTouchEnd();
-    } else if (this.isFishDetailVisible) {
-      // 鱼详情界面不需要处理触摸结束
-    } else if (this.isDialogVisible) {
-      // 对话框界面不需要处理触摸结束
-    } else if (this.isSwimInterfaceVisible) {
-      // 游泳界面不需要处理触摸结束
+    } else if (this.isFishDetailVisible || this.isDialogVisible || this.isSwimInterfaceVisible) {
+      // 这些界面不需要处理触摸结束
     } else {
       // 主界面
       this.touchHandlers.main.handleTouchEnd();
     }
   }
 
-  handleTouchCancel(e) {
+  handleTouchCancel() {
     this.gameState.isDrawing = false;
     if (this.isRankingInterfaceVisible) {
       this.touchHandlers.ranking.handleTouchEnd();
@@ -692,8 +694,8 @@ class EventHandler {
     try {
       await this.fishManager.processor.processFishImage();
     } catch (error) {
-      console.error('处理鱼图像失败:', error);
-      wx.showToast({ title: '处理失败，请重试', icon: 'none', duration: 2000 });
+      Utils.handleError(error, '处理鱼图像失败');
+      Utils.showError('处理失败，请重试', 2000);
     }
   }
 
@@ -704,7 +706,6 @@ async enterFishTank(newFishName = null, mode = 'public') {
   this.currentTankMode = mode;
 
   if (!this.fishTank) {
-    const { FishTank } = require('./fishCore.js');
     this.fishTank = new FishTank(this.ctx, config.screenWidth, config.screenHeight);
   }
 
@@ -748,21 +749,16 @@ async loadMyFishes(randomMode = false) {
   try {
     console.log('加载我的鱼数据...', randomMode ? '(随机模式)' : '(时间倒序模式)');
 
-    if (!this.databaseManager.isCloudDbInitialized || !this.databaseManager.cloudDb) {
-      console.warn('云数据库未初始化，无法加载我的鱼数据');
+    if (!Utils.checkDatabaseInitialization(this.databaseManager, '加载我的鱼数据')) {
       this.myFishTankList = [];
       return;
     }
 
     // 使用缓存的openid
     if (!this.userOpenid) {
-      console.warn('用户openid未初始化，无法加载我的鱼数据');
+      Utils.handleWarning('', '用户openid未初始化，无法加载我的鱼数据');
       this.myFishTankList = [];
-      wx.showToast({
-        title: '用户信息未准备好',
-        icon: 'none',
-        duration: 2000
-      });
+      Utils.showError('用户信息未准备好', 2000);
       return;
     }
 
@@ -805,10 +801,10 @@ async loadMyFishes(randomMode = false) {
     // 从我的鱼列表创建鱼对象并显示
     await this.createFishesFromMyList();
 
-  } catch (error) {
-    console.error('加载我的鱼数据失败:', error);
-    this.myFishTankList = [];
-  }
+    } catch (error) {
+      Utils.handleError(error, '加载我的鱼数据失败');
+      this.myFishTankList = [];
+    }
 }
 
   // 新增：从我的鱼列表创建鱼对象
@@ -874,11 +870,10 @@ async loadMyFishes(randomMode = false) {
   async loadInitialFishes() {
     try {
       console.log('首次加载初始鱼数据...');
-      const databaseFishes = await this.databaseManager.getRandomFishesFromDatabase(20);
-      this.globalFishList = databaseFishes;
+      this.globalFishList = await this.databaseManager.getRandomFishesFromDatabase(20);
       console.log('初始鱼数据加载完成，数量:', this.globalFishList.length);
     } catch (error) {
-      console.error('加载初始鱼数据失败:', error);
+      Utils.handleError(error, '加载初始鱼数据失败');
       this.globalFishList = [];
     }
   }
@@ -956,10 +951,10 @@ async refreshFishTank() {
         duration: 1500
       });
     }
-  } catch (error) {
-    console.error('刷新鱼缸失败:', error);
-    wx.showToast({ title: '刷新失败', icon: 'none', duration: 1500 });
-  } finally {
+    } catch (error) {
+      Utils.handleError(error, '刷新鱼缸失败');
+      Utils.showError('刷新失败');
+    } finally {
     wx.hideLoading();
   }
 }
@@ -1012,7 +1007,7 @@ async refreshFishTank() {
       console.log(`排行榜数据加载完成，模式: ${this.currentRankingMode}, 共 ${rankingFishes.length} 条数据`);
 
     } catch (error) {
-      console.error('加载排行榜数据失败:', error);
+      Utils.handleError(error, '加载排行榜数据失败');
       this.rankingData = { fishes: [], lastUpdate: new Date(), mode: this.currentRankingMode };
     } finally {
       this.isLoadingRanking = false;
@@ -1039,10 +1034,12 @@ async refreshFishTank() {
     // 批量查询用户交互状态
     const interactionPromises = rankingFishes.map(async (fishItem) => {
       try {
-        const interaction = await this.databaseManager.getUserInteraction(fishItem.fishData.fishName, this.userOpenid);
-        fishItem.userInteraction = interaction;
+        fishItem.userInteraction = await this.databaseManager.getUserInteraction(
+          fishItem.fishData.fishName, 
+          this.userOpenid
+        );
       } catch (error) {
-        console.warn(`加载鱼 ${fishItem.fishData.fishName} 的交互状态失败:`, error);
+        Utils.handleWarning(error, `加载鱼 ${fishItem.fishData.fishName} 的交互状态失败`);
         fishItem.userInteraction = null;
       }
     });
@@ -1091,8 +1088,8 @@ async refreshFishTank() {
       }
 
     } catch (error) {
-      console.error('排行榜点赞操作失败:', error);
-      wx.showToast({ title: '操作失败，请重试', icon: 'none', duration: 1500 });
+      Utils.handleError(error, '排行榜点赞操作失败');
+      Utils.showError('操作失败，请重试');
     } finally {
       this.endInteraction();
     }
@@ -1138,8 +1135,8 @@ async refreshFishTank() {
       }
 
     } catch (error) {
-      console.error('排行榜点踩操作失败:', error);
-      wx.showToast({ title: '操作失败，请重试', icon: 'none', duration: 1500 });
+      Utils.handleError(error, '排行榜点踩操作失败');
+      Utils.showError('操作失败，请重试');
     } finally {
       this.endInteraction();
     }
@@ -1193,7 +1190,7 @@ async refreshFishTank() {
       const interaction = await this.databaseManager.getUserInteraction(fishItem.fishData.fishName, this.userOpenid);
       fishItem.userInteraction = interaction;
     } catch (error) {
-      console.error('加载排行榜鱼用户交互状态失败:', error);
+      Utils.handleError(error, '加载排行榜鱼用户交互状态失败');
       fishItem.userInteraction = null;
     }
   }
@@ -1296,11 +1293,9 @@ async refreshFishTank() {
       multiple: false,
       confirmHold: false,
       confirmType: 'done',
-      success: (res) => {
-        console.log('键盘显示成功');
-      },
+      success: () => console.log('键盘显示成功'),
       fail: (err) => {
-        console.error('键盘显示失败:', err);
+        Utils.handleError(err, '键盘显示失败');
         this.confirmFishName();
       }
     });
@@ -1316,7 +1311,7 @@ async refreshFishTank() {
     });
 
     // 修复：删除 onKeyboardComplete 中的重复调用
-    wx.onKeyboardComplete((res) => {
+    wx.onKeyboardComplete(() => {
       // 只隐藏键盘，不重复调用 confirmFishName
       console.log('键盘输入完成，隐藏对话框');
       this.hideNameInputDialog();
@@ -1360,7 +1355,7 @@ async refreshFishTank() {
   async confirmFishName() {
     if (!this.dialogData || !this.dialogData.scaledImage) {
       if (!this.gameState.scaledFishImage) {
-        wx.showToast({ title: '处理失败，请重试', icon: 'none', duration: 2000 });
+        Utils.showError('处理失败，请重试', 2000);
         this.hideNameInputDialog();
         return;
       }
@@ -1369,7 +1364,7 @@ async refreshFishTank() {
     const scaledImage = this.dialogData ? this.dialogData.scaledImage : this.gameState.scaledFishImage;
 
     if (!this.fishNameInput || !this.fishNameInput.trim()) {
-      wx.showToast({ title: '请输入鱼的名字', icon: 'none', duration: 1500 });
+      Utils.showError('请输入鱼的名字');
       return;
     }
 
@@ -1383,16 +1378,12 @@ async refreshFishTank() {
       wx.hideLoading();
 
       if (nameExists) {
-        wx.showToast({
-          title: `名称"${finalName}"已存在，请换一个`,
-          icon: 'none',
-          duration: 2000
-        });
+        Utils.showError(`名称"${finalName}"已存在，请换一个`, 2000);
         return; // 名称重复，不继续后续逻辑
       }
     } catch (error) {
       wx.hideLoading();
-      console.warn('名称检查失败，继续保存流程:', error);
+      Utils.handleWarning(error, '名称检查失败，继续保存流程');
       // 检查失败时继续流程，不阻止用户
     }
 
@@ -1540,9 +1531,14 @@ async refreshFishTank() {
       if (interaction) {
         this.selectedFishData.userInteraction = interaction;
         console.log(`用户对鱼 ${fishName} 的交互状态:`, interaction.action);
+      } else {
+        // 确保在未找到交互记录时清除用户交互状态
+        this.selectedFishData.userInteraction = null;
       }
     } catch (error) {
-      console.error('加载用户交互状态失败:', error);
+      Utils.handleError(error, '加载用户交互状态失败');
+      // 出错时也要清除用户交互状态
+      this.selectedFishData.userInteraction = null;
     }
   }
 
@@ -1600,8 +1596,8 @@ async refreshFishTank() {
       }
 
     } catch (error) {
-      console.error('点赞操作失败:', error);
-      wx.showToast({ title: '操作失败，请重试', icon: 'none', duration: 1500 });
+      Utils.handleError(error, '点赞操作失败');
+      Utils.showError('操作失败，请重试');
     } finally {
       this.endInteraction();
     }
@@ -1649,8 +1645,8 @@ async refreshFishTank() {
       }
 
     } catch (error) {
-      console.error('点踩操作失败:', error);
-      wx.showToast({ title: '操作失败，请重试', icon: 'none', duration: 1500 });
+      Utils.handleError(error, '点踩操作失败');
+      Utils.showError('操作失败，请重试');
     } finally {
       this.endInteraction();
     }

@@ -175,6 +175,39 @@ class Utils {
   static showError(title, duration = 1500) {
     this.showToast(title, 'none', duration);
   }
+
+  // 通用错误处理函数 - 减少重复的错误处理代码
+  static handleError(error, context = '') {
+    if (context) {
+      console.error(`${context}失败:`, error);
+    } else {
+      console.error('操作失败:', error);
+    }
+  }
+
+  // 通用警告处理函数
+  static handleWarning(warning, context = '') {
+    if (context) {
+      console.warn(`${context}:`, warning);
+    } else {
+      console.warn('警告:', warning);
+    }
+  }
+
+  // 数据库操作的通用错误处理 - 减少重复的错误检查和处理
+  static handleDatabaseError(error, operation, returnOnError = null) {
+    this.handleError(error, operation);
+    return returnOnError;
+  }
+
+  // 数据库初始化检查 - 减少重复的初始化检查代码
+  static checkDatabaseInitialization(dbManager, operation) {
+    if (!dbManager.isCloudDbInitialized || !dbManager.cloudDb) {
+      this.handleWarning('云数据库未初始化', `${operation}`);
+      return false;
+    }
+    return true;
+  }
 }
 
 module.exports = Utils;
