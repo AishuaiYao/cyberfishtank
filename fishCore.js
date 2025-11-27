@@ -455,26 +455,10 @@ class Fish {
     const swimY = this.y + Math.sin(this.time * 2 + this.phase) * this.amplitude;
     this.drawWigglingFish(ctx, this.x, swimY, this.direction, this.time);
 
-    // 调试：显示饥饿度（可选）
-    // this.drawHungerBar(ctx);
+
   }
 
-  // 绘制饥饿度条（调试用）
-  drawHungerBar(ctx) {
-    const barWidth = 30;
-    const barHeight = 4;
-    const barX = this.x + (this.width - barWidth) / 2;
-    const barY = this.y - 10;
 
-    // 背景
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-    ctx.fillRect(barX, barY, barWidth, barHeight);
-
-    // 饥饿度
-    const hungerPercent = this.hunger / this.maxHunger;
-    ctx.fillStyle = hungerPercent > 0.7 ? '#FF3B30' : hungerPercent > 0.3 ? '#FFCC00' : '#4CD964';
-    ctx.fillRect(barX, barY, barWidth * hungerPercent, barHeight);
-  }
 
   drawWigglingFish(ctx, x, y, direction, time) {
     const w = this.width;
@@ -512,10 +496,7 @@ class Fish {
     }
   }
 
-  // 新增：获取鱼的唯一标识符（用于重复校验）
-  getUniqueIdentifier() {
-    return this.name;
-  }
+
 }
 
 // 鱼缸类
@@ -565,41 +546,9 @@ class FishTank {
     return true;
   }
 
-  // 新增：移除指定名称的鱼
-  removeFishByName(fishName) {
-    const initialCount = this.fishes.length;
-    this.fishes = this.fishes.filter(fish => fish.name !== fishName);
-    const removedCount = initialCount - this.fishes.length;
-    if (removedCount > 0) {
-      console.log(`移除了 ${removedCount} 条名为 "${fishName}" 的鱼`);
-    }
-    return removedCount;
-  }
 
-  // 新增：校验并移除重复名称的鱼
-  validateAndRemoveDuplicateFishes() {
-    const uniqueNames = new Set();
-    const fishesToRemove = [];
 
-    // 找出重复名称的鱼
-    for (const fish of this.fishes) {
-      if (uniqueNames.has(fish.name)) {
-        fishesToRemove.push(fish);
-        console.log(`检测到重复名称的鱼: ${fish.name}`);
-      } else {
-        uniqueNames.add(fish.name);
-      }
-    }
 
-    // 移除重复的鱼
-    if (fishesToRemove.length > 0) {
-      this.fishes = this.fishes.filter(fish => !fishesToRemove.includes(fish));
-      console.log(`已移除 ${fishesToRemove.length} 条重复名称的鱼`);
-      return fishesToRemove.length;
-    }
-
-    return 0;
-  }
 
   // 生成鱼粮
   spawnFishFood(x, y, count = 10) {
@@ -707,9 +656,7 @@ spawnBubbles() {
     });
   }
 
-  startAnimation() {
-    // 鱼缸的动画由EventHandler统一管理
-  }
+
 }
 
 module.exports = {

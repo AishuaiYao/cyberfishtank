@@ -73,51 +73,6 @@ class DatabaseManager {
     }
   }
 
-  // 修改：随机获取用户鱼数据 - 现在接收openid参数
-  async getRandomFishesByUserOpenid(openid, count = 20) {
-    if (!this.isCloudDbInitialized || !this.cloudDb) {
-      console.warn('云数据库未初始化，无法按用户查询随机鱼数据');
-      return [];
-    }
-
-    if (!openid) {
-      console.warn('openid为空，无法随机查询用户鱼数据');
-      return [];
-    }
-
-    try {
-      console.log(`随机查询用户 ${openid} 的 ${count} 条鱼数据`);
-
-      // 先获取用户的所有鱼
-      const allUserFishes = await this.cloudDb.collection('fishes')
-        .where({
-          _openid: openid  // 显式指定_openid条件
-        })
-        .get();
-
-      console.log(`用户 ${openid} 共有 ${allUserFishes.data.length} 条鱼`);
-
-      if (allUserFishes.data.length === 0) {
-        return [];
-      }
-
-      // 如果用户鱼的数量少于请求数量，返回所有鱼
-      if (allUserFishes.data.length <= count) {
-        return allUserFishes.data;
-      }
-
-      // 随机选择指定数量的鱼
-      const shuffled = [...allUserFishes.data].sort(() => 0.5 - Math.random());
-      const selectedFishes = shuffled.slice(0, count);
-
-      console.log(`随机选择了 ${selectedFishes.length} 条用户的鱼`);
-      return selectedFishes;
-    } catch (error) {
-      console.error('随机查询用户鱼数据失败:', error);
-      return [];
-    }
-  }
-
   // 修改：获取用户交互记录 - 现在接收openid参数
   async getUserInteraction(fishName, userOpenid) {
     if (!this.isCloudDbInitialized || !this.cloudDb) {
