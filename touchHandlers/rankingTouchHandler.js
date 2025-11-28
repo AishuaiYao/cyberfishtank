@@ -14,14 +14,14 @@ class RankingTouchHandler {
     this.buttonClickCooldown = 250; // 1秒冷却时间
     // 新增：节流控制
     this.lastDrawTime = 0;
-    this.drawThrottle = 8; // 约120fps，更流畅的滚动体验
-    
+    this.drawThrottle = 0; // 完全移除节流，极致响应速度
+
     // 重构：完全重写滑动优化
     this.rafId = null;
     this.isDrawing = false;
     this.pendingScrollUpdate = false;
     this.scrollBuffer = 0; // 滚动位置缓冲区
-    
+
     // 性能监控
     this.frameCount = 0;
     this.lastFrameTime = 0;
@@ -34,12 +34,26 @@ class RankingTouchHandler {
     this.lastMoveTime = 0;
     this.lastDeltaYHistory = []; // 用于计算平均速度
     this.deltaYHistorySize = 5; // 记录最近的5次滑动
-    this.friction = 0.985; // 摩擦系数，控制减速速率（增大使滑动更持久）
-    this.minVelocityThreshold = 0.005; // 最小速度阈值，低于此值停止惯性滑动（减小使滑动更持久）
-    this.bounceFactor = 0.5; // 边界回弹系数
+    // 大幅优化惯性参数，让滑动效果非常明显
+    this.friction = 0.95; // 减小摩擦力，让惯性滑行更远
+    this.minVelocityThreshold = 0.01; // 进一步降低停止阈值，让更慢的速度也能惯性滑动
+    this.bounceFactor = 0.5; // 降低回弹效果，避免能量损失
     this.bounceVelocity = 0; // 回弹速度
     this.isBouncing = false; // 是否正在回弹
-    this.velocityMultiplier = 20.0; // 速度放大系数，使惯性更明显
+    this.velocityMultiplier = 20.0; // 大幅放大速度，让惯性非常强烈
+
+    // 新增：基于总距离和总耗时的惯性速度计算
+    this.touchStartTime = 0; // 触摸开始时间
+    this.touchStartScrollY = 0; // 触摸开始时的滚动位置
+
+    // 新增：基于总距离和总耗时的惯性速度计算
+    this.touchStartTime = 0; // 触摸开始时间
+    this.touchStartScrollY = 0; // 触摸开始时的滚动位置
+
+    // 调试信息
+    this.debugInfo = "未开始";
+    this.debugVelocity = 0;
+    this.debugFrameCount = 0;
 
     // 新增：加载动画帧ID
     this.loadingAnimationId = null;
@@ -183,24 +197,33 @@ class RankingTouchHandler {
   handleTouchStart(x, y) {
     // 停止当前惯性滑动
     this.stopInertiaScrolling();
-    
+
     this.touchStartY = y;
     this.lastTouchY = y;
     this.isScrolling = false;
     // 重置节流计时器，允许立即响应
     this.lastDrawTime = 0;
-    
+
     // 重置惯性滑动相关变量
     this.lastMoveTime = Date.now();
     this.lastDeltaYHistory = [];
     this.velocity = 0;
     this.bounceVelocity = 0;
     this.isBouncing = false;
+
+    // 新增：记录触摸开始的时间和滚动位置
+    this.touchStartTime = Date.now();
+    this.touchStartScrollY = this.currentScrollY;
+
+    console.log('触摸开始，重置惯性参数');
   }
 
   // 触摸移动 - 重构：完全重写滑动逻辑
   handleTouchMove(x, y) {
+    const moveStartTime = Date.now();
+    
     if (!this.eventHandler.rankingData || this.eventHandler.rankingData.fishes.length === 0) {
+      console.log(`触摸移动 - 数据为空: ${Date.now() - moveStartTime}ms`);
       return;
     }
 
@@ -210,6 +233,7 @@ class RankingTouchHandler {
     // 如果内容可以滚动，则处理滑动
     if (this.maxScrollY > 0) {
       const currentTime = Date.now();
+      // 修正：正确的deltaY计算，手指向上滑动时内容向下滚动
       const deltaY = this.lastTouchY - y;
 
       // 立即更新滚动位置（即使移动距离很小）
@@ -217,33 +241,48 @@ class RankingTouchHandler {
         this.isScrolling = true;
 
         // 更新滚动位置
+        const prevScrollY = this.currentScrollY;
         this.currentScrollY = Math.max(0, Math.min(this.maxScrollY, this.currentScrollY + deltaY));
         this.lastTouchY = y;
 
         // 记录滑动速度信息
         const timeDelta = currentTime - this.lastMoveTime;
-        if (timeDelta > 0) {
-          // 计算当前速度，使用像素差值/时间间隔
-          // 限制最大时间间隔，避免长时间不滑动后突然滑动导致速度计算不准
-          const clampedTimeDelta = Math.min(timeDelta, 50); // 最大50ms间隔
-          const currentVelocity = deltaY / clampedTimeDelta * 16; // 归一化到60fps
-          
+
+        // 关键修复：确保时间间隔足够大，避免速度计算过小
+        if (timeDelta > 8) { // 至少8ms间隔，避免过于频繁的计算
+          const currentVelocity = deltaY / timeDelta;
+
           // 保存到历史记录
           this.lastDeltaYHistory.push({
             velocity: currentVelocity,
             time: currentTime
           });
-          
+
           // 保持历史记录大小
           if (this.lastDeltaYHistory.length > this.deltaYHistorySize) {
             this.lastDeltaYHistory.shift();
           }
-          
+
           this.lastMoveTime = currentTime;
+
+          // 调试：打印速度信息
+          console.log(`速度计算: deltaY=${deltaY.toFixed(2)}, timeDelta=${timeDelta}ms, velocity=${currentVelocity.toFixed(4)}`);
         }
 
         // 高性能渲染优化：立即更新滚动位置，异步渲染
+        const renderStartTime = Date.now();
         this.scheduleRender();
+        const renderEndTime = Date.now();
+        
+        // 新增：详细性能调试信息
+        console.log(`触摸移动性能分析:
+          总耗时: ${renderEndTime - moveStartTime}ms
+          滚动更新: ${renderStartTime - moveStartTime}ms
+          渲染调度: ${renderEndTime - renderStartTime}ms
+          滚动位置: ${prevScrollY} -> ${this.currentScrollY}
+          最大滚动: ${this.maxScrollY}
+          数据条数: ${this.eventHandler.rankingData.fishes.length}
+        `);
 
         // 新增：检查是否滚动到底部，触发增量加载
         this.checkLoadMore();
@@ -258,15 +297,15 @@ class RankingTouchHandler {
       console.log('排行榜相关数据未初始化，跳过加载检查');
       return;
     }
-    
+
     const currentMode = this.eventHandler.currentRankingMode;
-    
+
     // 确保 rankingIncrementalData 和当前模式的数据存在
     if (!this.eventHandler.rankingIncrementalData || !this.eventHandler.rankingIncrementalData[currentMode]) {
       console.log(`增量数据未初始化，当前模式: ${currentMode}`);
       return;
     }
-    
+
     const incrementalData = this.eventHandler.rankingIncrementalData[currentMode];
 
     if (!this.eventHandler.rankingData || incrementalData.isLoading) {
@@ -282,7 +321,7 @@ class RankingTouchHandler {
 
     if (distanceFromBottom <= threshold && incrementalData.hasMore && !incrementalData.isLoading) {
       console.log('滚动到底部附近，触发增量加载');
-      
+
       // 确保 loadNextRankingPage 方法存在
       if (typeof this.eventHandler.loadNextRankingPage === 'function') {
         this.eventHandler.loadNextRankingPage();
@@ -296,18 +335,12 @@ class RankingTouchHandler {
   scheduleRender() {
     const now = Date.now();
 
-    // 节流控制：减少重绘频率
-    if (now - this.lastDrawTime >= this.drawThrottle) {
-      this.lastDrawTime = now;
+    // 完全移除节流，确保每次移动都能触发渲染
+    this.lastDrawTime = now;
 
-      // 取消之前的渲染任务
-      if (this.rafId) {
-        if (typeof cancelAnimationFrame !== 'undefined') {
-          cancelAnimationFrame(this.rafId);
-        }
-        this.rafId = null;
-      }
-
+    // 关键修复：只有当没有正在执行的渲染任务时才创建新任务
+    // 避免频繁取消动画帧导致渲染中断
+    if (!this.rafId) {
       // 使用requestAnimationFrame进行流畅渲染
       if (typeof requestAnimationFrame !== 'undefined') {
         this.rafId = requestAnimationFrame(() => {
@@ -318,11 +351,16 @@ class RankingTouchHandler {
         // 兼容性处理
         this.performRender();
       }
+    } else {
+      // 已经有渲染任务在执行，不需要重复调度
+      console.log('已有渲染任务在执行，跳过重复调度');
     }
   }
 
   // 新增：高性能渲染执行
   performRender() {
+    const renderStartTime = Date.now();
+    
     // 性能监控
     const now = Date.now();
     if (now - this.lastFrameTime > 1000) {
@@ -333,20 +371,38 @@ class RankingTouchHandler {
     }
     this.frameCount++;
 
-    // 增量渲染优化：只重绘卡片区域
+    // 修复：确保调用正确的渲染方法
+    const renderMethodStart = Date.now();
     if (this.eventHandler.uiManager.drawRankingCardsOnly) {
+      console.log('使用 drawRankingCardsOnly 方法渲染');
       this.eventHandler.uiManager.drawRankingCardsOnly();
+    } else if (this.eventHandler.uiManager.drawRankingInterface) {
+      console.log('使用 drawRankingInterface 方法渲染');
+      // 回退到完整排行榜界面渲染
+      this.eventHandler.uiManager.drawRankingInterface();
     } else {
-      this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
+      console.error('排行榜渲染方法未找到！');
     }
+    const renderMethodEnd = Date.now();
 
     // 在每次渲染时也检查加载条件，以便在惯性滚动到底部时触发加载
+    const checkLoadStart = Date.now();
     this.checkLoadMore();
+    const checkLoadEnd = Date.now();
+
+    // 新增：详细渲染性能信息
+    console.log(`渲染性能分析:
+      总耗时: ${Date.now() - renderStartTime}ms
+      渲染方法调用: ${renderMethodEnd - renderMethodStart}ms
+      加载检查: ${checkLoadEnd - checkLoadStart}ms
+      当前滚动位置: ${this.currentScrollY}
+      可见卡片数: ${Math.ceil(this.eventHandler.rankingData.fishes.length / 2)}
+    `);
 
     // 新增：如果正在加载中，持续触发重绘以播放加载动画
     const currentMode = this.eventHandler.currentRankingMode;
-    if (this.eventHandler.rankingIncrementalData && 
-        this.eventHandler.rankingIncrementalData[currentMode] && 
+    if (this.eventHandler.rankingIncrementalData &&
+        this.eventHandler.rankingIncrementalData[currentMode] &&
         this.eventHandler.rankingIncrementalData[currentMode].isLoading) {
       // 取消之前的动画帧请求
       if (this.loadingAnimationId) {
@@ -364,15 +420,17 @@ class RankingTouchHandler {
   handleTouchEnd() {
     this.isScrolling = false;
 
-    // 计算惯性滑动速度
-    this.calculateInertiaVelocity();
+    // 新增：基于总距离和总耗时的更科学速度计算
+    this.calculateVelocityByTotalDistance();
 
-    // 在触摸结束时也检查是否需要加载更多数据
-    // 这可以处理用户快速滑动到底部的情况
-    this.checkLoadMore();
+    // 调试：打印最终速度信息
+    console.log(`触摸结束 - 最终速度: ${this.velocity.toFixed(4)}, 阈值: ${this.minVelocityThreshold}`);
 
     // 启动惯性滑动
     this.startInertiaScrolling();
+
+    // 在触摸结束时也检查是否需要加载更多数据
+    this.checkLoadMore();
   }
 
   // 计算最大滚动距离
@@ -415,6 +473,32 @@ class RankingTouchHandler {
     }
   }
 
+  // 新增：基于总距离和总耗时的更科学速度计算
+  calculateVelocityByTotalDistance() {
+    const touchEndTime = Date.now();
+    const totalTime = touchEndTime - this.touchStartTime;
+    const totalDistance = this.currentScrollY - this.touchStartScrollY;
+    
+    // 计算平均速度：总距离 ÷ 总耗时
+    if (totalTime > 0) {
+      const averageVelocity = totalDistance / totalTime;
+      
+      // 放大速度值，使惯性滑动更明显
+      this.velocity = averageVelocity * this.velocityMultiplier;
+      
+      console.log(`基于总距离的速度计算:
+        总耗时: ${totalTime}ms
+        总距离: ${totalDistance.toFixed(2)}
+        平均速度: ${averageVelocity.toFixed(4)}
+        放大后速度: ${this.velocity.toFixed(4)}
+        是否启动惯性: ${Math.abs(this.velocity) >= this.minVelocityThreshold ? '是' : '否'}
+      `);
+    } else {
+      this.velocity = 0;
+      console.log('触摸时间过短，速度设为0');
+    }
+  }
+
   // 获取最大滚动距离
   getMaxScrollY() {
     return this.maxScrollY;
@@ -425,6 +509,7 @@ class RankingTouchHandler {
     // 如果没有足够的历史数据，不启动惯性滑动
     if (this.lastDeltaYHistory.length < 2) {
       this.velocity = 0;
+      console.log(`历史数据不足: ${this.lastDeltaYHistory.length} 条记录`);
       return;
     }
 
@@ -432,7 +517,7 @@ class RankingTouchHandler {
     // 给最近的数据更高的权重
     let totalVelocity = 0;
     let totalWeight = 0;
-    
+
     for (let i = 0; i < this.lastDeltaYHistory.length; i++) {
       const data = this.lastDeltaYHistory[i];
       // 权重从1开始，越近的数据权重越高
@@ -445,30 +530,47 @@ class RankingTouchHandler {
       this.velocity = totalVelocity / totalWeight;
       // 放大速度值，使惯性滑动更明显
       this.velocity *= this.velocityMultiplier;
-      // console.log(`计算得到惯性速度: ${this.velocity}`);
+
+      // 添加详细调试信息
+      console.log(`惯性速度计算:
+        原始平均速度: ${(totalVelocity / totalWeight).toFixed(4)}
+        放大后速度: ${this.velocity.toFixed(4)}
+        历史记录数: ${this.lastDeltaYHistory.length}
+        是否启动惯性: ${Math.abs(this.velocity) >= this.minVelocityThreshold ? '是' : '否'}
+      `);
     } else {
       this.velocity = 0;
+      console.log('总权重为0，速度设为0');
     }
   }
 
   // 新增：启动惯性滑动
   startInertiaScrolling() {
+    // 关键修复：在停止之前先保存速度值
+    const savedVelocity = this.velocity;
+    
     // 如果速度太小，不启动惯性滑动
-    if (Math.abs(this.velocity) < this.minVelocityThreshold) {
-      console.log(`速度太小 (${this.velocity})，不启动惯性滑动`);
+    if (Math.abs(savedVelocity) < this.minVelocityThreshold) {
+      console.log(`速度太小 (${savedVelocity.toFixed(4)})，不启动惯性滑动`);
+      this.debugInfo = `速度太小: ${savedVelocity.toFixed(4)}`;
       return;
     }
 
     // 停止任何现有的惯性滑动动画
     this.stopInertiaScrolling();
+
+    // 恢复保存的速度值
+    this.velocity = savedVelocity;
     
     // 设置状态
     this.isInertiaScrolling = true;
     this.bounceVelocity = 0;
     this.isBouncing = false;
-    
-    // console.log(`启动惯性滑动，初始速度: ${this.velocity}`);
-    
+
+    // 调试信息
+    this.debugInfo = `惯性启动: 速度=${this.velocity.toFixed(3)}`;
+    console.log(`启动惯性滑动，初始速度: ${this.velocity.toFixed(4)}`);
+
     // 开始动画
     this.inertiaAnimationId = requestAnimationFrame(() => {
       this.performInertiaScroll();
@@ -477,34 +579,42 @@ class RankingTouchHandler {
 
   // 新增：执行惯性滑动动画
   performInertiaScroll() {
+    const inertiaStartTime = Date.now();
+    
     if (!this.isInertiaScrolling) {
       return;
     }
 
+    this.debugFrameCount++;
     const prevScrollY = this.currentScrollY;
-    
+
+    // 实时更新调试信息
+    this.debugInfo = `惯性中: 速度=${this.velocity.toFixed(3)}, 帧数=${this.debugFrameCount}`;
+
     // 如果不在回弹状态，应用摩擦力
     if (!this.isBouncing) {
       this.velocity *= this.friction;
-      
+
       // 更新滚动位置
       this.currentScrollY += this.velocity;
-      
+
       // 边界检查
       if (this.currentScrollY < 0) {
         this.currentScrollY = 0;
         this.isBouncing = true;
         this.bounceVelocity = this.velocity * this.bounceFactor;
+        console.log('到达顶部，开始回弹');
       } else if (this.currentScrollY > this.maxScrollY) {
         this.currentScrollY = this.maxScrollY;
         this.isBouncing = true;
         this.bounceVelocity = this.velocity * this.bounceFactor;
+        console.log('到达底部，开始回弹');
       }
     } else {
       // 回弹状态
       this.currentScrollY += this.bounceVelocity;
       this.bounceVelocity *= this.friction;
-      
+
       // 回弹边界检查
       if (this.currentScrollY < 0) {
         this.currentScrollY = 0;
@@ -522,22 +632,47 @@ class RankingTouchHandler {
     // 检查是否停止惯性滑动
     if ((!this.isBouncing && Math.abs(this.velocity) < this.minVelocityThreshold) ||
         (this.isBouncing && Math.abs(this.bounceVelocity) < this.minVelocityThreshold)) {
+      console.log('惯性滑动自然停止');
       this.stopInertiaScrolling();
       return;
     }
 
-    // 立即重绘UI - 不使用节流，确保惯性滑动流畅
-    this.performRender();
-    
+    // 关键修复：惯性滑动期间绕过所有节流控制，直接渲染
+    const renderStartTime = Date.now();
+    // 修复：确保调用正确的渲染方法
+    if (this.eventHandler.uiManager.drawRankingCardsOnly) {
+      this.eventHandler.uiManager.drawRankingCardsOnly();
+    } else if (this.eventHandler.uiManager.drawRankingInterface) {
+      // 回退到完整排行榜界面渲染
+      this.eventHandler.uiManager.drawRankingInterface();
+    } else {
+      console.error('排行榜渲染方法未找到！');
+    }
+    const renderEndTime = Date.now();
+
     // 检查是否需要加载更多数据
+    const checkLoadStart = Date.now();
     if (prevScrollY !== this.currentScrollY) {
       this.checkLoadMore();
     }
-    
+    const checkLoadEnd = Date.now();
+
+    // 详细惯性滑动性能信息
+    console.log(`惯性滑动性能分析 - 第${this.debugFrameCount}帧:
+      总耗时: ${Date.now() - inertiaStartTime}ms
+      渲染耗时: ${renderEndTime - renderStartTime}ms
+      加载检查: ${checkLoadEnd - checkLoadStart}ms
+      当前速度: ${this.velocity.toFixed(4)}
+      回弹速度: ${this.bounceVelocity.toFixed(4)}
+      滚动位置: ${prevScrollY} -> ${this.currentScrollY}
+      是否回弹: ${this.isBouncing}
+      摩擦力: ${this.friction}
+    `);
+
     // 如果正在加载，请求动画帧以更新加载动画
     const currentMode = this.eventHandler.currentRankingMode;
-    if (this.eventHandler.rankingIncrementalData && 
-        this.eventHandler.rankingIncrementalData[currentMode] && 
+    if (this.eventHandler.rankingIncrementalData &&
+        this.eventHandler.rankingIncrementalData[currentMode] &&
         this.eventHandler.rankingIncrementalData[currentMode].isLoading) {
       // 已经在动画循环中，不需要再次请求
     }
@@ -554,12 +689,12 @@ class RankingTouchHandler {
       cancelAnimationFrame(this.inertiaAnimationId);
       this.inertiaAnimationId = null;
     }
-    
+
     this.isInertiaScrolling = false;
     this.isBouncing = false;
     this.velocity = 0;
     this.bounceVelocity = 0;
-    
+
     console.log('惯性滑动已停止');
   }
 }

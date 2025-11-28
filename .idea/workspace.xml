@@ -4,8 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="代码结构优化-排行榜滑动-分页查询展示">
+    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="代码结构优化-排行榜滑动-分页查询展示1">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/eventHandler.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/touchHandlers/rankingTouchHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/rankingTouchHandler.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/uiManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/uiManager.js" afterDir="false" />
     </list>
@@ -72,14 +73,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00034" summary="增加起名校验">
-      <option name="closed" value="true" />
-      <created>1763653417955</created>
-      <option name="number" value="00034" />
-      <option name="presentableId" value="LOCAL-00034" />
-      <option name="project" value="LOCAL" />
-      <updated>1763653417955</updated>
     </task>
     <task id="LOCAL-00035" summary="重复添加鱼">
       <option name="closed" value="true" />
@@ -465,11 +458,18 @@
       <option name="project" value="LOCAL" />
       <updated>1764327648648</updated>
     </task>
-    <option name="localTasksCounter" value="83" />
+    <task id="LOCAL-00083" summary="代码结构优化-排行榜滑动-分页查询展示1">
+      <option name="closed" value="true" />
+      <created>1764328823885</created>
+      <option name="number" value="00083" />
+      <option name="presentableId" value="LOCAL-00083" />
+      <option name="project" value="LOCAL" />
+      <updated>1764328823885</updated>
+    </task>
+    <option name="localTasksCounter" value="84" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="update" />
     <MESSAGE value="切换button" />
     <MESSAGE value="刷新button" />
     <MESSAGE value="添加水草" />
@@ -494,6 +494,7 @@
     <MESSAGE value="代码结构优化-排行榜滑动-使用score排序" />
     <MESSAGE value="代码结构优化-排行榜滑动-使用score排序1" />
     <MESSAGE value="代码结构优化-排行榜滑动-分页查询展示" />
-    <option name="LAST_COMMIT_MESSAGE" value="代码结构优化-排行榜滑动-分页查询展示" />
+    <MESSAGE value="代码结构优化-排行榜滑动-分页查询展示1" />
+    <option name="LAST_COMMIT_MESSAGE" value="代码结构优化-排行榜滑动-分页查询展示1" />
   </component>
 </project>

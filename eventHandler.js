@@ -618,8 +618,8 @@ class EventHandler {
     if (this.isRankingInterfaceVisible) {
       console.log('路由到排行榜处理器');
       this.touchHandlers.ranking.handleTouchStart(x, y);
-      // 立即处理触摸，因为返回按钮需要响应点击
-      this.touchHandlers.ranking.handleTouch(x, y);
+      // ❌ 修复：移除错误的handleTouch调用，避免触摸事件冲突
+      // 只在触摸结束时检测点击，而不是触摸开始时
     } else if (this.isFishDetailVisible) {
       this.touchHandlers.fishDetail.handleTouch(x, y);
     } else if (this.isDialogVisible) {

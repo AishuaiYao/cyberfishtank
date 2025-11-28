@@ -253,111 +253,48 @@ class UIManager {
     }
   }
 
-  // 新增：增量渲染优化 - 只重绘卡片区域
+
+  // 高性能版本：排行榜卡片增量渲染优化
   drawRankingCardsOnly() {
     const ctx = this.ctx;
+    
+    // 安全检查
+    if (!this.eventHandler.rankingData || !this.eventHandler.rankingData.fishes) {
+      return;
+    }
+    
     const rankingFishes = this.eventHandler.rankingData.fishes;
     const scrollOffset = this.eventHandler.touchHandlers.ranking.getScrollOffset();
 
+    // 性能优化：缓存计算值
     const cardWidth = (config.screenWidth - 60) / 2;
     const cardHeight = 200;
     const rowHeight = cardHeight + 15;
     const startY = 100 - scrollOffset;
+    const visibleAreaHeight = config.screenHeight - 100;
 
     // 只清除卡片区域（避免重绘整个界面）
     ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 100, config.screenWidth, config.screenHeight - 100);
+    ctx.fillRect(0, 100, config.screenWidth, visibleAreaHeight);
 
     // 设置裁剪区域
     ctx.save();
     ctx.beginPath();
-    ctx.rect(0, 100, config.screenWidth, config.screenHeight - 100);
+    ctx.rect(0, 100, config.screenWidth, visibleAreaHeight);
     ctx.clip();
 
     // 虚拟滚动优化：只渲染可见区域的卡片
     const visibleStartRow = Math.max(0, Math.floor(scrollOffset / rowHeight));
+    const visibleRows = Math.ceil(visibleAreaHeight / rowHeight) + 2; // +2作为缓冲
     const visibleEndRow = Math.min(
       Math.ceil((rankingFishes.length - 1) / 2),
-      visibleStartRow + Math.ceil((config.screenHeight - 100) / rowHeight) + 1
+      visibleStartRow + visibleRows
     );
 
     const visibleStartIndex = Math.max(0, visibleStartRow * 2);
     const visibleEndIndex = Math.min(rankingFishes.length, visibleEndRow * 2 + 2);
 
-    // 只渲染可见卡片
-    for (let i = visibleStartIndex; i < visibleEndIndex; i++) {
-      const fishItem = rankingFishes[i];
-      const row = Math.floor(i / 2);
-      const col = i % 2;
-
-      const cardX = 20 + col * (cardWidth + 20);
-      const cardY = startY + row * rowHeight;
-
-      // 确保卡片在可见区域内
-      if (cardY + cardHeight > 100 && cardY < config.screenHeight) {
-        this.drawRankingCard(cardX, cardY, cardWidth, cardHeight, fishItem, i + 1);
-      }
-    }
-
-    ctx.restore();
-
-    // 绘制滚动条指示器（如果有滚动）
-    if (scrollOffset > 0) {
-      this.drawScrollIndicator(scrollOffset);
-    }
-
-    // 检查是否正在加载更多数据
-    const currentMode = this.eventHandler.currentRankingMode;
-    if (this.eventHandler.rankingIncrementalData && 
-        this.eventHandler.rankingIncrementalData[currentMode] && 
-        this.eventHandler.rankingIncrementalData[currentMode].isLoading) {
-      
-      // 在底部绘制加载动画和文字
-      const spinnerY = config.screenHeight - 50;
-      this.drawLoadingSpinner(Math.round(config.screenWidth / 2), spinnerY, 24);
-      
-      // 绘制加载文字
-      ctx.save();
-      ctx.fillStyle = config.lightTextColor;
-      ctx.font = '14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('加载中...', Math.round(config.screenWidth / 2), spinnerY + 35);
-      ctx.restore();
-    }
-  }
-
-  // 新增：增量渲染优化 - 只重绘卡片区域
-  drawRankingCardsOnly() {
-    const ctx = this.ctx;
-    const rankingFishes = this.eventHandler.rankingData.fishes;
-    const scrollOffset = this.eventHandler.touchHandlers.ranking.getScrollOffset();
-
-    const cardWidth = (config.screenWidth - 60) / 2;
-    const cardHeight = 200;
-    const rowHeight = cardHeight + 15;
-    const startY = 100 - scrollOffset;
-
-    // 只清除卡片区域（避免重绘整个界面）
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 100, config.screenWidth, config.screenHeight - 100);
-
-    // 设置裁剪区域
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(0, 100, config.screenWidth, config.screenHeight - 100);
-    ctx.clip();
-
-    // 虚拟滚动优化：只渲染可见区域的卡片
-    const visibleStartRow = Math.max(0, Math.floor(scrollOffset / rowHeight));
-    const visibleEndRow = Math.min(
-      Math.ceil((rankingFishes.length - 1) / 2),
-      visibleStartRow + Math.ceil((config.screenHeight - 100) / rowHeight) + 1
-    );
-
-    const visibleStartIndex = Math.max(0, visibleStartRow * 2);
-    const visibleEndIndex = Math.min(rankingFishes.length, visibleEndRow * 2 + 2);
-
-    // 只渲染可见卡片
+    // 性能优化：批量绘制，减少循环次数
     for (let i = visibleStartIndex; i < visibleEndIndex; i++) {
       const fishItem = rankingFishes[i];
       const row = Math.floor(i / 2);
