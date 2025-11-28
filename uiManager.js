@@ -449,7 +449,15 @@ class UIManager {
     // 最终评分（点赞-点踩）- 使用即时更新的本地数据
     ctx.fillStyle = config.primaryColor;
     ctx.font = 'bold 14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-    const finalScore = fishData.score || 0;
+    
+    // 兼容新旧数据结构：优先使用旧数据结构，否则使用临时字段
+    let finalScore = 0;
+    if ('score' in fishData) {
+      finalScore = fishData.score || 0;
+    } else if ('tempScore' in fishData) {
+      finalScore = fishData.tempScore || 0;
+    }
+    
     ctx.fillText(`评分: ${finalScore}`, Math.round(x + width / 2), textStartY + 40);
 
     // 绘制点赞点踩按钮区域 - 传入最终交互状态
@@ -602,10 +610,18 @@ class UIManager {
     }
     ctx.fillText(`创作时间: ${createTime}`, detailX + detailWidth / 2, textStartY + 25);
 
-    // 评分 - 使用即时更新的本地数据
+    // 评分 - 使用即时更新的本地数据，兼容新旧数据结构
     ctx.fillStyle = config.primaryColor;
     ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-    const score = fishData.score || 0;
+    
+    // 兼容新旧数据结构：优先使用旧数据结构，否则使用临时字段
+    let score = 0;
+    if ('score' in fishData) {
+      score = fishData.score || 0;
+    } else if ('tempScore' in fishData) {
+      score = fishData.tempScore || 0;
+    }
+    
     ctx.fillText(`评分: ${score}`, detailX + detailWidth / 2, textStartY + 50);
 
     // 绘制点赞和点踩按钮 - 使用最终交互状态

@@ -393,20 +393,39 @@ class EventHandler {
     // 1. 立即更新本地状态
     let newStarCount, newUnstarCount;
 
-    if (isStar) {
-      newStarCount = (fishData.star || 0) + 1;
-      newUnstarCount = fishData.unstar || 0;
+    // 兼容新旧数据结构：只有当字段存在时才进行计数
+    if ('star' in fishData && 'unstar' in fishData) {
+      // 旧数据结构：有评分字段
+      if (isStar) {
+        newStarCount = (fishData.star || 0) + 1;
+        newUnstarCount = fishData.unstar || 0;
+      } else {
+        newStarCount = fishData.star || 0;
+        newUnstarCount = (fishData.unstar || 0) + 1;
+      }
+
+      const newScore = newStarCount - newUnstarCount;
+
+      // 更新本地数据
+      fishData.star = newStarCount;
+      fishData.unstar = newUnstarCount;
+      fishData.score = newScore;
     } else {
-      newStarCount = fishData.star || 0;
-      newUnstarCount = (fishData.unstar || 0) + 1;
+      // 新数据结构：没有评分字段，保持兼容性
+      newStarCount = 0;
+      newUnstarCount = 0;
+      
+      // 为了UI显示，可以临时添加这些字段
+      if (isStar) {
+        fishData.tempStar = (fishData.tempStar || 0) + 1;
+        fishData.tempUnstar = fishData.tempUnstar || 0;
+      } else {
+        fishData.tempStar = fishData.tempStar || 0;
+        fishData.tempUnstar = (fishData.tempUnstar || 0) + 1;
+      }
+      
+      fishData.tempScore = fishData.tempStar - fishData.tempUnstar;
     }
-
-    const newScore = newStarCount - newUnstarCount;
-
-    // 更新本地数据
-    fishData.star = newStarCount;
-    fishData.unstar = newUnstarCount;
-    fishData.score = newScore;
 
     // 设置本地缓存状态
     this.setLocalInteractionState(fishName, action, originalState);
@@ -490,20 +509,39 @@ class EventHandler {
     // 1. 立即更新本地状态
     let newStarCount, newUnstarCount;
 
-    if (isStar) {
-      newStarCount = Math.max(0, (fishData.star || 0) - 1);
-      newUnstarCount = fishData.unstar || 0;
+    // 兼容新旧数据结构：只有当字段存在时才进行计数
+    if ('star' in fishData && 'unstar' in fishData) {
+      // 旧数据结构：有评分字段
+      if (isStar) {
+        newStarCount = Math.max(0, (fishData.star || 0) - 1);
+        newUnstarCount = fishData.unstar || 0;
+      } else {
+        newStarCount = fishData.star || 0;
+        newUnstarCount = Math.max(0, (fishData.unstar || 0) - 1);
+      }
+
+      const newScore = newStarCount - newUnstarCount;
+
+      // 更新本地数据
+      fishData.star = newStarCount;
+      fishData.unstar = newUnstarCount;
+      fishData.score = newScore;
     } else {
-      newStarCount = fishData.star || 0;
-      newUnstarCount = Math.max(0, (fishData.unstar || 0) - 1);
+      // 新数据结构：没有评分字段，保持兼容性
+      newStarCount = 0;
+      newUnstarCount = 0;
+      
+      // 更新临时字段
+      if (isStar) {
+        fishData.tempStar = Math.max(0, (fishData.tempStar || 0) - 1);
+        fishData.tempUnstar = fishData.tempUnstar || 0;
+      } else {
+        fishData.tempStar = fishData.tempStar || 0;
+        fishData.tempUnstar = Math.max(0, (fishData.tempUnstar || 0) - 1);
+      }
+      
+      fishData.tempScore = fishData.tempStar - fishData.tempUnstar;
     }
-
-    const newScore = newStarCount - newUnstarCount;
-
-    // 更新本地数据
-    fishData.star = newStarCount;
-    fishData.unstar = newUnstarCount;
-    fishData.score = newScore;
 
     // 设置本地缓存状态为取消状态
     this.setLocalInteractionState(fishName, null, originalState);
@@ -664,13 +702,13 @@ class EventHandler {
         const touch = e.changedTouches[0];
         const x = touch.clientX;
         const y = touch.clientY;
-        
+
         // 只有在没有滚动的情况下才处理按钮点击
         if (!this.touchHandlers.ranking.isScrolling) {
           this.touchHandlers.ranking.handleTouch(x, y);
         }
       }
-      
+
       this.touchHandlers.ranking.handleTouchEnd();
     } else if (this.isFishDetailVisible || this.isDialogVisible || this.isSwimInterfaceVisible) {
       // 这些界面不需要处理触摸结束
@@ -1000,7 +1038,7 @@ async refreshFishTank() {
 
     // 重置滚动位置
     this.touchHandlers.ranking.resetScroll();
-    
+
     // 重置增量加载状态
     const currentMode = this.currentRankingMode;
     if (this.rankingIncrementalData && this.rankingIncrementalData[currentMode]) {
@@ -1022,20 +1060,20 @@ async refreshFishTank() {
         const result = await this.databaseManager.getRankingDataPage(0, this.rankingIncrementalData.cyber.pageSize);
         initialRankingFishes = result.data;
         this.rankingIncrementalData.cyber.hasMore = result.hasMore;
-        
+
         // 存入缓存
         this.rankingIncrementalData.cyber.cachedData = [...initialRankingFishes];
       } else {
         // 本周排行榜：第一页数据
         const startOfWeek = this.getStartOfWeek();
         const result = await this.databaseManager.getWeeklyRankingDataPage(
-          0, 
-          this.rankingIncrementalData.weekly.pageSize, 
+          0,
+          this.rankingIncrementalData.weekly.pageSize,
           startOfWeek
         );
         initialRankingFishes = result.data;
         this.rankingIncrementalData.weekly.hasMore = result.hasMore;
-        
+
         // 存入缓存
         this.rankingIncrementalData.weekly.cachedData = [...initialRankingFishes];
       }
@@ -1110,15 +1148,15 @@ async refreshFishTank() {
   // 新增：加载下一页排行榜数据
   async loadNextRankingPage() {
     const currentMode = this.currentRankingMode;
-    
+
     // 安全检查
     if (!this.rankingIncrementalData || !this.rankingIncrementalData[currentMode]) {
       console.error('增量数据未初始化，无法加载更多数据');
       return;
     }
-    
+
     const incrementalData = this.rankingIncrementalData[currentMode];
-    
+
     if (incrementalData.isLoading || !incrementalData.hasMore) {
       console.log('正在加载或没有更多数据，跳过增量加载');
       return;
@@ -1134,21 +1172,21 @@ async refreshFishTank() {
 
       if (currentMode === 'cyber') {
         nextPageResult = await this.databaseManager.getRankingDataPage(
-          incrementalData.currentPage, 
+          incrementalData.currentPage,
           incrementalData.pageSize
         );
       } else {
         const startOfWeek = this.getStartOfWeek();
         nextPageResult = await this.databaseManager.getWeeklyRankingDataPage(
-          incrementalData.currentPage, 
-          incrementalData.pageSize, 
+          incrementalData.currentPage,
+          incrementalData.pageSize,
           startOfWeek
         );
       }
 
       // 更新是否有更多数据的标志
       incrementalData.hasMore = nextPageResult.hasMore;
-      
+
       if (nextPageResult.data.length === 0) {
         console.log('没有更多数据可以加载');
         incrementalData.hasMore = false;
@@ -1160,7 +1198,7 @@ async refreshFishTank() {
 
       // 为新加载的鱼数据创建图像和加载交互状态
       const newFishes = [];
-      
+
       for (const fishData of nextPageResult.data) {
         try {
           const fishImage = await this.fishManager.data.base64ToCanvas(fishData.base64);
@@ -1168,7 +1206,7 @@ async refreshFishTank() {
             fishData: fishData,
             fishImage: fishImage
           };
-          
+
           // 加载用户交互状态
           if (this.userOpenid) {
             try {
@@ -1181,7 +1219,7 @@ async refreshFishTank() {
               fishItem.userInteraction = null;
             }
           }
-          
+
           newFishes.push(fishItem);
         } catch (error) {
           console.warn('创建排行榜鱼图像失败:', error);
@@ -1190,7 +1228,7 @@ async refreshFishTank() {
 
       // 将新加载的鱼添加到现有数据中
       this.rankingData.fishes = this.rankingData.fishes.concat(newFishes);
-      
+
       console.log(`成功加载 ${newFishes.length} 条新的排行榜数据，当前总数: ${this.rankingData.fishes.length}`);
 
       // 重新计算最大滚动距离
@@ -1198,7 +1236,7 @@ async refreshFishTank() {
 
       // 更新UI
       this.uiManager.drawGameUI(this.gameState);
-      
+
     } catch (error) {
       Utils.handleError(error, `加载${currentMode}排行榜下一页数据失败`);
     } finally {
@@ -1225,13 +1263,23 @@ async refreshFishTank() {
       const userInteraction = fishItem.userInteraction;
       const currentAction = userInteraction ? userInteraction.action : null;
 
-      // 保存原始状态用于回滚
+      // 保存原始状态用于回滚 - 兼容新旧数据结构
       const originalState = {
-        userInteraction: userInteraction ? {...userInteraction} : null,
-        starCount: fishData.star || 0,
-        unstarCount: fishData.unstar || 0,
-        score: fishData.score || 0
+        userInteraction: userInteraction ? {...userInteraction} : null
       };
+      
+      // 兼容新旧数据结构
+      if ('star' in fishData && 'unstar' in fishData) {
+        // 旧数据结构：有评分字段
+        originalState.starCount = fishData.star || 0;
+        originalState.unstarCount = fishData.unstar || 0;
+        originalState.score = fishData.score || 0;
+      } else {
+        // 新数据结构：没有评分字段，使用临时字段
+        originalState.tempStarCount = fishData.tempStar || 0;
+        originalState.tempUnstarCount = fishData.tempUnstar || 0;
+        originalState.tempScore = fishData.tempScore || 0;
+      }
 
       // 统一处理逻辑
       if (currentAction === action) {
@@ -1301,10 +1349,19 @@ async refreshFishTank() {
   rollbackRankingState(fishItem, originalState) {
     const fishData = fishItem.fishData;
 
-    // 回滚数据状态
-    fishData.star = originalState.starCount;
-    fishData.unstar = originalState.unstarCount;
-    fishData.score = originalState.score;
+    // 回滚数据状态 - 兼容新旧数据结构
+    if ('star' in fishData && 'unstar' in fishData) {
+      // 旧数据结构：有评分字段
+      fishData.star = originalState.starCount;
+      fishData.unstar = originalState.unstarCount;
+      fishData.score = originalState.score;
+    } else {
+      // 新数据结构：使用临时字段
+      fishData.tempStar = originalState.tempStarCount || 0;
+      fishData.tempUnstar = originalState.tempUnstarCount || 0;
+      fishData.tempScore = originalState.tempScore || 0;
+    }
+    
     fishItem.userInteraction = originalState.userInteraction;
 
     // 立即更新UI
@@ -1514,9 +1571,6 @@ async refreshFishTank() {
       const fishData = {
         createdAt: new Date(),
         fishName: finalName,
-        score: 0,
-        star: 0,
-        unstar: 0,
         base64: base64Data,
         createTimestamp: Date.now(),
       };
@@ -1693,13 +1747,23 @@ async refreshFishTank() {
       const userInteraction = this.selectedFishData.userInteraction;
       const currentAction = userInteraction ? userInteraction.action : null;
 
-      // 保存原始状态用于回滚
+      // 保存原始状态用于回滚 - 兼容新旧数据结构
       const originalState = {
-        userInteraction: userInteraction ? {...userInteraction} : null,
-        starCount: fishData.star || 0,
-        unstarCount: fishData.unstar || 0,
-        score: fishData.score || 0
+        userInteraction: userInteraction ? {...userInteraction} : null
       };
+      
+      // 兼容新旧数据结构
+      if ('star' in fishData && 'unstar' in fishData) {
+        // 旧数据结构：有评分字段
+        originalState.starCount = fishData.star || 0;
+        originalState.unstarCount = fishData.unstar || 0;
+        originalState.score = fishData.score || 0;
+      } else {
+        // 新数据结构：没有评分字段，使用临时字段
+        originalState.tempStarCount = fishData.tempStar || 0;
+        originalState.tempUnstarCount = fishData.tempUnstar || 0;
+        originalState.tempScore = fishData.tempScore || 0;
+      }
 
       const oppositeAction = actionType === 'star' ? 'unstar' : 'star';
 
@@ -1772,10 +1836,19 @@ async refreshFishTank() {
 
     const fishData = this.selectedFishData.fishData;
 
-    // 回滚数据状态
-    fishData.star = originalState.starCount;
-    fishData.unstar = originalState.unstarCount;
-    fishData.score = originalState.score;
+    // 回滚数据状态 - 兼容新旧数据结构
+    if ('star' in fishData && 'unstar' in fishData) {
+      // 旧数据结构：有评分字段
+      fishData.star = originalState.starCount;
+      fishData.unstar = originalState.unstarCount;
+      fishData.score = originalState.score;
+    } else {
+      // 新数据结构：使用临时字段
+      fishData.tempStar = originalState.tempStarCount || 0;
+      fishData.tempUnstar = originalState.tempUnstarCount || 0;
+      fishData.tempScore = originalState.tempScore || 0;
+    }
+    
     this.selectedFishData.userInteraction = originalState.userInteraction;
 
     // 立即更新UI

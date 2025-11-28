@@ -225,7 +225,7 @@ class DatabaseManager {
 
       while (allData.length < limit) {
         const result = await this.cloudDb.collection('fishes')
-          .orderBy('score', 'desc')
+          .orderBy('createTimestamp', 'desc')
           .skip(skip)
           .limit(batchSize)
           .get();
@@ -257,16 +257,16 @@ class DatabaseManager {
       console.log(`获取排行榜第${page+1}页，每页${pageSize}条`);
 
       const result = await this.cloudDb.collection('fishes')
-        .orderBy('score', 'desc')
+        .orderBy('createTimestamp', 'desc')
         .skip(page * pageSize)
         .limit(pageSize)
         .get();
 
       // 过滤有效数据
       const validRankingData = result.data.filter(fish => fish.base64 && fish.base64.length > 0);
-      
+
       console.log(`第${page+1}页获取了 ${validRankingData.length} 条有效数据`);
-      
+
       return {
         data: validRankingData,
         hasMore: result.data.length === pageSize // 如果返回的数据量等于请求量，说明可能还有更多
@@ -293,7 +293,7 @@ class DatabaseManager {
             // 筛选本周创建的鱼
             createdAt: this.cloudDb.command.gte(startOfWeek)
           })
-          .orderBy('score', 'desc')
+          .orderBy('createTimestamp', 'desc')
           .skip(skip)
           .limit(batchSize)
           .get();
@@ -329,16 +329,16 @@ class DatabaseManager {
           // 筛选本周创建的鱼
           createdAt: this.cloudDb.command.gte(startOfWeek)
         })
-        .orderBy('score', 'desc')
+        .orderBy('createTimestamp', 'desc')
         .skip(page * pageSize)
         .limit(pageSize)
         .get();
 
       // 过滤有效数据
       const validRankingData = result.data.filter(fish => fish.base64 && fish.base64.length > 0);
-      
+
       console.log(`本周排行榜第${page+1}页获取了 ${validRankingData.length} 条有效数据`);
-      
+
       return {
         data: validRankingData,
         hasMore: result.data.length === pageSize // 如果返回的数据量等于请求量，说明可能还有更多
@@ -378,9 +378,6 @@ class DatabaseManager {
     try {
       const simpleFishData = {
         fish_name: fishData.fishName,
-        score: 0,
-        star_count: 0,
-        unstar_count: 0,
         base64: fishData.base64,
         create_time: new Date(),
         timestamp: Date.now()
@@ -403,20 +400,35 @@ class DatabaseManager {
     }
   }
 
-  // 更新鱼的评分
+  // 更新鱼的评分（兼容旧数据，新创建的鱼不包含这些字段）
   async updateFishScore(fishId, newScore, starCount, unstarCount) {
     if (!Utils.checkDatabaseInitialization(this, '更新鱼评分')) return false;
 
     try {
       console.log(`更新鱼 ${fishId} 的评分: score=${newScore}, star=${starCount}, unstar=${unstarCount}`);
 
-      await this.cloudDb.collection('fishes').doc(fishId).update({
-        data: {
-          score: newScore,
-          star: starCount,
-          unstar: unstarCount,
-          updateTime: new Date()
+      // 构建更新数据对象，只包含需要的字段
+      const updateData = {
+        updateTime: new Date()
+      };
+
+      // 先获取当前鱼的数据，检查是否包含评分字段
+      const fishDoc = await this.cloudDb.collection('fishes').doc(fishId).get();
+      if (fishDoc.data) {
+        // 只有当鱼数据包含这些字段时才更新
+        if ('score' in fishDoc.data) {
+          updateData.score = newScore;
         }
+        if ('star' in fishDoc.data) {
+          updateData.star = starCount;
+        }
+        if ('unstar' in fishDoc.data) {
+          updateData.unstar = unstarCount;
+        }
+      }
+
+      await this.cloudDb.collection('fishes').doc(fishId).update({
+        data: updateData
       });
 
       console.log('鱼评分更新成功');
