@@ -1,0 +1,9 @@
+{
+  "name": "delete-fish-interactions",
+  "version": "1.0.0",
+  "description": "删除指定鱼的所有交互记录",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "latest"
+  }
+}

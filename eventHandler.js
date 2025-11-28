@@ -214,40 +214,29 @@ class EventHandler {
     }
   }
 
-  // 新增：从interaction集合中删除相关交互记录
+  // 从interaction集合中删除相关交互记录
   async deleteFishInteractions(fishName) {
     if (!Utils.checkDatabaseInitialization(this.databaseManager, '删除交互记录')) return false;
 
     try {
-      console.log(`删除鱼 ${fishName} 的交互记录`);
+      console.log(`删除鱼 ${fishName} 的所有交互记录`);
 
-      // 查询所有相关的交互记录
-      const result = await this.databaseManager.cloudDb.collection('interaction')
-        .where({
-          fishName: fishName  // 只使用fishName字段查找
-        })
-        .get();
+      // 调用云函数删除所有用户的交互记录
+      const result = await wx.cloud.callFunction({
+        name: 'deleteFishInteractions',
+        data: { fishName: fishName }
+      });
 
-      console.log(`找到 ${result.data.length} 条相关交互记录`);
-
-      if (result.data.length === 0) {
-        console.log('没有找到相关的交互记录');
+      if (result.result && result.result.success) {
+        console.log(`云函数调用成功: ${result.result.message}`);
         return true;
+      } else {
+        console.error('云函数调用失败:', result.result?.error || result.result?.message);
+        return false;
       }
-
-      // 批量删除所有相关交互记录
-      const deletePromises = result.data.map(interaction =>
-        this.databaseManager.cloudDb.collection('interaction')
-          .doc(interaction._id)
-          .remove()
-      );
-
-      await Promise.all(deletePromises);
-      console.log(`成功删除 ${result.data.length} 条交互记录`);
-
-      return true;
     } catch (error) {
-      return Utils.handleDatabaseError(error, '删除交互记录', false);
+      console.error('删除交互记录失败:', error);
+      return false;
     }
   }
 
