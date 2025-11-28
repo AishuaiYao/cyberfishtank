@@ -316,24 +316,33 @@ class RankingTouchHandler {
       return;
     }
 
-    // 计算当前可见的鱼的数量
+    // 获取当前排行榜中的最后一条鱼的排名（当前缓存中的最后排名）
+    const currentLastRank = incrementalData.cachedData.length > 0 ? 
+      incrementalData.cachedData.length : 
+      this.eventHandler.rankingData.fishes.length;
+
+    // 计算当前可见的最后一条鱼的排名
     const cardHeight = 200;
     const rowHeight = cardHeight + 15;
     const startY = 100;
     const visibleHeight = config.screenHeight - startY;
     const visibleRows = Math.ceil(visibleHeight / rowHeight);
     const visibleFishCount = Math.ceil((this.currentScrollY + visibleHeight) / rowHeight) * 2; // 2列
+    
+    // 当前可见的最后一条鱼的排名（最小为1）
+    const currentVisibleLastRank = Math.max(1, Math.min(visibleFishCount, currentLastRank));
 
-    // 计算总鱼数量
-    const totalFishCount = this.eventHandler.rankingData.fishes.length;
+    // 计算当前看到的最后一个小鱼排名距离系统缓存里记录的最后一个小鱼排名的差距
+    const rankDistance = currentLastRank - currentVisibleLastRank;
+    const preloadThreshold = 20; // 当距离小于20个排名时触发预加载
 
-    // 计算距离底部的名次数（不是像素距离）
-    // 优化：当距离最后一个小鱼10个名次时触发更多数据加载
-    const distanceFromBottomInRank = totalFishCount - visibleFishCount;
-    const preloadThreshold = 10; // 提前10个名次触发更多数据加载
+    // 新增：如果当前缓存没有更多数据，也跳过预加载
+    if (!incrementalData.hasMore) {
+      return;
+    }
 
-    if (distanceFromBottomInRank <= preloadThreshold && incrementalData.hasMore && !incrementalData.isLoading) {
-      console.log(`距离底部${distanceFromBottomInRank}个名次，触发更多数据加载（阈值：${preloadThreshold}）`);
+    if (rankDistance <= preloadThreshold && incrementalData.hasMore && !incrementalData.isLoading) {
+      console.log(`当前排名距离: ${rankDistance}（阈值: ${preloadThreshold}），当前可见排名: ${currentVisibleLastRank}，缓存最后排名: ${currentLastRank}，触发异步预加载`);
       
       // 确保 loadNextRankingPage 方法存在
       if (typeof this.eventHandler.loadNextRankingPage === 'function') {
