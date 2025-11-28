@@ -84,13 +84,6 @@ class RankingTouchHandler {
       return;
     }
 
-    // 刷新按钮（现在在第三个位置）
-    const refreshButtonX = switchButtonX + switchButtonWidth + 10;
-    if (x >= refreshButtonX && x <= refreshButtonX + 50 && y >= 40 && y <= 70) {
-      this.eventHandler.showRankingInterface();
-      return;
-    }
-
     // 处理卡片点击和点赞点踩按钮
     if (this.handleCardButtonsClick(x, y)) {
       return;
@@ -221,7 +214,7 @@ class RankingTouchHandler {
   // 触摸移动 - 重构：完全重写滑动逻辑
   handleTouchMove(x, y) {
     const moveStartTime = Date.now();
-    
+
     if (!this.eventHandler.rankingData || this.eventHandler.rankingData.fishes.length === 0) {
       console.log(`触摸移动 - 数据为空: ${Date.now() - moveStartTime}ms`);
       return;
@@ -273,7 +266,7 @@ class RankingTouchHandler {
         const renderStartTime = Date.now();
         this.scheduleRender();
         const renderEndTime = Date.now();
-        
+
         // 新增：详细性能调试信息
         console.log(`触摸移动性能分析:
           总耗时: ${renderEndTime - moveStartTime}ms
@@ -360,7 +353,7 @@ class RankingTouchHandler {
   // 新增：高性能渲染执行
   performRender() {
     const renderStartTime = Date.now();
-    
+
     // 性能监控
     const now = Date.now();
     if (now - this.lastFrameTime > 1000) {
@@ -478,14 +471,14 @@ class RankingTouchHandler {
     const touchEndTime = Date.now();
     const totalTime = touchEndTime - this.touchStartTime;
     const totalDistance = this.currentScrollY - this.touchStartScrollY;
-    
+
     // 计算平均速度：总距离 ÷ 总耗时
     if (totalTime > 0) {
       const averageVelocity = totalDistance / totalTime;
-      
+
       // 放大速度值，使惯性滑动更明显
       this.velocity = averageVelocity * this.velocityMultiplier;
-      
+
       console.log(`基于总距离的速度计算:
         总耗时: ${totalTime}ms
         总距离: ${totalDistance.toFixed(2)}
@@ -548,7 +541,7 @@ class RankingTouchHandler {
   startInertiaScrolling() {
     // 关键修复：在停止之前先保存速度值
     const savedVelocity = this.velocity;
-    
+
     // 如果速度太小，不启动惯性滑动
     if (Math.abs(savedVelocity) < this.minVelocityThreshold) {
       console.log(`速度太小 (${savedVelocity.toFixed(4)})，不启动惯性滑动`);
@@ -561,7 +554,7 @@ class RankingTouchHandler {
 
     // 恢复保存的速度值
     this.velocity = savedVelocity;
-    
+
     // 设置状态
     this.isInertiaScrolling = true;
     this.bounceVelocity = 0;
@@ -580,7 +573,7 @@ class RankingTouchHandler {
   // 新增：执行惯性滑动动画
   performInertiaScroll() {
     const inertiaStartTime = Date.now();
-    
+
     if (!this.isInertiaScrolling) {
       return;
     }

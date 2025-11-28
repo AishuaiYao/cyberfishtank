@@ -112,10 +112,6 @@ class UIManager {
 
     Utils.drawModernButton(ctx, switchButtonX, 40, switchButtonWidth, 30, switchButtonText, false, false);
 
-    // 绘制刷新按钮（现在在第三个位置）
-    const refreshButtonX = switchButtonX + switchButtonWidth; // 在切换按钮右边
-    Utils.drawModernButton(ctx, refreshButtonX, 40, 50, 30, '🔄', false, false, false, true);
-
 //    // 绘制标题 - 上移50像素
 //    ctx.fillStyle = config.textColor;
 //    ctx.font = 'bold 20px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
@@ -153,34 +149,34 @@ class UIManager {
   // 新增：绘制旋转加载动画
   drawLoadingSpinner(x, y, size = 20) {
     const ctx = this.ctx;
-    
+
     // 更新旋转角度
     this.loadingSpinnerAngle = (this.loadingSpinnerAngle - 0.1) % (Math.PI * 2);
-    
+
     ctx.save();
-    
+
     // 移动到中心点
     ctx.translate(x, y);
-    
+
     // 旋转
     ctx.rotate(this.loadingSpinnerAngle);
-    
+
     // 绘制旋转的圆弧
     ctx.strokeStyle = config.primaryColor;
     ctx.lineWidth = 3;
     ctx.lineCap = 'round';
-    
+
     // 绘制3/4圆弧
     ctx.beginPath();
     ctx.arc(0, 0, size/2, 0, Math.PI * 1.5);
     ctx.stroke();
-    
+
     // 绘制旋转的端点
     ctx.fillStyle = config.primaryColor;
     ctx.beginPath();
     ctx.arc(size/2, 0, 3, 0, Math.PI * 2);
     ctx.fill();
-    
+
     ctx.restore();
   }
 
@@ -235,14 +231,14 @@ class UIManager {
 
     // 检查是否正在加载更多数据
     const currentMode = this.eventHandler.currentRankingMode;
-    if (this.eventHandler.rankingIncrementalData && 
-        this.eventHandler.rankingIncrementalData[currentMode] && 
+    if (this.eventHandler.rankingIncrementalData &&
+        this.eventHandler.rankingIncrementalData[currentMode] &&
         this.eventHandler.rankingIncrementalData[currentMode].isLoading) {
-      
+
       // 在底部绘制加载动画和文字
       const spinnerY = config.screenHeight - 50;
       this.drawLoadingSpinner(Math.round(config.screenWidth / 2), spinnerY, 24);
-      
+
       // 绘制加载文字
       ctx.save();
       ctx.fillStyle = config.lightTextColor;
@@ -257,12 +253,12 @@ class UIManager {
   // 高性能版本：排行榜卡片增量渲染优化
   drawRankingCardsOnly() {
     const ctx = this.ctx;
-    
+
     // 安全检查
     if (!this.eventHandler.rankingData || !this.eventHandler.rankingData.fishes) {
       return;
     }
-    
+
     const rankingFishes = this.eventHandler.rankingData.fishes;
     const scrollOffset = this.eventHandler.touchHandlers.ranking.getScrollOffset();
 
@@ -318,14 +314,14 @@ class UIManager {
 
     // 检查是否正在加载更多数据
     const currentMode = this.eventHandler.currentRankingMode;
-    if (this.eventHandler.rankingIncrementalData && 
-        this.eventHandler.rankingIncrementalData[currentMode] && 
+    if (this.eventHandler.rankingIncrementalData &&
+        this.eventHandler.rankingIncrementalData[currentMode] &&
         this.eventHandler.rankingIncrementalData[currentMode].isLoading) {
-      
+
       // 在底部绘制加载动画和文字
       const spinnerY = config.screenHeight - 50;
       this.drawLoadingSpinner(Math.round(config.screenWidth / 2), spinnerY, 24);
-      
+
       // 绘制加载文字
       ctx.save();
       ctx.fillStyle = config.lightTextColor;
