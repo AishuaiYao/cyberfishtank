@@ -4,11 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="代码结构优化-优化try catch">
+    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="代码结构优化-在interaction里删除全部相关数据">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/databaseManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/databaseManager.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/eventHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/eventHandler.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils.js" beforeDir="false" afterPath="$PROJECT_DIR$/utils.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -73,22 +71,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00027" summary="base：重构代码">
-      <option name="closed" value="true" />
-      <created>1763561451052</created>
-      <option name="number" value="00027" />
-      <option name="presentableId" value="LOCAL-00027" />
-      <option name="project" value="LOCAL" />
-      <updated>1763561451052</updated>
-    </task>
-    <task id="LOCAL-00028" summary="base：重构代码2">
-      <option name="closed" value="true" />
-      <created>1763563914613</created>
-      <option name="number" value="00028" />
-      <option name="presentableId" value="LOCAL-00028" />
-      <option name="project" value="LOCAL" />
-      <updated>1763563914613</updated>
     </task>
     <task id="LOCAL-00029" summary="base：排名界面基本正常">
       <option name="closed" value="true" />
@@ -466,12 +448,26 @@
       <option name="project" value="LOCAL" />
       <updated>1764253954156</updated>
     </task>
-    <option name="localTasksCounter" value="76" />
+    <task id="LOCAL-00076" summary="代码结构优化">
+      <option name="closed" value="true" />
+      <created>1764314480725</created>
+      <option name="number" value="00076" />
+      <option name="presentableId" value="LOCAL-00076" />
+      <option name="project" value="LOCAL" />
+      <updated>1764314480725</updated>
+    </task>
+    <task id="LOCAL-00077" summary="代码结构优化-在interaction里删除全部相关数据">
+      <option name="closed" value="true" />
+      <created>1764315720015</created>
+      <option name="number" value="00077" />
+      <option name="presentableId" value="LOCAL-00077" />
+      <option name="project" value="LOCAL" />
+      <updated>1764315720015</updated>
+    </task>
+    <option name="localTasksCounter" value="78" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="本次绘制和其他鱼绘制逻辑统一" />
-    <MESSAGE value="暂时修复鱼缸渲染为0的问题" />
     <MESSAGE value="维护全局渲染鱼list" />
     <MESSAGE value="修复排行榜不能显示top100" />
     <MESSAGE value="修复数据库真随机选取" />
@@ -495,6 +491,8 @@
     <MESSAGE value="代码结构优化1" />
     <MESSAGE value="代码结构优化-合并点赞" />
     <MESSAGE value="代码结构优化-优化try catch" />
-    <option name="LAST_COMMIT_MESSAGE" value="代码结构优化-优化try catch" />
+    <MESSAGE value="代码结构优化" />
+    <MESSAGE value="代码结构优化-在interaction里删除全部相关数据" />
+    <option name="LAST_COMMIT_MESSAGE" value="代码结构优化-在interaction里删除全部相关数据" />
   </component>
 </project>

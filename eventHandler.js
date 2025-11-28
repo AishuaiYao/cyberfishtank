@@ -823,10 +823,30 @@ async loadMyFishes(randomMode = false) {
     await this._createFishesFromList(this.myFishTankList, 'my');
   }
 
+  // 新增：统一模式切换函数
+  async switchMode(modeType, newMode) {
+    if (modeType === 'tank') {
+      this.currentTankMode = newMode;
+      await this.enterFishTank(null, newMode);
+    } else if (modeType === 'ranking') {
+      this.currentRankingMode = newMode;
+      await this.showRankingInterface();
+      
+      const modeName = newMode === 'cyber' ? '赛博排行榜' : '本周排行榜';
+      console.log(`切换到${modeName}`);
+    }
+  }
+
   // 新增：切换鱼缸模式
   async switchTankMode() {
     const newMode = this.currentTankMode === 'public' ? 'my' : 'public';
-    await this.enterFishTank(null, newMode);
+    await this.switchMode('tank', newMode);
+  }
+
+  // 新增：切换排行榜模式
+  async switchRankingMode() {
+    const newMode = this.currentRankingMode === 'cyber' ? 'weekly' : 'cyber';
+    await this.switchMode('ranking', newMode);
   }
 
   // 新增：获取切换按钮文本
@@ -841,18 +861,6 @@ async loadMyFishes(randomMode = false) {
     } else {
       return this.myFishTankList.length;
     }
-  }
-
-  // 新增：切换排行榜模式
-  async switchRankingMode() {
-    const newMode = this.currentRankingMode === 'cyber' ? 'weekly' : 'cyber';
-    this.currentRankingMode = newMode;
-
-    // 重新加载排行榜数据
-    await this.showRankingInterface();
-
-    const modeName = newMode === 'cyber' ? '赛博排行榜' : '本周排行榜';
-    console.log(`切换到${modeName}`);
   }
 
   // 新增：获取排行榜切换按钮文本
@@ -1025,10 +1033,10 @@ async refreshFishTank() {
     console.log('排行榜鱼用户交互状态加载完成');
   }
 
-  // 修改：处理排行榜点赞操作 - 使用缓存的openid
-  async handleRankingLikeAction(fishItem) {
+  // 修改：统一处理排行榜交互操作
+  async handleRankingInteraction(fishItem, action) {
     if (!this.canPerformInteraction()) {
-      console.log('操作过于频繁，跳过点赞操作');
+      console.log('操作过于频繁，跳过操作');
       return;
     }
 
@@ -1052,95 +1060,68 @@ async refreshFishTank() {
         score: fishData.score || 0
       };
 
-      // 如果当前已经是点赞状态，则取消点赞
-      if (currentAction === 'star') {
-        await this.cancelRankingLikeAction(fishItem, userInteraction, originalState);
-      } else if (currentAction === 'unstar') {
-        // 如果当前是点踩状态，不允许切换操作
-        Utils.showError('请先取消点踩');
+      // 统一处理逻辑
+      if (currentAction === action) {
+        // 取消操作
+        await this.cancelRankingInteraction(fishItem, userInteraction, originalState);
+      } else if (currentAction && currentAction !== action) {
+        // 不允许切换操作
+        const oppositeAction = action === 'star' ? '点踩' : '点赞';
+        Utils.showError(`请先取消${oppositeAction}`);
         return;
       } else {
-        // 无交互状态，进行点赞操作
-        await this.performRankingLikeAction(fishItem, originalState);
+        // 执行操作
+        await this.performRankingInteraction(fishItem, action, originalState);
       }
 
     } catch (error) {
-      Utils.handleError(error, '排行榜点赞操作失败');
+      Utils.handleError(error, `排行榜${action === 'star' ? '点赞' : '点踩'}操作失败`);
       Utils.showError('操作失败，请重试');
     } finally {
       this.endInteraction();
     }
+  }
+
+  // 修改：处理排行榜点赞操作 - 使用缓存的openid
+  async handleRankingLikeAction(fishItem) {
+    await this.handleRankingInteraction(fishItem, 'star');
   }
 
   // 修改：处理排行榜点踩操作 - 使用缓存的openid
   async handleRankingDislikeAction(fishItem) {
-    if (!this.canPerformInteraction()) {
-      console.log('操作过于频繁，跳点点踩操作');
-      return;
-    }
+    await this.handleRankingInteraction(fishItem, 'unstar');
+  }
 
-    this.startInteraction();
+  // 修改：执行排行榜交互操作
+  async performRankingInteraction(fishItem, action, originalState) {
+    await this.performInteractionAction(fishItem.fishData, action, originalState, true);
+  }
 
-    try {
-      const fishData = fishItem.fishData;
-      if (!fishData._id) {
-        console.warn('鱼数据没有ID，无法更新');
-        return;
-      }
-
-      const userInteraction = fishItem.userInteraction;
-      const currentAction = userInteraction ? userInteraction.action : null;
-
-      // 保存原始状态用于回滚
-      const originalState = {
-        userInteraction: userInteraction ? {...userInteraction} : null,
-        starCount: fishData.star || 0,
-        unstarCount: fishData.unstar || 0,
-        score: fishData.score || 0
-      };
-
-      // 如果当前已经是点踩状态，则取消点踩
-      if (currentAction === 'unstar') {
-        await this.cancelRankingDislikeAction(fishItem, userInteraction, originalState);
-      } else if (currentAction === 'star') {
-        // 如果当前是点赞状态，不允许切换操作
-        Utils.showError('请先取消点赞');
-        return;
-      } else {
-        // 无交互状态，进行点踩操作
-        await this.performRankingDislikeAction(fishItem, originalState);
-      }
-
-    } catch (error) {
-      Utils.handleError(error, '排行榜点踩操作失败');
-      Utils.showError('操作失败，请重试');
-    } finally {
-      this.endInteraction();
-    }
+  // 修改：取消排行榜交互操作
+  async cancelRankingInteraction(fishItem, userInteraction, originalState) {
+    await this.cancelInteractionAction(fishItem.fishData, userInteraction, originalState, true);
+    // 在排行榜情况下，需要清除userInteraction
+    fishItem.userInteraction = null;
   }
 
   // 修改：执行排行榜点赞操作 - 使用缓存的openid
   async performRankingLikeAction(fishItem, originalState) {
-    await this.performInteractionAction(fishItem.fishData, 'star', originalState, true);
+    await this.performRankingInteraction(fishItem, 'star', originalState);
   }
 
   // 修改：执行排行榜点踩操作 - 使用缓存的openid
   async performRankingDislikeAction(fishItem, originalState) {
-    await this.performInteractionAction(fishItem.fishData, 'unstar', originalState, true);
+    await this.performRankingInteraction(fishItem, 'unstar', originalState);
   }
 
   // 修改：取消排行榜点赞操作 - 使用缓存的openid
   async cancelRankingLikeAction(fishItem, userInteraction, originalState) {
-    await this.cancelInteractionAction(fishItem.fishData, userInteraction, originalState, true);
-    // 在排行榜情况下，需要清除userInteraction
-    fishItem.userInteraction = null;
+    await this.cancelRankingInteraction(fishItem, userInteraction, originalState);
   }
 
   // 修改：取消排行榜点踩操作 - 使用缓存的openid
   async cancelRankingDislikeAction(fishItem, userInteraction, originalState) {
-    await this.cancelInteractionAction(fishItem.fishData, userInteraction, originalState, true);
-    // 在排行榜情况下，需要清除userInteraction
-    fishItem.userInteraction = null;
+    await this.cancelRankingInteraction(fishItem, userInteraction, originalState);
   }
 
   // 新增：回滚排行榜状态
