@@ -34,11 +34,12 @@ class RankingTouchHandler {
     this.lastMoveTime = 0;
     this.lastDeltaYHistory = []; // 用于计算平均速度
     this.deltaYHistorySize = 5; // 记录最近的5次滑动
-    this.friction = 0.97; // 摩擦系数，控制减速速率（增大使滑动更持久）
-    this.minVelocityThreshold = 0.02; // 最小速度阈值，低于此值停止惯性滑动（减小使滑动更持久）
-    this.bounceFactor = 0.4; // 边界回弹系数
+    this.friction = 0.985; // 摩擦系数，控制减速速率（增大使滑动更持久）
+    this.minVelocityThreshold = 0.005; // 最小速度阈值，低于此值停止惯性滑动（减小使滑动更持久）
+    this.bounceFactor = 0.5; // 边界回弹系数
     this.bounceVelocity = 0; // 回弹速度
     this.isBouncing = false; // 是否正在回弹
+    this.velocityMultiplier = 2.0; // 速度放大系数，使惯性更明显
 
     // 新增：加载动画帧ID
     this.loadingAnimationId = null;
@@ -222,9 +223,10 @@ class RankingTouchHandler {
         // 记录滑动速度信息
         const timeDelta = currentTime - this.lastMoveTime;
         if (timeDelta > 0) {
-          // 计算当前速度，直接使用像素差值作为速度（不需要除以时间）
-          // 这样可以使速度值更大，更容易触发惯性滑动
-          const currentVelocity = deltaY;
+          // 计算当前速度，使用像素差值/时间间隔
+          // 限制最大时间间隔，避免长时间不滑动后突然滑动导致速度计算不准
+          const clampedTimeDelta = Math.min(timeDelta, 50); // 最大50ms间隔
+          const currentVelocity = deltaY / clampedTimeDelta * 16; // 归一化到60fps
           
           // 保存到历史记录
           this.lastDeltaYHistory.push({
@@ -274,11 +276,11 @@ class RankingTouchHandler {
 
     // 计算距离底部的距离
     const distanceFromBottom = this.maxScrollY - this.currentScrollY;
-    const threshold = 200; // 距离底部200像素时触发加载
+    const threshold = 300; // 距离底部300像素时触发加载，提前触发
 
-    console.log(`检查加载条件: 距离底部=${distanceFromBottom}, 阈值=${threshold}, 有更多数据=${incrementalData.hasMore}`);
+    // console.log(`检查加载条件: 距离底部=${distanceFromBottom}, 阈值=${threshold}, 有更多数据=${incrementalData.hasMore}`);
 
-    if (distanceFromBottom <= threshold && incrementalData.hasMore) {
+    if (distanceFromBottom <= threshold && incrementalData.hasMore && !incrementalData.isLoading) {
       console.log('滚动到底部附近，触发增量加载');
       
       // 确保 loadNextRankingPage 方法存在
@@ -442,8 +444,8 @@ class RankingTouchHandler {
     if (totalWeight > 0) {
       this.velocity = totalVelocity / totalWeight;
       // 放大速度值，使惯性滑动更明显
-      this.velocity *= 0.8;
-      console.log(`计算得到惯性速度: ${this.velocity}`);
+      this.velocity *= this.velocityMultiplier;
+      // console.log(`计算得到惯性速度: ${this.velocity}`);
     } else {
       this.velocity = 0;
     }
@@ -465,7 +467,7 @@ class RankingTouchHandler {
     this.bounceVelocity = 0;
     this.isBouncing = false;
     
-    console.log(`启动惯性滑动，初始速度: ${this.velocity}`);
+    // console.log(`启动惯性滑动，初始速度: ${this.velocity}`);
     
     // 开始动画
     this.inertiaAnimationId = requestAnimationFrame(() => {
@@ -485,7 +487,7 @@ class RankingTouchHandler {
     if (!this.isBouncing) {
       this.velocity *= this.friction;
       
-      // 更新滚动位置 - 放大移动距离，使惯性滑动更明显
+      // 更新滚动位置
       this.currentScrollY += this.velocity;
       
       // 边界检查
@@ -493,12 +495,10 @@ class RankingTouchHandler {
         this.currentScrollY = 0;
         this.isBouncing = true;
         this.bounceVelocity = this.velocity * this.bounceFactor;
-        console.log(`达到顶部边界，启动回弹，回弹速度: ${this.bounceVelocity}`);
       } else if (this.currentScrollY > this.maxScrollY) {
         this.currentScrollY = this.maxScrollY;
         this.isBouncing = true;
         this.bounceVelocity = this.velocity * this.bounceFactor;
-        console.log(`达到底部边界，启动回弹，回弹速度: ${this.bounceVelocity}`);
       }
     } else {
       // 回弹状态
@@ -526,8 +526,8 @@ class RankingTouchHandler {
       return;
     }
 
-    // 重绘UI
-    this.scheduleRender();
+    // 立即重绘UI - 不使用节流，确保惯性滑动流畅
+    this.performRender();
     
     // 检查是否需要加载更多数据
     if (prevScrollY !== this.currentScrollY) {

@@ -249,6 +249,33 @@ class DatabaseManager {
     }
   }
 
+  // 新增：分页获取排行榜数据
+  async getRankingDataPage(page = 0, pageSize = 20) {
+    if (!Utils.checkDatabaseInitialization(this, '获取排行榜分页数据')) return [];
+
+    try {
+      console.log(`获取排行榜第${page+1}页，每页${pageSize}条`);
+
+      const result = await this.cloudDb.collection('fishes')
+        .orderBy('score', 'desc')
+        .skip(page * pageSize)
+        .limit(pageSize)
+        .get();
+
+      // 过滤有效数据
+      const validRankingData = result.data.filter(fish => fish.base64 && fish.base64.length > 0);
+      
+      console.log(`第${page+1}页获取了 ${validRankingData.length} 条有效数据`);
+      
+      return {
+        data: validRankingData,
+        hasMore: result.data.length === pageSize // 如果返回的数据量等于请求量，说明可能还有更多
+      };
+    } catch (error) {
+      return Utils.handleDatabaseError(error, '获取排行榜分页数据', { data: [], hasMore: false });
+    }
+  }
+
   // 新增：获取本周排行榜数据
   async getWeeklyRankingData(limit = 100, startOfWeek) {
     if (!Utils.checkDatabaseInitialization(this, '获取本周排行榜数据')) return [];
@@ -287,6 +314,37 @@ class DatabaseManager {
       return validRankingData;
     } catch (error) {
       return Utils.handleDatabaseError(error, '获取本周排行榜数据', []);
+    }
+  }
+
+  // 新增：分页获取本周排行榜数据
+  async getWeeklyRankingDataPage(page = 0, pageSize = 20, startOfWeek) {
+    if (!Utils.checkDatabaseInitialization(this, '获取本周排行榜分页数据')) return { data: [], hasMore: false };
+
+    try {
+      console.log(`获取本周排行榜第${page+1}页，每页${pageSize}条，起始时间: ${startOfWeek}`);
+
+      const result = await this.cloudDb.collection('fishes')
+        .where({
+          // 筛选本周创建的鱼
+          createdAt: this.cloudDb.command.gte(startOfWeek)
+        })
+        .orderBy('score', 'desc')
+        .skip(page * pageSize)
+        .limit(pageSize)
+        .get();
+
+      // 过滤有效数据
+      const validRankingData = result.data.filter(fish => fish.base64 && fish.base64.length > 0);
+      
+      console.log(`本周排行榜第${page+1}页获取了 ${validRankingData.length} 条有效数据`);
+      
+      return {
+        data: validRankingData,
+        hasMore: result.data.length === pageSize // 如果返回的数据量等于请求量，说明可能还有更多
+      };
+    } catch (error) {
+      return Utils.handleDatabaseError(error, '获取本周排行榜分页数据', { data: [], hasMore: false });
     }
   }
 
