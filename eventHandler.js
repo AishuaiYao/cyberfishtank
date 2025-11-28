@@ -1092,6 +1092,9 @@ async refreshFishTank() {
         }
       }
 
+      // 计算每条鱼的评分（从interaction集合中实时计算）
+      await this.calculateFishesScores(rankingFishesWithImages);
+
       // 加载用户交互状态
       await this.loadRankingFishesUserInteractions(rankingFishesWithImages);
 
@@ -1109,6 +1112,80 @@ async refreshFishTank() {
     } finally {
       this.isLoadingRanking = false;
       this.uiManager.drawGameUI(this.gameState);
+    }
+  }
+
+  // 新增：计算多条鱼的评分
+  async calculateFishesScores(fishesWithImages) {
+    if (!fishesWithImages || fishesWithImages.length === 0) {
+      return;
+    }
+
+    console.log('开始计算鱼的评分...');
+
+    try {
+      // 提取所有鱼的名称
+      const fishNames = fishesWithImages.map(item => item.fishData.fishName);
+      
+      // 批量计算评分
+      const scoresMap = await this.databaseManager.calculateMultipleFishesScores(fishNames);
+      
+      // 更新每条鱼的评分数据
+      fishesWithImages.forEach(item => {
+        const fishName = item.fishData.fishName;
+        if (scoresMap[fishName]) {
+          const { score, starCount, unstarCount } = scoresMap[fishName];
+          
+          // 兼容新旧数据结构：如果鱼数据有评分字段则更新，否则使用临时字段
+          if ('score' in item.fishData) {
+            item.fishData.score = score;
+            item.fishData.star = starCount;
+            item.fishData.unstar = unstarCount;
+          } else {
+            // 使用临时字段存储评分数据
+            item.fishData.tempScore = score;
+            item.fishData.tempStar = starCount;
+            item.fishData.tempUnstar = unstarCount;
+          }
+          
+          console.log(`鱼 ${fishName} 评分更新: ${score} (star: ${starCount}, unstar: ${unstarCount})`);
+        }
+      });
+      
+      console.log('鱼的评分计算完成');
+    } catch (error) {
+      Utils.handleError(error, '计算鱼的评分失败');
+    }
+  }
+
+  // 新增：计算单条鱼的评分
+  async calculateSingleFishScore(fishData) {
+    if (!fishData || !fishData.fishName) {
+      return;
+    }
+
+    console.log(`开始计算鱼 ${fishData.fishName} 的评分...`);
+
+    try {
+      // 计算评分
+      const scoreData = await this.databaseManager.calculateFishScore(fishData.fishName);
+      const { score, starCount, unstarCount } = scoreData;
+      
+      // 兼容新旧数据结构：如果鱼数据有评分字段则更新，否则使用临时字段
+      if ('score' in fishData) {
+        fishData.score = score;
+        fishData.star = starCount;
+        fishData.unstar = unstarCount;
+      } else {
+        // 使用临时字段存储评分数据
+        fishData.tempScore = score;
+        fishData.tempStar = starCount;
+        fishData.tempUnstar = unstarCount;
+      }
+      
+      console.log(`鱼 ${fishData.fishName} 评分更新: ${score} (star: ${starCount}, unstar: ${unstarCount})`);
+    } catch (error) {
+      Utils.handleError(error, `计算鱼 ${fishData.fishName} 的评分失败`);
     }
   }
 
@@ -1196,7 +1273,7 @@ async refreshFishTank() {
       // 将新数据添加到缓存
       incrementalData.cachedData = [...incrementalData.cachedData, ...nextPageResult.data];
 
-      // 为新加载的鱼数据创建图像和加载交互状态
+      // 为新加载的鱼数据创建图像
       const newFishes = [];
 
       for (const fishData of nextPageResult.data) {
@@ -1207,22 +1284,27 @@ async refreshFishTank() {
             fishImage: fishImage
           };
 
-          // 加载用户交互状态
-          if (this.userOpenid) {
-            try {
-              fishItem.userInteraction = await this.databaseManager.getUserInteraction(
-                fishData.fishName,
-                this.userOpenid
-              );
-            } catch (error) {
-              Utils.handleWarning(error, `加载鱼 ${fishData.fishName} 的交互状态失败`);
-              fishItem.userInteraction = null;
-            }
-          }
-
           newFishes.push(fishItem);
         } catch (error) {
           console.warn('创建排行榜鱼图像失败:', error);
+        }
+      }
+
+      // 计算新加载鱼的评分
+      await this.calculateFishesScores(newFishes);
+
+      // 加载用户交互状态
+      for (const fishItem of newFishes) {
+        if (this.userOpenid) {
+          try {
+            fishItem.userInteraction = await this.databaseManager.getUserInteraction(
+              fishItem.fishData.fishName,
+              this.userOpenid
+            );
+          } catch (error) {
+            Utils.handleWarning(error, `加载鱼 ${fishItem.fishData.fishName} 的交互状态失败`);
+            fishItem.userInteraction = null;
+          }
         }
       }
 
@@ -1684,6 +1766,9 @@ async refreshFishTank() {
     if (fish.fishData && fish.fishData.fishName) {
       this.clearLocalInteractionState(fish.fishData.fishName);
     }
+
+    // 新增：计算鱼的评分（从interaction集合中实时计算）
+    await this.calculateSingleFishScore(fish.fishData);
 
     // 新增：加载用户交互状态
     await this.loadUserInteraction(fish.fishData.fishName);
