@@ -58,11 +58,10 @@ class RankingTouchHandler {
     // 新增：加载动画帧ID
     this.loadingAnimationId = null;
 
-    // 新增：弹性下拉回弹参数
-    this.elasticDistance = 100; // 弹性距离100像素
-    this.elasticStiffness = 0.3; // 弹性刚度
-    this.elasticDamping = 0.8; // 弹性阻尼
-    this.isElasticScrolling = false; // 是否正在弹性滚动
+    // 新增：弹性滚动相关参数
+    this.elasticDistance = 100; // 最大弹性距离100像素
+    this.elasticStiffness = 0.3; // 弹性刚度系数
+    this.isElasticScrolling = false; // 是否处于弹性滚动状态
     this.elasticAnimationId = null; // 弹性动画ID
   }
 
@@ -197,7 +196,7 @@ class RankingTouchHandler {
   handleTouchStart(x, y) {
     // 停止当前惯性滑动和弹性动画
     this.stopInertiaScrolling();
-    this.stopElasticBounce();
+    this.stopElasticAnimation();
 
     this.touchStartY = y;
     this.lastTouchY = y;
@@ -211,6 +210,7 @@ class RankingTouchHandler {
     this.velocity = 0;
     this.bounceVelocity = 0;
     this.isBouncing = false;
+    this.isElasticScrolling = false;
 
     // 新增：记录触摸开始的时间和滚动位置
     this.touchStartTime = Date.now();
@@ -219,7 +219,7 @@ class RankingTouchHandler {
     console.log('触摸开始，重置惯性参数');
   }
 
-  // 触摸移动 - 重构：完全重写滑动逻辑，添加弹性滚动
+  // 触摸移动 - 重构：完全重写滑动逻辑，添加弹性效果
   handleTouchMove(x, y) {
     const moveStartTime = Date.now();
 
@@ -241,38 +241,26 @@ class RankingTouchHandler {
       if (Math.abs(deltaY) > 0) {
         this.isScrolling = true;
 
-        // 更新滚动位置，支持弹性滚动
+        // 更新滚动位置，添加弹性边界
         const prevScrollY = this.currentScrollY;
-        
-        // 计算弹性滚动位置
+
+        // 新增：弹性滚动计算
         let newScrollY = this.currentScrollY + deltaY;
-        
+
         // 检查是否超出边界，应用弹性效果
         if (newScrollY < 0) {
-          // 超出顶部，应用弹性效果
-          const overshoot = -newScrollY;
-          if (overshoot <= this.elasticDistance) {
-            // 在弹性范围内，直接使用新位置
-            this.currentScrollY = newScrollY;
-          } else {
-            // 超出弹性范围，限制在最大弹性距离内
-            this.currentScrollY = -this.elasticDistance;
-          }
+          // 超出顶部边界，应用弹性阻力
+          const overscroll = -newScrollY;
+          const resistance = this.calculateElasticResistance(overscroll);
+          newScrollY = this.currentScrollY + deltaY * resistance;
         } else if (newScrollY > this.maxScrollY) {
-          // 超出底部，应用弹性效果
-          const overshoot = newScrollY - this.maxScrollY;
-          if (overshoot <= this.elasticDistance) {
-            // 在弹性范围内，直接使用新位置
-            this.currentScrollY = newScrollY;
-          } else {
-            // 超出弹性范围，限制在最大弹性距离内
-            this.currentScrollY = this.maxScrollY + this.elasticDistance;
-          }
-        } else {
-          // 正常范围内，直接更新
-          this.currentScrollY = newScrollY;
+          // 超出底部边界，应用弹性阻力
+          const overscroll = newScrollY - this.maxScrollY;
+          const resistance = this.calculateElasticResistance(overscroll);
+          newScrollY = this.currentScrollY + deltaY * resistance;
         }
-        
+
+        this.currentScrollY = newScrollY;
         this.lastTouchY = y;
 
         // 记录滑动速度信息
@@ -312,13 +300,23 @@ class RankingTouchHandler {
           滚动位置: ${prevScrollY} -> ${this.currentScrollY}
           最大滚动: ${this.maxScrollY}
           数据条数: ${this.eventHandler.rankingData.fishes.length}
-          是否弹性滚动: ${this.isElasticScrolling}
         `);
 
         // 新增：检查是否滚动到底部，触发增量加载
         this.checkLoadMore();
       }
     }
+  }
+
+  // 新增：计算弹性阻力
+  calculateElasticResistance(overscroll) {
+    if (overscroll <= 0) return 1.0;
+
+    // 使用平方根函数创建非线性阻力，越拉阻力越大
+    const normalizedOverscroll = Math.min(overscroll / this.elasticDistance, 1.0);
+    const resistance = 1.0 - Math.sqrt(normalizedOverscroll) * 0.7;
+
+    return Math.max(resistance, 0.3); // 最小阻力为0.3
   }
 
   // 新增：检查是否需要加载更多数据
@@ -447,22 +445,22 @@ class RankingTouchHandler {
     }
   }
 
-  // 触摸结束
+  // 触摸结束 - 添加弹性回弹
   handleTouchEnd() {
     this.isScrolling = false;
 
-    // 新增：基于总距离和总耗时的更科学速度计算
-    this.calculateVelocityByTotalDistance();
-
-    // 调试：打印最终速度信息
-    console.log(`触摸结束 - 最终速度: ${this.velocity.toFixed(4)}, 阈值: ${this.minVelocityThreshold}`);
-
     // 检查是否需要弹性回弹
     if (this.currentScrollY < 0 || this.currentScrollY > this.maxScrollY) {
-      // 当前在弹性区域，启动弹性回弹动画
-      this.startElasticBounce();
+      console.log('触发弹性回弹');
+      this.startElasticAnimation();
     } else {
-      // 正常范围内，启动惯性滑动
+      // 正常惯性滑动逻辑
+      this.calculateVelocityByTotalDistance();
+
+      // 调试：打印最终速度信息
+      console.log(`触摸结束 - 最终速度: ${this.velocity.toFixed(4)}, 阈值: ${this.minVelocityThreshold}`);
+
+      // 启动惯性滑动
       this.startInertiaScrolling();
     }
 
@@ -500,8 +498,9 @@ class RankingTouchHandler {
     this.maxScrollY = 0;
     this.lastButtonClickTime = 0; // 重置按钮点击时间
 
-    // 新增：停止惯性滑动
+    // 新增：停止惯性滑动和弹性动画
     this.stopInertiaScrolling();
+    this.stopElasticAnimation();
 
     // 新增：清理加载动画
     if (this.loadingAnimationId) {
@@ -736,107 +735,68 @@ class RankingTouchHandler {
   }
 
   // 新增：启动弹性回弹动画
-  startElasticBounce() {
+  startElasticAnimation() {
     // 停止任何现有的动画
     this.stopInertiaScrolling();
-    this.stopElasticBounce();
+    this.stopElasticAnimation();
 
-    // 设置弹性滚动状态
     this.isElasticScrolling = true;
-    this.elasticVelocity = 0;
 
-    console.log('启动弹性回弹动画');
-    console.log(`当前滚动位置: ${this.currentScrollY}, 最大滚动: ${this.maxScrollY}`);
+    console.log(`启动弹性回弹动画，当前位置: ${this.currentScrollY}, 目标位置: ${this.getTargetScrollPosition()}`);
 
-    // 开始弹性回弹动画
     this.elasticAnimationId = requestAnimationFrame(() => {
-      this.performElasticBounce();
+      this.performElasticAnimation();
     });
   }
 
   // 新增：执行弹性回弹动画
-  performElasticBounce() {
+  performElasticAnimation() {
     if (!this.isElasticScrolling) {
       return;
     }
 
-    // 计算回弹力
-    let targetPosition = 0;
-    let currentOvershoot = 0;
+    const targetPosition = this.getTargetScrollPosition();
+    const distance = targetPosition - this.currentScrollY;
 
-    if (this.currentScrollY < 0) {
-      // 超出顶部的回弹
-      targetPosition = 0;
-      currentOvershoot = -this.currentScrollY;
-    } else if (this.currentScrollY > this.maxScrollY) {
-      // 超出底部的回弹
-      targetPosition = this.maxScrollY;
-      currentOvershoot = this.currentScrollY - this.maxScrollY;
-    } else {
-      // 已经在正常范围内，停止回弹
-      this.stopElasticBounce();
-      return;
-    }
-
-    // 计算弹性力（弹簧模型）
-    const displacement = this.currentScrollY - targetPosition;
-    const springForce = -this.elasticStiffness * displacement;
-    
-    // 应用阻尼
-    this.elasticVelocity = this.elasticVelocity * this.elasticDamping + springForce;
-    
-    // 更新位置
-    this.currentScrollY += this.elasticVelocity;
-
-    // 检查是否接近目标位置（很小的阈值）
-    if (Math.abs(displacement) < 0.5 && Math.abs(this.elasticVelocity) < 0.1) {
-      // 到达目标位置，停止回弹
+    // 如果距离很小，直接跳到目标位置
+    if (Math.abs(distance) < 0.5) {
       this.currentScrollY = targetPosition;
-      this.stopElasticBounce();
-      console.log('弹性回弹完成');
+      this.stopElasticAnimation();
+      this.scheduleRender(); // 触发一次最终渲染
       return;
     }
+
+    // 使用弹性公式计算新位置
+    this.currentScrollY += distance * this.elasticStiffness;
 
     // 渲染更新
     this.scheduleRender();
 
-    // 继续下一帧动画
+    // 继续动画
     this.elasticAnimationId = requestAnimationFrame(() => {
-      this.performElasticBounce();
+      this.performElasticAnimation();
     });
   }
 
-  // 新增：停止弹性回弹动画
-  stopElasticBounce() {
+  // 新增：获取弹性回弹的目标位置
+  getTargetScrollPosition() {
+    if (this.currentScrollY < 0) {
+      return 0; // 回弹到顶部
+    } else if (this.currentScrollY > this.maxScrollY) {
+      return this.maxScrollY; // 回弹到底部
+    }
+    return this.currentScrollY; // 不需要回弹
+  }
+
+  // 新增：停止弹性动画
+  stopElasticAnimation() {
     if (this.elasticAnimationId) {
       cancelAnimationFrame(this.elasticAnimationId);
       this.elasticAnimationId = null;
     }
 
     this.isElasticScrolling = false;
-    this.elasticVelocity = 0;
-
-    console.log('弹性回弹动画已停止');
-  }
-
-  // 新增：重置时停止所有动画
-  resetScroll() {
-    this.currentScrollY = 0;
-    this.touchStartY = 0;
-    this.lastTouchY = 0;
-    this.isScrolling = false;
-    this.maxScrollY = 0;
-    this.lastButtonClickTime = 0; // 重置按钮点击时间
-
-    // 新增：停止所有动画
-    this.stopInertiaScrolling();
-    this.stopElasticBounce();
-
-    // 新增：清理加载动画
-    if (this.loadingAnimationId) {
-      cancelAnimationFrame(this.loadingAnimationId);
-      this.loadingAnimationId = null;
-    }
+    console.log('弹性动画已停止');
   }
 }
 

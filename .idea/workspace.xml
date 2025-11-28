@@ -4,8 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="代码结构优化-排行榜惯性-去掉刷新">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="代码结构优化-排行榜惯性-顶部下拉">
       <change beforePath="$PROJECT_DIR$/touchHandlers/rankingTouchHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/rankingTouchHandler.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -71,14 +70,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00037" summary="重复添加鱼fix">
-      <option name="closed" value="true" />
-      <created>1763741516732</created>
-      <option name="number" value="00037" />
-      <option name="presentableId" value="LOCAL-00037" />
-      <option name="project" value="LOCAL" />
-      <updated>1763741516732</updated>
     </task>
     <task id="LOCAL-00038" summary="优化UI">
       <option name="closed" value="true" />
@@ -464,11 +455,18 @@
       <option name="project" value="LOCAL" />
       <updated>1764337172350</updated>
     </task>
-    <option name="localTasksCounter" value="86" />
+    <task id="LOCAL-00086" summary="代码结构优化-排行榜惯性-顶部下拉">
+      <option name="closed" value="true" />
+      <created>1764338738764</created>
+      <option name="number" value="00086" />
+      <option name="presentableId" value="LOCAL-00086" />
+      <option name="project" value="LOCAL" />
+      <updated>1764338738764</updated>
+    </task>
+    <option name="localTasksCounter" value="87" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="添加水草" />
     <MESSAGE value="优化绘画中断" />
     <MESSAGE value="刷新button调大" />
     <MESSAGE value="修复自己鱼缸不能显示自己的鱼问题" />
@@ -493,6 +491,7 @@
     <MESSAGE value="代码结构优化-排行榜滑动-分页查询展示1" />
     <MESSAGE value="代码结构优化-排行榜滑动-实现惯性" />
     <MESSAGE value="代码结构优化-排行榜惯性-去掉刷新" />
-    <option name="LAST_COMMIT_MESSAGE" value="代码结构优化-排行榜惯性-去掉刷新" />
+    <MESSAGE value="代码结构优化-排行榜惯性-顶部下拉" />
+    <option name="LAST_COMMIT_MESSAGE" value="代码结构优化-排行榜惯性-顶部下拉" />
   </component>
 </project>
