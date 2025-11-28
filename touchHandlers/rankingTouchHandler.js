@@ -29,6 +29,9 @@ class RankingTouchHandler {
     this.velocity = 0;
     this.inertiaAnimationId = null;
     this.isInertiaScrolling = false;
+
+    // 新增：加载动画帧ID
+    this.loadingAnimationId = null;
   }
 
   // 处理排行榜界面触摸
@@ -190,13 +193,57 @@ class RankingTouchHandler {
       // 立即更新滚动位置（即使移动距离很小）
       if (Math.abs(deltaY) > 0) {
         this.isScrolling = true;
-        
+
         // 更新滚动位置
         this.currentScrollY = Math.max(0, Math.min(this.maxScrollY, this.currentScrollY + deltaY));
         this.lastTouchY = y;
 
         // 高性能渲染优化：立即更新滚动位置，异步渲染
         this.scheduleRender();
+
+        // 新增：检查是否滚动到底部，触发增量加载
+        this.checkLoadMore();
+      }
+    }
+  }
+
+  // 新增：检查是否需要加载更多数据
+  checkLoadMore() {
+    // 添加安全检查
+    if (!this.eventHandler || !this.eventHandler.currentRankingMode) {
+      console.log('排行榜相关数据未初始化，跳过加载检查');
+      return;
+    }
+    
+    const currentMode = this.eventHandler.currentRankingMode;
+    
+    // 确保 rankingIncrementalData 和当前模式的数据存在
+    if (!this.eventHandler.rankingIncrementalData || !this.eventHandler.rankingIncrementalData[currentMode]) {
+      console.log(`增量数据未初始化，当前模式: ${currentMode}`);
+      return;
+    }
+    
+    const incrementalData = this.eventHandler.rankingIncrementalData[currentMode];
+
+    if (!this.eventHandler.rankingData || incrementalData.isLoading) {
+      console.log('跳过加载检查: rankingData存在?', !!this.eventHandler.rankingData, '正在加载?', incrementalData.isLoading);
+      return;
+    }
+
+    // 计算距离底部的距离
+    const distanceFromBottom = this.maxScrollY - this.currentScrollY;
+    const threshold = 200; // 距离底部200像素时触发加载
+
+    console.log(`检查加载条件: 距离底部=${distanceFromBottom}, 阈值=${threshold}, 有更多数据=${incrementalData.hasMore}`);
+
+    if (distanceFromBottom <= threshold && incrementalData.hasMore) {
+      console.log('滚动到底部附近，触发增量加载');
+      
+      // 确保 loadNextRankingPage 方法存在
+      if (typeof this.eventHandler.loadNextRankingPage === 'function') {
+        this.eventHandler.loadNextRankingPage();
+      } else {
+        console.error('loadNextRankingPage 方法未定义');
       }
     }
   }
@@ -204,11 +251,11 @@ class RankingTouchHandler {
   // 新增：高性能渲染调度
   scheduleRender() {
     const now = Date.now();
-    
+
     // 节流控制：减少重绘频率
     if (now - this.lastDrawTime >= this.drawThrottle) {
       this.lastDrawTime = now;
-      
+
       // 取消之前的渲染任务
       if (this.rafId) {
         if (typeof cancelAnimationFrame !== 'undefined') {
@@ -216,7 +263,7 @@ class RankingTouchHandler {
         }
         this.rafId = null;
       }
-      
+
       // 使用requestAnimationFrame进行流畅渲染
       if (typeof requestAnimationFrame !== 'undefined') {
         this.rafId = requestAnimationFrame(() => {
@@ -248,11 +295,34 @@ class RankingTouchHandler {
     } else {
       this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
     }
+
+    // 在每次渲染时也检查加载条件，以便在惯性滚动到底部时触发加载
+    this.checkLoadMore();
+
+    // 新增：如果正在加载中，持续触发重绘以播放加载动画
+    const currentMode = this.eventHandler.currentRankingMode;
+    if (this.eventHandler.rankingIncrementalData && 
+        this.eventHandler.rankingIncrementalData[currentMode] && 
+        this.eventHandler.rankingIncrementalData[currentMode].isLoading) {
+      // 取消之前的动画帧请求
+      if (this.loadingAnimationId) {
+        cancelAnimationFrame(this.loadingAnimationId);
+      }
+
+      // 设置新的动画帧请求
+      this.loadingAnimationId = requestAnimationFrame(() => {
+        this.performRender();
+      });
+    }
   }
 
   // 触摸结束
   handleTouchEnd() {
     this.isScrolling = false;
+
+    // 在触摸结束时也检查是否需要加载更多数据
+    // 这可以处理用户快速滑动到底部的情况
+    this.checkLoadMore();
   }
 
   // 计算最大滚动距离
@@ -284,6 +354,12 @@ class RankingTouchHandler {
     this.isScrolling = false;
     this.maxScrollY = 0;
     this.lastButtonClickTime = 0; // 重置按钮点击时间
+
+    // 新增：清理加载动画
+    if (this.loadingAnimationId) {
+      cancelAnimationFrame(this.loadingAnimationId);
+      this.loadingAnimationId = null;
+    }
   }
 
   // 获取最大滚动距离

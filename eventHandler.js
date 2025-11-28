@@ -85,6 +85,22 @@ class EventHandler {
     // 新增：排行榜模式
     this.currentRankingMode = 'cyber'; // 'cyber' 或 'weekly'
 
+    // 新增：排行榜增量加载数据
+    this.rankingIncrementalData = {
+      cyber: {
+        isLoading: false,
+        hasMore: true,
+        currentPage: 0,
+        batchSize: 20
+      },
+      weekly: {
+        isLoading: false,
+        hasMore: true,
+        currentPage: 0,
+        batchSize: 20
+      }
+    };
+
     // 新增：本地交互状态缓存 - 用于即时UI更新
     this.localInteractionCache = new Map(); // key: fishName, value: {action, timestamp, originalState}
 
@@ -965,6 +981,14 @@ async refreshFishTank() {
 
     // 重置滚动位置
     this.touchHandlers.ranking.resetScroll();
+    
+    // 重置增量加载状态
+    const currentMode = this.currentRankingMode;
+    if (this.rankingIncrementalData && this.rankingIncrementalData[currentMode]) {
+      this.rankingIncrementalData[currentMode].isLoading = false;
+      this.rankingIncrementalData[currentMode].hasMore = true;
+      this.rankingIncrementalData[currentMode].currentPage = 0;
+    }
 
     this.uiManager.drawGameUI(this.gameState);
 
@@ -1031,6 +1055,95 @@ async refreshFishTank() {
 
     await Promise.all(interactionPromises);
     console.log('排行榜鱼用户交互状态加载完成');
+  }
+
+  // 新增：加载下一页排行榜数据
+  async loadNextRankingPage() {
+    const currentMode = this.currentRankingMode;
+    
+    // 安全检查
+    if (!this.rankingIncrementalData || !this.rankingIncrementalData[currentMode]) {
+      console.error('增量数据未初始化，无法加载更多数据');
+      return;
+    }
+    
+    const incrementalData = this.rankingIncrementalData[currentMode];
+    
+    if (incrementalData.isLoading || !incrementalData.hasMore) {
+      console.log('正在加载或没有更多数据，跳过增量加载');
+      return;
+    }
+
+    console.log(`开始加载${currentMode}排行榜下一页数据，当前页: ${incrementalData.currentPage}`);
+
+    incrementalData.isLoading = true;
+    incrementalData.currentPage++;
+
+    try {
+      let nextPageData;
+
+      if (currentMode === 'cyber') {
+        nextPageData = await this.databaseManager.getRankingData(100);
+      } else {
+        const startOfWeek = this.getStartOfWeek();
+        nextPageData = await this.databaseManager.getWeeklyRankingData(100, startOfWeek);
+      }
+
+      // 检查是否还有更多数据
+      if (nextPageData.length === 0 || nextPageData.length <= this.rankingData.fishes.length) {
+        incrementalData.hasMore = false;
+        console.log('没有更多数据可以加载');
+        return;
+      }
+
+      // 为新加载的鱼数据创建图像和加载交互状态
+      const newFishes = [];
+      const startIndex = this.rankingData.fishes.length;
+      
+      for (let i = startIndex; i < Math.min(startIndex + incrementalData.batchSize, nextPageData.length); i++) {
+        const fishData = nextPageData[i];
+        try {
+          const fishImage = await this.fishManager.data.base64ToCanvas(fishData.base64);
+          const fishItem = {
+            fishData: fishData,
+            fishImage: fishImage
+          };
+          
+          // 加载用户交互状态
+          if (this.userOpenid) {
+            try {
+              fishItem.userInteraction = await this.databaseManager.getUserInteraction(
+                fishData.fishName,
+                this.userOpenid
+              );
+            } catch (error) {
+              Utils.handleWarning(error, `加载鱼 ${fishData.fishName} 的交互状态失败`);
+              fishItem.userInteraction = null;
+            }
+          }
+          
+          newFishes.push(fishItem);
+        } catch (error) {
+          console.warn('创建排行榜鱼图像失败:', error);
+        }
+      }
+
+      // 将新加载的鱼添加到现有数据中
+      this.rankingData.fishes = this.rankingData.fishes.concat(newFishes);
+      
+      console.log(`成功加载 ${newFishes.length} 条新的排行榜数据，当前总数: ${this.rankingData.fishes.length}`);
+
+      // 重新计算最大滚动距离
+      this.touchHandlers.ranking.calculateMaxScroll();
+
+      // 更新UI
+      this.uiManager.drawGameUI(this.gameState);
+      
+    } catch (error) {
+      Utils.handleError(error, `加载${currentMode}排行榜下一页数据失败`);
+    } finally {
+      incrementalData.isLoading = false;
+    }
   }
 
   // 修改：统一处理排行榜交互操作
@@ -1164,7 +1277,7 @@ async refreshFishTank() {
     console.log('排行榜界面已隐藏');
   }
 
-  // 获取排行榜数据（带图片）- 修改：按照最终评分（点赞-点踩）由大到小排序
+  // 获取排行榜数据（带图片）- 统一按数据库的score字段排序
   async getRankingDataWithImages() {
     const rankingData = await this.databaseManager.getRankingData(100);
     const rankingFishes = [];
@@ -1181,15 +1294,8 @@ async refreshFishTank() {
       }
     }
 
-    // 修改：按照最终评分（点赞数-点踩数）由大到小排序
-    rankingFishes.sort((a, b) => {
-      // 计算最终评分：点赞数 - 点踩数
-      const finalScoreA = (a.fishData.star || 0) - (a.fishData.unstar || 0);
-      const finalScoreB = (b.fishData.star || 0) - (b.fishData.unstar || 0);
-      return finalScoreB - finalScoreA; // 降序排列
-    });
-
-    console.log(`成功创建 ${rankingFishes.length} 条排行榜鱼的图像，已按最终评分（点赞-点踩）降序排列`);
+    // 移除前端重新排序逻辑，直接使用数据库按score字段排序的结果
+    console.log(`成功创建 ${rankingFishes.length} 条排行榜鱼的图像，已按数据库score字段降序排列`);
     return rankingFishes;
   }
 
@@ -1214,14 +1320,8 @@ async refreshFishTank() {
       }
     }
 
-    // 按照最终评分（点赞数-点踩数）由大到小排序
-    weeklyFishes.sort((a, b) => {
-      const finalScoreA = (a.fishData.star || 0) - (a.fishData.unstar || 0);
-      const finalScoreB = (b.fishData.star || 0) - (b.fishData.unstar || 0);
-      return finalScoreB - finalScoreA;
-    });
-
-    console.log(`成功创建 ${weeklyFishes.length} 条本周排行榜鱼的图像，已按最终评分降序排列`);
+    // 移除前端重新排序逻辑，直接使用数据库按score字段排序的结果
+    console.log(`成功创建 ${weeklyFishes.length} 条本周排行榜鱼的图像，已按数据库score字段降序排列`);
     return weeklyFishes;
   }
 
