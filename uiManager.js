@@ -9,6 +9,10 @@ class UIManager {
     this.pixelRatio = pixelRatio;
     this.eventHandler = null;
     this.interfaceRenderer = new InterfaceRenderer(ctx, pixelRatio);
+    
+    // 新增：加载动画相关变量
+    this.loadingSpinnerAngle = 0;
+    
     // 初始化时优化渲染设置
     this.optimizeRendering();
   }
@@ -146,6 +150,40 @@ class UIManager {
     ctx.textAlign = 'left';
   }
 
+  // 新增：绘制旋转加载动画
+  drawLoadingSpinner(x, y, size = 20) {
+    const ctx = this.ctx;
+    
+    // 更新旋转角度
+    this.loadingSpinnerAngle = (this.loadingSpinnerAngle - 0.1) % (Math.PI * 2);
+    
+    ctx.save();
+    
+    // 移动到中心点
+    ctx.translate(x, y);
+    
+    // 旋转
+    ctx.rotate(this.loadingSpinnerAngle);
+    
+    // 绘制旋转的圆弧
+    ctx.strokeStyle = config.primaryColor;
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    
+    // 绘制3/4圆弧
+    ctx.beginPath();
+    ctx.arc(0, 0, size/2, 0, Math.PI * 1.5);
+    ctx.stroke();
+    
+    // 绘制旋转的端点
+    ctx.fillStyle = config.primaryColor;
+    ctx.beginPath();
+    ctx.arc(size/2, 0, 3, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.restore();
+  }
+
   // 绘制排行榜卡片（更新版）- 虚拟滚动优化
   drawRankingCards() {
     const ctx = this.ctx;
@@ -194,59 +232,24 @@ class UIManager {
     if (scrollOffset > 0) {
       this.drawScrollIndicator(scrollOffset);
     }
-  }
 
-  // 新增：增量渲染优化 - 只重绘卡片区域
-  drawRankingCardsOnly() {
-    const ctx = this.ctx;
-    const rankingFishes = this.eventHandler.rankingData.fishes;
-    const scrollOffset = this.eventHandler.touchHandlers.ranking.getScrollOffset();
-
-    const cardWidth = (config.screenWidth - 60) / 2;
-    const cardHeight = 200;
-    const rowHeight = cardHeight + 15;
-    const startY = 100 - scrollOffset;
-
-    // 只清除卡片区域（避免重绘整个界面）
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 100, config.screenWidth, config.screenHeight - 100);
-
-    // 设置裁剪区域
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(0, 100, config.screenWidth, config.screenHeight - 100);
-    ctx.clip();
-
-    // 虚拟滚动优化：只渲染可见区域的卡片
-    const visibleStartRow = Math.max(0, Math.floor(scrollOffset / rowHeight));
-    const visibleEndRow = Math.min(
-      Math.ceil((rankingFishes.length - 1) / 2),
-      visibleStartRow + Math.ceil((config.screenHeight - 100) / rowHeight) + 1
-    );
-
-    const visibleStartIndex = Math.max(0, visibleStartRow * 2);
-    const visibleEndIndex = Math.min(rankingFishes.length, visibleEndRow * 2 + 2);
-
-    // 只渲染可见卡片
-    for (let i = visibleStartIndex; i < visibleEndIndex; i++) {
-      const fishItem = rankingFishes[i];
-      const row = Math.floor(i / 2);
-      const col = i % 2;
-
-      const cardX = 20 + col * (cardWidth + 20);
-      const cardY = startY + row * rowHeight;
-
-      // 确保卡片在可见区域内
-      if (cardY + cardHeight > 100 && cardY < config.screenHeight) {
-        this.drawRankingCard(cardX, cardY, cardWidth, cardHeight, fishItem, i + 1);
-      }
-    }
-
-    ctx.restore();
-
-    // 绘制滚动条指示器（如果有滚动）
-    if (scrollOffset > 0) {
-      this.drawScrollIndicator(scrollOffset);
+    // 检查是否正在加载更多数据
+    const currentMode = this.eventHandler.currentRankingMode;
+    if (this.eventHandler.rankingIncrementalData && 
+        this.eventHandler.rankingIncrementalData[currentMode] && 
+        this.eventHandler.rankingIncrementalData[currentMode].isLoading) {
+      
+      // 在底部绘制加载动画和文字
+      const spinnerY = config.screenHeight - 50;
+      this.drawLoadingSpinner(Math.round(config.screenWidth / 2), spinnerY, 24);
+      
+      // 绘制加载文字
+      ctx.save();
+      ctx.fillStyle = config.lightTextColor;
+      ctx.font = '14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('加载中...', Math.round(config.screenWidth / 2), spinnerY + 35);
+      ctx.restore();
     }
   }
 
@@ -301,6 +304,98 @@ class UIManager {
     // 绘制滚动条指示器（如果有滚动）
     if (scrollOffset > 0) {
       this.drawScrollIndicator(scrollOffset);
+    }
+
+    // 检查是否正在加载更多数据
+    const currentMode = this.eventHandler.currentRankingMode;
+    if (this.eventHandler.rankingIncrementalData && 
+        this.eventHandler.rankingIncrementalData[currentMode] && 
+        this.eventHandler.rankingIncrementalData[currentMode].isLoading) {
+      
+      // 在底部绘制加载动画和文字
+      const spinnerY = config.screenHeight - 50;
+      this.drawLoadingSpinner(Math.round(config.screenWidth / 2), spinnerY, 24);
+      
+      // 绘制加载文字
+      ctx.save();
+      ctx.fillStyle = config.lightTextColor;
+      ctx.font = '14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('加载中...', Math.round(config.screenWidth / 2), spinnerY + 35);
+      ctx.restore();
+    }
+  }
+
+  // 新增：增量渲染优化 - 只重绘卡片区域
+  drawRankingCardsOnly() {
+    const ctx = this.ctx;
+    const rankingFishes = this.eventHandler.rankingData.fishes;
+    const scrollOffset = this.eventHandler.touchHandlers.ranking.getScrollOffset();
+
+    const cardWidth = (config.screenWidth - 60) / 2;
+    const cardHeight = 200;
+    const rowHeight = cardHeight + 15;
+    const startY = 100 - scrollOffset;
+
+    // 只清除卡片区域（避免重绘整个界面）
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 100, config.screenWidth, config.screenHeight - 100);
+
+    // 设置裁剪区域
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 100, config.screenWidth, config.screenHeight - 100);
+    ctx.clip();
+
+    // 虚拟滚动优化：只渲染可见区域的卡片
+    const visibleStartRow = Math.max(0, Math.floor(scrollOffset / rowHeight));
+    const visibleEndRow = Math.min(
+      Math.ceil((rankingFishes.length - 1) / 2),
+      visibleStartRow + Math.ceil((config.screenHeight - 100) / rowHeight) + 1
+    );
+
+    const visibleStartIndex = Math.max(0, visibleStartRow * 2);
+    const visibleEndIndex = Math.min(rankingFishes.length, visibleEndRow * 2 + 2);
+
+    // 只渲染可见卡片
+    for (let i = visibleStartIndex; i < visibleEndIndex; i++) {
+      const fishItem = rankingFishes[i];
+      const row = Math.floor(i / 2);
+      const col = i % 2;
+
+      const cardX = 20 + col * (cardWidth + 20);
+      const cardY = startY + row * rowHeight;
+
+      // 确保卡片在可见区域内
+      if (cardY + cardHeight > 100 && cardY < config.screenHeight) {
+        this.drawRankingCard(cardX, cardY, cardWidth, cardHeight, fishItem, i + 1);
+      }
+    }
+
+    ctx.restore();
+
+    // 绘制滚动条指示器（如果有滚动）
+    if (scrollOffset > 0) {
+      this.drawScrollIndicator(scrollOffset);
+    }
+
+    // 检查是否正在加载更多数据
+    const currentMode = this.eventHandler.currentRankingMode;
+    if (this.eventHandler.rankingIncrementalData && 
+        this.eventHandler.rankingIncrementalData[currentMode] && 
+        this.eventHandler.rankingIncrementalData[currentMode].isLoading) {
+      
+      // 在底部绘制加载动画和文字
+      const spinnerY = config.screenHeight - 50;
+      this.drawLoadingSpinner(Math.round(config.screenWidth / 2), spinnerY, 24);
+      
+      // 绘制加载文字
+      ctx.save();
+      ctx.fillStyle = config.lightTextColor;
+      ctx.font = '14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('加载中...', Math.round(config.screenWidth / 2), spinnerY + 35);
+      ctx.restore();
     }
   }
 

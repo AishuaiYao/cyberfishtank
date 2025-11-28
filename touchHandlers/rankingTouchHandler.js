@@ -39,7 +39,7 @@ class RankingTouchHandler {
     this.bounceFactor = 0.5; // 边界回弹系数
     this.bounceVelocity = 0; // 回弹速度
     this.isBouncing = false; // 是否正在回弹
-    this.velocityMultiplier = 2.0; // 速度放大系数，使惯性更明显
+    this.velocityMultiplier = 20.0; // 速度放大系数，使惯性更明显
 
     // 新增：加载动画帧ID
     this.loadingAnimationId = null;
@@ -532,6 +532,14 @@ class RankingTouchHandler {
     // 检查是否需要加载更多数据
     if (prevScrollY !== this.currentScrollY) {
       this.checkLoadMore();
+    }
+    
+    // 如果正在加载，请求动画帧以更新加载动画
+    const currentMode = this.eventHandler.currentRankingMode;
+    if (this.eventHandler.rankingIncrementalData && 
+        this.eventHandler.rankingIncrementalData[currentMode] && 
+        this.eventHandler.rankingIncrementalData[currentMode].isLoading) {
+      // 已经在动画循环中，不需要再次请求
     }
 
     // 继续下一帧动画
