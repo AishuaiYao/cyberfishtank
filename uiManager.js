@@ -146,17 +146,15 @@ class UIManager {
     ctx.textAlign = 'left';
   }
 
-  // 绘制排行榜卡片（更新版）
+  // 绘制排行榜卡片（更新版）- 虚拟滚动优化
   drawRankingCards() {
     const ctx = this.ctx;
     const rankingFishes = this.eventHandler.rankingData.fishes;
     const scrollOffset = this.eventHandler.touchHandlers.ranking.getScrollOffset();
 
-    console.log(`排行榜数据总数: ${rankingFishes.length}`);
-    console.log(`当前滚动位置: ${scrollOffset}`);
-
     const cardWidth = (config.screenWidth - 60) / 2;
     const cardHeight = 200;
+    const rowHeight = cardHeight + 15;
     const startY = 100 - scrollOffset;
 
     // 设置裁剪区域，防止卡片绘制到界面外
@@ -165,15 +163,134 @@ class UIManager {
     ctx.rect(0, 100, config.screenWidth, config.screenHeight - 100);
     ctx.clip();
 
-    for (let i = 0; i < rankingFishes.length; i++) {
+    // 虚拟滚动优化：只渲染可见区域的卡片
+    const visibleStartRow = Math.max(0, Math.floor(scrollOffset / rowHeight));
+    const visibleEndRow = Math.min(
+      Math.ceil((rankingFishes.length - 1) / 2),
+      visibleStartRow + Math.ceil((config.screenHeight - 100) / rowHeight) + 1
+    );
+
+    const visibleStartIndex = Math.max(0, visibleStartRow * 2);
+    const visibleEndIndex = Math.min(rankingFishes.length, visibleEndRow * 2 + 2);
+
+    // 只渲染可见卡片
+    for (let i = visibleStartIndex; i < visibleEndIndex; i++) {
       const fishItem = rankingFishes[i];
       const row = Math.floor(i / 2);
       const col = i % 2;
 
       const cardX = 20 + col * (cardWidth + 20);
-      const cardY = startY + row * (cardHeight + 15);
+      const cardY = startY + row * rowHeight;
 
-      // 只绘制在可见区域内的卡片
+      // 确保卡片在可见区域内
+      if (cardY + cardHeight > 100 && cardY < config.screenHeight) {
+        this.drawRankingCard(cardX, cardY, cardWidth, cardHeight, fishItem, i + 1);
+      }
+    }
+
+    ctx.restore();
+
+    // 绘制滚动条指示器（如果有滚动）
+    if (scrollOffset > 0) {
+      this.drawScrollIndicator(scrollOffset);
+    }
+  }
+
+  // 新增：增量渲染优化 - 只重绘卡片区域
+  drawRankingCardsOnly() {
+    const ctx = this.ctx;
+    const rankingFishes = this.eventHandler.rankingData.fishes;
+    const scrollOffset = this.eventHandler.touchHandlers.ranking.getScrollOffset();
+
+    const cardWidth = (config.screenWidth - 60) / 2;
+    const cardHeight = 200;
+    const rowHeight = cardHeight + 15;
+    const startY = 100 - scrollOffset;
+
+    // 只清除卡片区域（避免重绘整个界面）
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 100, config.screenWidth, config.screenHeight - 100);
+
+    // 设置裁剪区域
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 100, config.screenWidth, config.screenHeight - 100);
+    ctx.clip();
+
+    // 虚拟滚动优化：只渲染可见区域的卡片
+    const visibleStartRow = Math.max(0, Math.floor(scrollOffset / rowHeight));
+    const visibleEndRow = Math.min(
+      Math.ceil((rankingFishes.length - 1) / 2),
+      visibleStartRow + Math.ceil((config.screenHeight - 100) / rowHeight) + 1
+    );
+
+    const visibleStartIndex = Math.max(0, visibleStartRow * 2);
+    const visibleEndIndex = Math.min(rankingFishes.length, visibleEndRow * 2 + 2);
+
+    // 只渲染可见卡片
+    for (let i = visibleStartIndex; i < visibleEndIndex; i++) {
+      const fishItem = rankingFishes[i];
+      const row = Math.floor(i / 2);
+      const col = i % 2;
+
+      const cardX = 20 + col * (cardWidth + 20);
+      const cardY = startY + row * rowHeight;
+
+      // 确保卡片在可见区域内
+      if (cardY + cardHeight > 100 && cardY < config.screenHeight) {
+        this.drawRankingCard(cardX, cardY, cardWidth, cardHeight, fishItem, i + 1);
+      }
+    }
+
+    ctx.restore();
+
+    // 绘制滚动条指示器（如果有滚动）
+    if (scrollOffset > 0) {
+      this.drawScrollIndicator(scrollOffset);
+    }
+  }
+
+  // 新增：增量渲染优化 - 只重绘卡片区域
+  drawRankingCardsOnly() {
+    const ctx = this.ctx;
+    const rankingFishes = this.eventHandler.rankingData.fishes;
+    const scrollOffset = this.eventHandler.touchHandlers.ranking.getScrollOffset();
+
+    const cardWidth = (config.screenWidth - 60) / 2;
+    const cardHeight = 200;
+    const rowHeight = cardHeight + 15;
+    const startY = 100 - scrollOffset;
+
+    // 只清除卡片区域（避免重绘整个界面）
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 100, config.screenWidth, config.screenHeight - 100);
+
+    // 设置裁剪区域
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 100, config.screenWidth, config.screenHeight - 100);
+    ctx.clip();
+
+    // 虚拟滚动优化：只渲染可见区域的卡片
+    const visibleStartRow = Math.max(0, Math.floor(scrollOffset / rowHeight));
+    const visibleEndRow = Math.min(
+      Math.ceil((rankingFishes.length - 1) / 2),
+      visibleStartRow + Math.ceil((config.screenHeight - 100) / rowHeight) + 1
+    );
+
+    const visibleStartIndex = Math.max(0, visibleStartRow * 2);
+    const visibleEndIndex = Math.min(rankingFishes.length, visibleEndRow * 2 + 2);
+
+    // 只渲染可见卡片
+    for (let i = visibleStartIndex; i < visibleEndIndex; i++) {
+      const fishItem = rankingFishes[i];
+      const row = Math.floor(i / 2);
+      const col = i % 2;
+
+      const cardX = 20 + col * (cardWidth + 20);
+      const cardY = startY + row * rowHeight;
+
+      // 确保卡片在可见区域内
       if (cardY + cardHeight > 100 && cardY < config.screenHeight) {
         this.drawRankingCard(cardX, cardY, cardWidth, cardHeight, fishItem, i + 1);
       }

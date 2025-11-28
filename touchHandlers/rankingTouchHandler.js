@@ -12,6 +12,23 @@ class RankingTouchHandler {
     // 新增：防止快速连续点击
     this.lastButtonClickTime = 0;
     this.buttonClickCooldown = 250; // 1秒冷却时间
+    // 新增：节流控制
+    this.lastDrawTime = 0;
+    this.drawThrottle = 8; // 约120fps，更流畅的滚动体验
+    
+    // 重构：完全重写滑动优化
+    this.rafId = null;
+    this.isDrawing = false;
+    this.pendingScrollUpdate = false;
+    this.scrollBuffer = 0; // 滚动位置缓冲区
+    
+    // 性能监控
+    this.frameCount = 0;
+    this.lastFrameTime = 0;
+    this.lastDeltaY = 0;
+    this.velocity = 0;
+    this.inertiaAnimationId = null;
+    this.isInertiaScrolling = false;
   }
 
   // 处理排行榜界面触摸
@@ -153,9 +170,11 @@ class RankingTouchHandler {
     this.touchStartY = y;
     this.lastTouchY = y;
     this.isScrolling = false;
+    // 重置节流计时器，允许立即响应
+    this.lastDrawTime = 0;
   }
 
-  // 触摸移动
+  // 触摸移动 - 重构：完全重写滑动逻辑
   handleTouchMove(x, y) {
     if (!this.eventHandler.rankingData || this.eventHandler.rankingData.fishes.length === 0) {
       return;
@@ -168,17 +187,66 @@ class RankingTouchHandler {
     if (this.maxScrollY > 0) {
       const deltaY = this.lastTouchY - y;
 
-      // 只有垂直移动距离足够大才认为是滑动
-      if (Math.abs(deltaY) > 5) {
+      // 立即更新滚动位置（即使移动距离很小）
+      if (Math.abs(deltaY) > 0) {
         this.isScrolling = true;
-
+        
         // 更新滚动位置
         this.currentScrollY = Math.max(0, Math.min(this.maxScrollY, this.currentScrollY + deltaY));
         this.lastTouchY = y;
 
-        // 强制重绘UI
-        this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
+        // 高性能渲染优化：立即更新滚动位置，异步渲染
+        this.scheduleRender();
       }
+    }
+  }
+
+  // 新增：高性能渲染调度
+  scheduleRender() {
+    const now = Date.now();
+    
+    // 节流控制：减少重绘频率
+    if (now - this.lastDrawTime >= this.drawThrottle) {
+      this.lastDrawTime = now;
+      
+      // 取消之前的渲染任务
+      if (this.rafId) {
+        if (typeof cancelAnimationFrame !== 'undefined') {
+          cancelAnimationFrame(this.rafId);
+        }
+        this.rafId = null;
+      }
+      
+      // 使用requestAnimationFrame进行流畅渲染
+      if (typeof requestAnimationFrame !== 'undefined') {
+        this.rafId = requestAnimationFrame(() => {
+          this.rafId = null;
+          this.performRender();
+        });
+      } else {
+        // 兼容性处理
+        this.performRender();
+      }
+    }
+  }
+
+  // 新增：高性能渲染执行
+  performRender() {
+    // 性能监控
+    const now = Date.now();
+    if (now - this.lastFrameTime > 1000) {
+      const fps = Math.round(this.frameCount * 1000 / (now - this.lastFrameTime));
+      console.log(`渲染帧率: ${fps}fps`);
+      this.frameCount = 0;
+      this.lastFrameTime = now;
+    }
+    this.frameCount++;
+
+    // 增量渲染优化：只重绘卡片区域
+    if (this.eventHandler.uiManager.drawRankingCardsOnly) {
+      this.eventHandler.uiManager.drawRankingCardsOnly();
+    } else {
+      this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
     }
   }
 

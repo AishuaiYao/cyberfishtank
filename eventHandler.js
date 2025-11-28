@@ -316,7 +316,7 @@ class EventHandler {
         success: (res) => {
           console.log('云函数返回完整结果:', res);
           const openid = res.result.openid;
-          
+
           if (openid && !openid.startsWith('test_')) {
             console.log('获取到真实openid:', openid);
             resolve(openid);
@@ -371,10 +371,10 @@ class EventHandler {
   async performInteractionAction(fishData, action, originalState, isRanking = false) {
     const fishName = fishData.fishName;
     const isStar = action === 'star';
-    
+
     // 1. 立即更新本地状态
     let newStarCount, newUnstarCount;
-    
+
     if (isStar) {
       newStarCount = (fishData.star || 0) + 1;
       newUnstarCount = fishData.unstar || 0;
@@ -382,7 +382,7 @@ class EventHandler {
       newStarCount = fishData.star || 0;
       newUnstarCount = (fishData.unstar || 0) + 1;
     }
-    
+
     const newScore = newStarCount - newUnstarCount;
 
     // 更新本地数据
@@ -831,7 +831,7 @@ async loadMyFishes(randomMode = false) {
     } else if (modeType === 'ranking') {
       this.currentRankingMode = newMode;
       await this.showRankingInterface();
-      
+
       const modeName = newMode === 'cyber' ? '赛博排行榜' : '本周排行榜';
       console.log(`切换到${modeName}`);
     }
@@ -1542,7 +1542,7 @@ async refreshFishTank() {
       };
 
       const oppositeAction = actionType === 'star' ? 'unstar' : 'star';
-      
+
       // 如果当前已经是相同操作状态，则取消操作
       if (currentAction === actionType) {
         await this.cancelInteractionAction(fishData, userInteraction, originalState, false);
