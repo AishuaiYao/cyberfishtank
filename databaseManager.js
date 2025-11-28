@@ -43,15 +43,40 @@ class DatabaseManager {
     }
   }
 
-  // 修改：按用户_openid查询鱼数据 - 现在接收openid参数
-  async getFishesByUserOpenid(openid, limit = 20) {
-    if (!Utils.checkDatabaseInitialization(this, '按用户查询鱼数据')) return [];
-    if (!openid) {
-      Utils.handleWarning('', 'openid为空，无法查询用户鱼数据');
-      return [];
+  // 新增：通用的数据库操作函数，减少重复代码
+  async _executeDatabaseOperation(operationName, operation, defaultReturn) {
+    if (!Utils.checkDatabaseInitialization(this, operationName)) {
+      return defaultReturn;
     }
 
     try {
+      return await operation();
+    } catch (error) {
+      return Utils.handleDatabaseError(error, operationName, defaultReturn);
+    }
+  }
+
+  // 新增：通用的数据库操作函数，减少重复代码
+  async _executeDatabaseOperation(operationName, operation, defaultReturn) {
+    if (!Utils.checkDatabaseInitialization(this, operationName)) {
+      return defaultReturn;
+    }
+
+    try {
+      return await operation();
+    } catch (error) {
+      return Utils.handleDatabaseError(error, operationName, defaultReturn);
+    }
+  }
+
+  // 修改：按用户_openid查询鱼数据 - 现在接收openid参数
+  async getFishesByUserOpenid(openid, limit = 20) {
+    return this._executeDatabaseOperation('按用户查询鱼数据', async () => {
+      if (!openid) {
+        Utils.handleWarning('', 'openid为空，无法查询用户鱼数据');
+        return [];
+      }
+
       console.log(`查询用户 ${openid} 的鱼数据，限制: ${limit} 条`);
 
       // 关键：显式指定_openid条件
@@ -65,20 +90,17 @@ class DatabaseManager {
 
       console.log(`找到用户 ${openid} 的 ${result.data.length} 条鱼`);
       return result.data;
-    } catch (error) {
-      return Utils.handleDatabaseError(error, '按用户查询鱼数据', []);
-    }
+    }, []);
   }
 
   // 修改：获取用户交互记录 - 现在接收openid参数
   async getUserInteraction(fishName, userOpenid) {
-    if (!Utils.checkDatabaseInitialization(this, '获取交互记录')) return null;
-    if (!userOpenid) {
-      Utils.handleWarning('', '用户openid为空，无法获取交互记录');
-      return null;
-    }
+    return this._executeDatabaseOperation('获取用户交互记录', async () => {
+      if (!userOpenid) {
+        Utils.handleWarning('', '用户openid为空，无法获取交互记录');
+        return null;
+      }
 
-    try {
       const result = await this.cloudDb.collection('interaction')
         .where({
           fishName: fishName,
@@ -93,20 +115,17 @@ class DatabaseManager {
         console.log(`用户对鱼 ${fishName} 暂无交互记录`);
         return null;
       }
-    } catch (error) {
-      return Utils.handleDatabaseError(error, '获取用户交互记录', null);
-    }
+    }, null);
   }
 
   // 修改：插入用户交互记录 - 现在接收openid参数
   async insertUserInteraction(fishName, action, userOpenid) {
-    if (!Utils.checkDatabaseInitialization(this, '插入交互记录')) return false;
-    if (!userOpenid) {
-      Utils.handleWarning('', '用户openid为空，无法插入交互记录');
-      return false;
-    }
+    return this._executeDatabaseOperation('插入交互记录', async () => {
+      if (!userOpenid) {
+        Utils.handleWarning('', '用户openid为空，无法插入交互记录');
+        return false;
+      }
 
-    try {
       const interactionData = {
         fishName: fishName,
         action: action,
@@ -123,16 +142,12 @@ class DatabaseManager {
 
       console.log('交互记录插入成功');
       return true;
-    } catch (error) {
-      return Utils.handleDatabaseError(error, '插入交互记录', false);
-    }
+    }, false);
   }
 
   // 新增：更新用户交互记录
   async updateUserInteraction(interactionId, newAction) {
-    if (!Utils.checkDatabaseInitialization(this, '更新交互记录')) return false;
-
-    try {
+    return this._executeDatabaseOperation('更新交互记录', async () => {
       await this.cloudDb.collection('interaction').doc(interactionId).update({
         data: {
           action: newAction,
@@ -142,9 +157,7 @@ class DatabaseManager {
 
       console.log('交互记录更新成功');
       return true;
-    } catch (error) {
-      return Utils.handleDatabaseError(error, '更新交互记录', false);
-    }
+    }, false);
   }
 
   // 新增：删除用户交互记录
@@ -228,7 +241,7 @@ class DatabaseManager {
       // 限制最终数量并过滤有效数据
       const finalData = allData.slice(0, limit);
       const validRankingData = finalData.filter(fish => fish.base64 && fish.base64.length > 0);
-      
+
       console.log(`最终获取 ${validRankingData.length} 条有效排行榜数据`);
       return validRankingData;
     } catch (error) {
@@ -269,7 +282,7 @@ class DatabaseManager {
       // 限制最终数量并过滤有效数据
       const finalData = allData.slice(0, limit);
       const validRankingData = finalData.filter(fish => fish.base64 && fish.base64.length > 0);
-      
+
       console.log(`最终获取 ${validRankingData.length} 条有效本周排行榜数据`);
       return validRankingData;
     } catch (error) {
@@ -433,7 +446,7 @@ async getRandomFishesByUserFallback(openid, count = 20) {
     console.log(`用户 ${openid} 共有 ${allUserFishes.data.length} 条鱼`);
 
     if (allUserFishes.data.length === 0) return [];
-    
+
     // 如果用户鱼的数量少于请求数量，返回所有鱼
     if (allUserFishes.data.length <= count) return allUserFishes.data;
 

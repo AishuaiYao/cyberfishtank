@@ -176,22 +176,32 @@ class Utils {
     this.showToast(title, 'none', duration);
   }
 
+  // 通用日志处理函数 - 减少重复的日志代码
+  static _logMessage(type, message, context = '') {
+    const logFunctions = {
+      error: console.error,
+      warn: console.warn,
+      info: console.info,
+      log: console.log
+    };
+    
+    const logFunction = logFunctions[type] || console.log;
+    
+    if (context) {
+      logFunction(`${context}:`, message);
+    } else {
+      logFunction(message);
+    }
+  }
+
   // 通用错误处理函数 - 减少重复的错误处理代码
   static handleError(error, context = '') {
-    if (context) {
-      console.error(`${context}失败:`, error);
-    } else {
-      console.error('操作失败:', error);
-    }
+    this._logMessage('error', error, context ? `${context}失败` : '操作失败');
   }
 
   // 通用警告处理函数
   static handleWarning(warning, context = '') {
-    if (context) {
-      console.warn(`${context}:`, warning);
-    } else {
-      console.warn('警告:', warning);
-    }
+    this._logMessage('warn', warning, context);
   }
 
   // 数据库操作的通用错误处理 - 减少重复的错误检查和处理

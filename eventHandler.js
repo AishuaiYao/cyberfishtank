@@ -435,7 +435,7 @@ class EventHandler {
         // 成功后更新本地交互状态
         if (isRanking && this.rankingData && this.rankingData.fishes) {
           // 在排行榜模式下，找到对应的鱼并更新其交互状态
-          const fishItem = this.rankingData.fishes.find(item => 
+          const fishItem = this.rankingData.fishes.find(item =>
             item.fishData.fishName === fishName
           );
           if (fishItem) {
@@ -468,7 +468,7 @@ class EventHandler {
       } else {
         this.rollbackDetailState(originalState);
       }
-      wx.showToast({ title: '网络错误，操作失败', icon: 'none', duration: 1500 });
+      Utils.showError('网络错误，操作失败');
     } finally {
       // 无论成功失败，都清除本地缓存
       this.clearLocalInteractionState(fishName);
@@ -479,10 +479,10 @@ class EventHandler {
   async cancelInteractionAction(fishData, userInteraction, originalState, isRanking = false) {
     const fishName = fishData.fishName;
     const isStar = userInteraction && userInteraction.action === 'star';
-    
+
     // 1. 立即更新本地状态
     let newStarCount, newUnstarCount;
-    
+
     if (isStar) {
       newStarCount = Math.max(0, (fishData.star || 0) - 1);
       newUnstarCount = fishData.unstar || 0;
@@ -490,7 +490,7 @@ class EventHandler {
       newStarCount = fishData.star || 0;
       newUnstarCount = Math.max(0, (fishData.unstar || 0) - 1);
     }
-    
+
     const newScore = newStarCount - newUnstarCount;
 
     // 更新本地数据
@@ -524,7 +524,7 @@ class EventHandler {
       if (updateSuccess) {
         if (isRanking && this.rankingData && this.rankingData.fishes) {
           // 在排行榜情况下，清除userInteraction
-          const fishItem = this.rankingData.fishes.find(item => 
+          const fishItem = this.rankingData.fishes.find(item =>
             item.fishData.fishName === fishName
           );
           if (fishItem) {
@@ -551,7 +551,7 @@ class EventHandler {
       } else {
         this.rollbackDetailState(originalState);
       }
-      wx.showToast({ title: '网络错误，操作失败', icon: 'none', duration: 1500 });
+      Utils.showError('网络错误，操作失败');
     } finally {
       // 无论成功失败，都清除本地缓存
       this.clearLocalInteractionState(fishName);
@@ -677,17 +677,17 @@ class EventHandler {
   async handleMakeItSwim() {
     // 优化：检查是否正在评分
     if (this.gameState.scoringState.isRequesting) {
-      wx.showToast({ title: 'AI评分中，请稍候', icon: 'none', duration: 1500 });
+      Utils.showError('AI评分中，请稍候');
       return;
     }
 
     if (this.gameState.score < 60) {
-      wx.showToast({ title: 'AI评分小于60，这鱼画的太抽象', icon: 'none', duration: 2000 });
+      Utils.showError('AI评分小于60，这鱼画的太抽象', 2000);
       return;
     }
 
     if (this.gameState.drawingPaths.length === 0) {
-      wx.showToast({ title: '请先画一条鱼', icon: 'none', duration: 1500 });
+      Utils.showError('请先画一条鱼');
       return;
     }
 
@@ -807,13 +807,13 @@ async loadMyFishes(randomMode = false) {
     }
 }
 
-  // 新增：从我的鱼列表创建鱼对象
-  async createFishesFromMyList() {
-    if (this.myFishTankList.length === 0) return;
+  // 新增：通用的鱼列表创建函数 - 合并重复代码
+  async _createFishesFromList(fishList, listType = 'global') {
+    if (fishList.length === 0) return;
 
-    console.log('从我的鱼列表创建鱼对象，数量:', this.myFishTankList.length);
+    console.log(`从${listType === 'my' ? '我的' : '全局'}列表创建鱼对象，数量:`, fishList.length);
 
-    const fishCreationPromises = this.myFishTankList.map(fishData =>
+    const fishCreationPromises = fishList.map(fishData =>
       this.fishManager.data.createFishFromDatabaseData(fishData)
     );
 
@@ -826,7 +826,12 @@ async loadMyFishes(randomMode = false) {
       this.addedUserFishNames.add(fish.name);
     });
 
-    console.log('成功创建我的鱼对象:', validFishes.length);
+    console.log(`成功创建${listType === 'my' ? '我的' : ''}鱼对象:`, validFishes.length);
+  }
+
+  // 从我的鱼列表创建鱼对象
+  async createFishesFromMyList() {
+    await this._createFishesFromList(this.myFishTankList, 'my');
   }
 
   // 新增：切换鱼缸模式
@@ -897,24 +902,7 @@ async loadMyFishes(randomMode = false) {
 
   // 从全局列表创建鱼对象
   async createFishesFromGlobalList() {
-    if (this.globalFishList.length === 0) return;
-
-    console.log('从全局列表创建鱼对象，数量:', this.globalFishList.length);
-
-    const fishCreationPromises = this.globalFishList.map(fishData =>
-      this.fishManager.data.createFishFromDatabaseData(fishData)
-    );
-
-    const createdFishes = await Promise.all(fishCreationPromises);
-    const validFishes = createdFishes.filter(fish => fish !== null);
-
-    // 添加到鱼缸显示
-    validFishes.forEach(fish => {
-      this.fishTank.addFish(fish);
-      this.addedUserFishNames.add(fish.name);
-    });
-
-    console.log('成功创建鱼对象:', validFishes.length);
+    await this._createFishesFromList(this.globalFishList, 'global');
   }
 
 // 修改 refreshFishTank 方法
@@ -1035,7 +1023,7 @@ async refreshFishTank() {
     const interactionPromises = rankingFishes.map(async (fishItem) => {
       try {
         fishItem.userInteraction = await this.databaseManager.getUserInteraction(
-          fishItem.fishData.fishName, 
+          fishItem.fishData.fishName,
           this.userOpenid
         );
       } catch (error) {
@@ -1080,7 +1068,7 @@ async refreshFishTank() {
         await this.cancelRankingLikeAction(fishItem, userInteraction, originalState);
       } else if (currentAction === 'unstar') {
         // 如果当前是点踩状态，不允许切换操作
-        wx.showToast({ title: '请先取消点踩', icon: 'none', duration: 1500 });
+        Utils.showError('请先取消点踩');
         return;
       } else {
         // 无交互状态，进行点赞操作
@@ -1127,7 +1115,7 @@ async refreshFishTank() {
         await this.cancelRankingDislikeAction(fishItem, userInteraction, originalState);
       } else if (currentAction === 'star') {
         // 如果当前是点赞状态，不允许切换操作
-        wx.showToast({ title: '请先取消点赞', icon: 'none', duration: 1500 });
+        Utils.showError('请先取消点赞');
         return;
       } else {
         // 无交互状态，进行点踩操作
@@ -1407,7 +1395,7 @@ async refreshFishTank() {
       wx.hideLoading();
 
       if (insertSuccess) {
-        wx.showToast({ title: `${finalName} 加入鱼缸！`, icon: 'success', duration: 1500 });
+        Utils.showSuccess(`${finalName} 加入鱼缸！`);
 
         // 修改：进入鱼缸并确保新鱼显示
         await this.enterFishTank(finalName);
@@ -1554,10 +1542,10 @@ async refreshFishTank() {
     this.uiManager.drawGameUI(this.gameState);
   }
 
-  // 修改：点赞操作 - 使用缓存的openid
-  async handleLikeAction() {
+  // 新增：通用的交互操作处理函数
+  async _handleInteraction(actionType) {
     if (!this.canPerformInteraction()) {
-      console.log('操作过于频繁，跳过点赞操作');
+      console.log(`操作过于频繁，跳过${actionType === 'star' ? '点赞' : '点踩'}操作`);
       return;
     }
 
@@ -1583,73 +1571,41 @@ async refreshFishTank() {
         score: fishData.score || 0
       };
 
-      // 如果当前已经是点赞状态，则取消点赞
-      if (currentAction === 'star') {
-        await this.cancelLikeAction(fishData, userInteraction, originalState);
-      } else if (currentAction === 'unstar') {
-        // 如果当前是点踩状态，不允许切换操作
-        wx.showToast({ title: '请先取消点踩', icon: 'none', duration: 1500 });
+      const oppositeAction = actionType === 'star' ? 'unstar' : 'star';
+      
+      // 如果当前已经是相同操作状态，则取消操作
+      if (currentAction === actionType) {
+        await this.cancelInteractionAction(fishData, userInteraction, originalState, false);
+        // 在详情页面情况下，需要清除userInteraction
+        if (this.selectedFishData) {
+          this.selectedFishData.userInteraction = null;
+        }
+      } else if (currentAction === oppositeAction) {
+        // 如果当前是相反操作状态，不允许切换
+        const message = actionType === 'star' ? '请先取消点踩' : '请先取消点赞';
+        wx.showToast({ title: message, icon: 'none', duration: 1500 });
         return;
       } else {
-        // 无交互状态，进行点赞操作
-        await this.performLikeAction(fishData, originalState);
+        // 无交互状态，进行新操作
+        await this.performInteractionAction(fishData, actionType, originalState, false);
       }
 
     } catch (error) {
-      Utils.handleError(error, '点赞操作失败');
+      Utils.handleError(error, `${actionType === 'star' ? '点赞' : '点踩'}操作失败`);
       Utils.showError('操作失败，请重试');
     } finally {
       this.endInteraction();
     }
   }
 
+  // 修改：点赞操作 - 使用缓存的openid
+  async handleLikeAction() {
+    await this._handleInteraction('star');
+  }
+
   // 修改：点踩操作 - 使用缓存的openid
   async handleDislikeAction() {
-    if (!this.canPerformInteraction()) {
-      console.log('操作过于频繁，跳点点踩操作');
-      return;
-    }
-
-    this.startInteraction();
-
-    try {
-      if (!this.selectedFishData) return;
-
-      const fishData = this.selectedFishData.fishData;
-      if (!fishData._id) {
-        console.warn('鱼数据没有ID，无法更新');
-        return;
-      }
-
-      const userInteraction = this.selectedFishData.userInteraction;
-      const currentAction = userInteraction ? userInteraction.action : null;
-
-      // 保存原始状态用于回滚
-      const originalState = {
-        userInteraction: userInteraction ? {...userInteraction} : null,
-        starCount: fishData.star || 0,
-        unstarCount: fishData.unstar || 0,
-        score: fishData.score || 0
-      };
-
-      // 如果当前已经是点踩状态，则取消点踩
-      if (currentAction === 'unstar') {
-        await this.cancelDislikeAction(fishData, userInteraction, originalState);
-      } else if (currentAction === 'star') {
-        // 如果当前是点赞状态，不允许切换操作
-        wx.showToast({ title: '请先取消点赞', icon: 'none', duration: 1500 });
-        return;
-      } else {
-        // 无交互状态，进行点踩操作
-        await this.performDislikeAction(fishData, originalState);
-      }
-
-    } catch (error) {
-      Utils.handleError(error, '点踩操作失败');
-      Utils.showError('操作失败，请重试');
-    } finally {
-      this.endInteraction();
-    }
+    await this._handleInteraction('unstar');
   }
 
   // 修改：执行点赞操作 - 使用缓存的openid
