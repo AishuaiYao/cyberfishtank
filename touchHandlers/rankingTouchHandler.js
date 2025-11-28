@@ -30,6 +30,16 @@ class RankingTouchHandler {
     this.inertiaAnimationId = null;
     this.isInertiaScrolling = false;
 
+    // 新增：惯性滑动相关变量
+    this.lastMoveTime = 0;
+    this.lastDeltaYHistory = []; // 用于计算平均速度
+    this.deltaYHistorySize = 5; // 记录最近的5次滑动
+    this.friction = 0.97; // 摩擦系数，控制减速速率（增大使滑动更持久）
+    this.minVelocityThreshold = 0.02; // 最小速度阈值，低于此值停止惯性滑动（减小使滑动更持久）
+    this.bounceFactor = 0.4; // 边界回弹系数
+    this.bounceVelocity = 0; // 回弹速度
+    this.isBouncing = false; // 是否正在回弹
+
     // 新增：加载动画帧ID
     this.loadingAnimationId = null;
   }
@@ -170,11 +180,21 @@ class RankingTouchHandler {
 
   // 触摸开始
   handleTouchStart(x, y) {
+    // 停止当前惯性滑动
+    this.stopInertiaScrolling();
+    
     this.touchStartY = y;
     this.lastTouchY = y;
     this.isScrolling = false;
     // 重置节流计时器，允许立即响应
     this.lastDrawTime = 0;
+    
+    // 重置惯性滑动相关变量
+    this.lastMoveTime = Date.now();
+    this.lastDeltaYHistory = [];
+    this.velocity = 0;
+    this.bounceVelocity = 0;
+    this.isBouncing = false;
   }
 
   // 触摸移动 - 重构：完全重写滑动逻辑
@@ -188,6 +208,7 @@ class RankingTouchHandler {
 
     // 如果内容可以滚动，则处理滑动
     if (this.maxScrollY > 0) {
+      const currentTime = Date.now();
       const deltaY = this.lastTouchY - y;
 
       // 立即更新滚动位置（即使移动距离很小）
@@ -197,6 +218,27 @@ class RankingTouchHandler {
         // 更新滚动位置
         this.currentScrollY = Math.max(0, Math.min(this.maxScrollY, this.currentScrollY + deltaY));
         this.lastTouchY = y;
+
+        // 记录滑动速度信息
+        const timeDelta = currentTime - this.lastMoveTime;
+        if (timeDelta > 0) {
+          // 计算当前速度，直接使用像素差值作为速度（不需要除以时间）
+          // 这样可以使速度值更大，更容易触发惯性滑动
+          const currentVelocity = deltaY;
+          
+          // 保存到历史记录
+          this.lastDeltaYHistory.push({
+            velocity: currentVelocity,
+            time: currentTime
+          });
+          
+          // 保持历史记录大小
+          if (this.lastDeltaYHistory.length > this.deltaYHistorySize) {
+            this.lastDeltaYHistory.shift();
+          }
+          
+          this.lastMoveTime = currentTime;
+        }
 
         // 高性能渲染优化：立即更新滚动位置，异步渲染
         this.scheduleRender();
@@ -320,9 +362,15 @@ class RankingTouchHandler {
   handleTouchEnd() {
     this.isScrolling = false;
 
+    // 计算惯性滑动速度
+    this.calculateInertiaVelocity();
+
     // 在触摸结束时也检查是否需要加载更多数据
     // 这可以处理用户快速滑动到底部的情况
     this.checkLoadMore();
+
+    // 启动惯性滑动
+    this.startInertiaScrolling();
   }
 
   // 计算最大滚动距离
@@ -355,6 +403,9 @@ class RankingTouchHandler {
     this.maxScrollY = 0;
     this.lastButtonClickTime = 0; // 重置按钮点击时间
 
+    // 新增：停止惯性滑动
+    this.stopInertiaScrolling();
+
     // 新增：清理加载动画
     if (this.loadingAnimationId) {
       cancelAnimationFrame(this.loadingAnimationId);
@@ -365,6 +416,143 @@ class RankingTouchHandler {
   // 获取最大滚动距离
   getMaxScrollY() {
     return this.maxScrollY;
+  }
+
+  // 新增：计算惯性滑动速度
+  calculateInertiaVelocity() {
+    // 如果没有足够的历史数据，不启动惯性滑动
+    if (this.lastDeltaYHistory.length < 2) {
+      this.velocity = 0;
+      return;
+    }
+
+    // 计算最近几次滑动的加权平均速度
+    // 给最近的数据更高的权重
+    let totalVelocity = 0;
+    let totalWeight = 0;
+    
+    for (let i = 0; i < this.lastDeltaYHistory.length; i++) {
+      const data = this.lastDeltaYHistory[i];
+      // 权重从1开始，越近的数据权重越高
+      const weight = i + 1;
+      totalVelocity += data.velocity * weight;
+      totalWeight += weight;
+    }
+
+    if (totalWeight > 0) {
+      this.velocity = totalVelocity / totalWeight;
+      // 放大速度值，使惯性滑动更明显
+      this.velocity *= 0.8;
+      console.log(`计算得到惯性速度: ${this.velocity}`);
+    } else {
+      this.velocity = 0;
+    }
+  }
+
+  // 新增：启动惯性滑动
+  startInertiaScrolling() {
+    // 如果速度太小，不启动惯性滑动
+    if (Math.abs(this.velocity) < this.minVelocityThreshold) {
+      console.log(`速度太小 (${this.velocity})，不启动惯性滑动`);
+      return;
+    }
+
+    // 停止任何现有的惯性滑动动画
+    this.stopInertiaScrolling();
+    
+    // 设置状态
+    this.isInertiaScrolling = true;
+    this.bounceVelocity = 0;
+    this.isBouncing = false;
+    
+    console.log(`启动惯性滑动，初始速度: ${this.velocity}`);
+    
+    // 开始动画
+    this.inertiaAnimationId = requestAnimationFrame(() => {
+      this.performInertiaScroll();
+    });
+  }
+
+  // 新增：执行惯性滑动动画
+  performInertiaScroll() {
+    if (!this.isInertiaScrolling) {
+      return;
+    }
+
+    const prevScrollY = this.currentScrollY;
+    
+    // 如果不在回弹状态，应用摩擦力
+    if (!this.isBouncing) {
+      this.velocity *= this.friction;
+      
+      // 更新滚动位置 - 放大移动距离，使惯性滑动更明显
+      this.currentScrollY += this.velocity;
+      
+      // 边界检查
+      if (this.currentScrollY < 0) {
+        this.currentScrollY = 0;
+        this.isBouncing = true;
+        this.bounceVelocity = this.velocity * this.bounceFactor;
+        console.log(`达到顶部边界，启动回弹，回弹速度: ${this.bounceVelocity}`);
+      } else if (this.currentScrollY > this.maxScrollY) {
+        this.currentScrollY = this.maxScrollY;
+        this.isBouncing = true;
+        this.bounceVelocity = this.velocity * this.bounceFactor;
+        console.log(`达到底部边界，启动回弹，回弹速度: ${this.bounceVelocity}`);
+      }
+    } else {
+      // 回弹状态
+      this.currentScrollY += this.bounceVelocity;
+      this.bounceVelocity *= this.friction;
+      
+      // 回弹边界检查
+      if (this.currentScrollY < 0) {
+        this.currentScrollY = 0;
+        if (Math.abs(this.bounceVelocity) < this.minVelocityThreshold) {
+          this.bounceVelocity = 0;
+        }
+      } else if (this.currentScrollY > this.maxScrollY) {
+        this.currentScrollY = this.maxScrollY;
+        if (Math.abs(this.bounceVelocity) < this.minVelocityThreshold) {
+          this.bounceVelocity = 0;
+        }
+      }
+    }
+
+    // 检查是否停止惯性滑动
+    if ((!this.isBouncing && Math.abs(this.velocity) < this.minVelocityThreshold) ||
+        (this.isBouncing && Math.abs(this.bounceVelocity) < this.minVelocityThreshold)) {
+      this.stopInertiaScrolling();
+      return;
+    }
+
+    // 重绘UI
+    this.scheduleRender();
+    
+    // 检查是否需要加载更多数据
+    if (prevScrollY !== this.currentScrollY) {
+      this.checkLoadMore();
+    }
+
+    // 继续下一帧动画
+    this.inertiaAnimationId = requestAnimationFrame(() => {
+      this.performInertiaScroll();
+    });
+  }
+
+  // 新增：停止惯性滑动
+  stopInertiaScrolling() {
+    if (this.inertiaAnimationId) {
+      cancelAnimationFrame(this.inertiaAnimationId);
+      this.inertiaAnimationId = null;
+    }
+    
+    this.isInertiaScrolling = false;
+    this.isBouncing = false;
+    this.velocity = 0;
+    this.bounceVelocity = 0;
+    
+    console.log('惯性滑动已停止');
   }
 }
 
