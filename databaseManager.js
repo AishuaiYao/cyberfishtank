@@ -464,43 +464,7 @@ class DatabaseManager {
     return scoresMap;
   }
 
-  // 新增：更新鱼的评分（兼容旧数据，新创建的鱼不包含这些字段）
-  async updateFishScore(fishId, newScore, starCount, unstarCount) {
-    if (!Utils.checkDatabaseInitialization(this, '更新鱼评分')) return false;
 
-    try {
-      console.log(`更新鱼 ${fishId} 的评分: score=${newScore}, star=${starCount}, unstar=${unstarCount}`);
-
-      // 构建更新数据对象，只包含需要的字段
-      const updateData = {
-        updateTime: new Date()
-      };
-
-      // 先获取当前鱼的数据，检查是否包含评分字段
-      const fishDoc = await this.cloudDb.collection('fishes').doc(fishId).get();
-      if (fishDoc.data) {
-        // 只有当鱼数据包含这些字段时才更新
-        if ('score' in fishDoc.data) {
-          updateData.score = newScore;
-        }
-        if ('star' in fishDoc.data) {
-          updateData.star = starCount;
-        }
-        if ('unstar' in fishDoc.data) {
-          updateData.unstar = unstarCount;
-        }
-      }
-
-      await this.cloudDb.collection('fishes').doc(fishId).update({
-        data: updateData
-      });
-
-      console.log('鱼评分更新成功');
-      return true;
-    } catch (error) {
-      return Utils.handleDatabaseError(error, '更新鱼评分', false);
-    }
-  }
 
   // 新增：批量获取用户交互记录
   async getUserInteractionsBatch(fishNames, userOpenid) {

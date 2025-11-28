@@ -447,16 +447,18 @@ class EventHandler {
         }
       } catch (error) {
         console.warn('插入交互记录失败:', error);
+        // 插入失败，回滚UI状态
+        if (isRanking) {
+          this.rollbackRankingState({ fishData }, originalState);
+        } else {
+          this.rollbackDetailState(originalState);
+        }
+        Utils.showError('操作失败，请重试', 1500);
+        return;
       }
 
-      const updateSuccess = await this.databaseManager.updateFishScore(
-        fishData._id,
-        newScore,
-        newStarCount,
-        newUnstarCount
-      );
-
-      if (updateSuccess) {
+      // 只插入interaction记录，不再更新fishes集合
+      if (interactionSuccess) {
         console.log(`${isRanking ? '排行榜' : ''}${isStar ? '点赞' : '点踩'}操作成功`);
         // 成功后更新本地交互状态
         if (isRanking && this.rankingData && this.rankingData.fishes) {
@@ -476,7 +478,7 @@ class EventHandler {
           await this.loadUserInteraction(fishData.fishName);
         }
       } else {
-        // 数据库操作失败，回滚UI状态
+        // 插入交互记录失败，回滚UI状态
         if (isRanking) {
           this.rollbackRankingState({ fishData }, originalState);
         } else {
@@ -559,14 +561,8 @@ class EventHandler {
         );
       }
 
-      const updateSuccess = await this.databaseManager.updateFishScore(
-        fishData._id,
-        newScore,
-        newStarCount,
-        newUnstarCount
-      );
-
-      if (updateSuccess) {
+      // 只删除interaction记录，不再更新fishes集合
+      if (interactionSuccess) {
         if (isRanking && this.rankingData && this.rankingData.fishes) {
           // 在排行榜情况下，清除userInteraction
           const fishItem = this.rankingData.fishes.find(item =>
