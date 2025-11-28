@@ -229,17 +229,9 @@ class UIManager {
         this.eventHandler.rankingIncrementalData[currentMode] &&
         this.eventHandler.rankingIncrementalData[currentMode].isLoading) {
 
-      // 在底部绘制加载动画和文字
+      // 在底部绘制加载动画
       const spinnerY = config.screenHeight - 50;
       this.drawLoadingSpinner(Math.round(config.screenWidth / 2), spinnerY, 24);
-
-      // 绘制加载文字
-      ctx.save();
-      ctx.fillStyle = config.lightTextColor;
-      ctx.font = '14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('预加载中...', Math.round(config.screenWidth / 2), spinnerY + 35);
-      ctx.restore();
     }
   }
 
@@ -318,17 +310,9 @@ class UIManager {
         this.eventHandler.rankingIncrementalData[currentMode] &&
         this.eventHandler.rankingIncrementalData[currentMode].isLoading) {
 
-      // 在底部绘制加载动画和文字
+      // 在底部绘制加载动画
       const spinnerY = config.screenHeight - 50;
       this.drawLoadingSpinner(Math.round(config.screenWidth / 2), spinnerY, 24);
-
-      // 绘制加载文字
-      ctx.save();
-      ctx.fillStyle = config.lightTextColor;
-      ctx.font = '14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('预加载中...', Math.round(config.screenWidth / 2), spinnerY + 35);
-      ctx.restore();
     }
   }
 
@@ -356,31 +340,6 @@ class UIManager {
     // 绘制滑块
     ctx.fillStyle = 'rgba(0, 122, 255, 0.7)';
     Utils.drawRoundedRect(ctx, indicatorRight - indicatorWidth, sliderY, indicatorWidth, sliderHeight, 2, true, false);
-    
-    // 新增：显示当前加载状态和预加载阈值提示
-    const currentMode = this.eventHandler.currentRankingMode;
-    if (this.eventHandler.rankingIncrementalData && 
-        this.eventHandler.rankingIncrementalData[currentMode]) {
-      
-      const incrementalData = this.eventHandler.rankingIncrementalData[currentMode];
-      const totalFishCount = this.eventHandler.rankingData.fishes.length;
-      
-      // 计算预加载阈值位置
-      const preloadThreshold = 10; // 提前10个名次触发预加载
-      const preloadPosition = Math.max(0, (totalFishCount - preloadThreshold) / totalFishCount) * maxScrollY;
-      
-      // 绘制预加载阈值线
-      if (preloadPosition < maxScrollY) {
-        ctx.strokeStyle = 'rgba(255, 165, 0, 0.5)'; // 橙色半透明
-        ctx.lineWidth = 2;
-        ctx.setLineDash([5, 5]); // 虚线
-        ctx.beginPath();
-        ctx.moveTo(0, 100 + preloadPosition);
-        ctx.lineTo(config.screenWidth - 15, 100 + preloadPosition);
-        ctx.stroke();
-        ctx.setLineDash([]); // 重置虚线
-      }
-    }
   }
 
   // 新增：通用的交互按钮绘制函数

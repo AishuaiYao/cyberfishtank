@@ -328,12 +328,12 @@ class RankingTouchHandler {
     const totalFishCount = this.eventHandler.rankingData.fishes.length;
 
     // 计算距离底部的名次数（不是像素距离）
-    // 优化：当距离最后一个小鱼10个名次时触发预加载
+    // 优化：当距离最后一个小鱼10个名次时触发更多数据加载
     const distanceFromBottomInRank = totalFishCount - visibleFishCount;
-    const preloadThreshold = 10; // 提前10个名次触发预加载
+    const preloadThreshold = 10; // 提前10个名次触发更多数据加载
 
     if (distanceFromBottomInRank <= preloadThreshold && incrementalData.hasMore && !incrementalData.isLoading) {
-      console.log(`距离底部${distanceFromBottomInRank}个名次，触发预加载（阈值：${preloadThreshold}）`);
+      console.log(`距离底部${distanceFromBottomInRank}个名次，触发更多数据加载（阈值：${preloadThreshold}）`);
       
       // 确保 loadNextRankingPage 方法存在
       if (typeof this.eventHandler.loadNextRankingPage === 'function') {
