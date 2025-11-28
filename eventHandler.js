@@ -655,7 +655,7 @@ class EventHandler {
   }
 
   handleTouchEnd() {
-    console.log('触摸结束');
+//    console.log('触摸结束');
 
     // 触摸结束事件
     if (this.isRankingInterfaceVisible) {
