@@ -654,11 +654,23 @@ class EventHandler {
     }
   }
 
-  handleTouchEnd() {
+  handleTouchEnd(e) {
 //    console.log('触摸结束');
 
-    // 触摸结束事件
+    // 触摸结束事件 - 修复：处理排行榜按钮点击
     if (this.isRankingInterfaceVisible) {
+      // 获取触摸结束位置
+      if (e.changedTouches && e.changedTouches.length > 0) {
+        const touch = e.changedTouches[0];
+        const x = touch.clientX;
+        const y = touch.clientY;
+        
+        // 只有在没有滚动的情况下才处理按钮点击
+        if (!this.touchHandlers.ranking.isScrolling) {
+          this.touchHandlers.ranking.handleTouch(x, y);
+        }
+      }
+      
       this.touchHandlers.ranking.handleTouchEnd();
     } else if (this.isFishDetailVisible || this.isDialogVisible || this.isSwimInterfaceVisible) {
       // 这些界面不需要处理触摸结束
@@ -668,10 +680,15 @@ class EventHandler {
     }
   }
 
-  handleTouchCancel() {
+  handleTouchCancel(e) {
     this.gameState.isDrawing = false;
     if (this.isRankingInterfaceVisible) {
-      this.touchHandlers.ranking.handleTouchEnd();
+      if (e && e.changedTouches && e.changedTouches.length > 0) {
+        const touch = e.changedTouches[0];
+        this.touchHandlers.ranking.handleTouchEnd(touch.clientX, touch.clientY);
+      } else {
+        this.touchHandlers.ranking.handleTouchEnd();
+      }
     }
   }
 

@@ -5,6 +5,7 @@ class RankingTouchHandler {
   constructor(eventHandler) {
     this.eventHandler = eventHandler;
     this.touchStartY = 0;
+    this.touchStartX = 0; // 新增：记录触摸开始X坐标
     this.currentScrollY = 0;
     this.maxScrollY = 0;
     this.isScrolling = false;
@@ -49,11 +50,6 @@ class RankingTouchHandler {
     // 新增：惯性动画时间步长控制
     this.lastInertiaTime = 0;
     this.inertiaTimeStep = 16; // 目标60fps
-
-    // 调试信息
-    this.debugInfo = "未开始";
-    this.debugVelocity = 0;
-    this.debugFrameCount = 0;
 
     // 新增：加载动画帧ID
     this.loadingAnimationId = null;
@@ -195,6 +191,7 @@ class RankingTouchHandler {
     this.stopElasticAnimation();
 
     this.touchStartY = y;
+    this.touchStartX = x; // 记录触摸开始X坐标
     this.lastTouchY = y;
     this.isScrolling = false;
     // 重置节流计时器，允许立即响应
@@ -390,7 +387,7 @@ class RankingTouchHandler {
   }
 
   // 触摸结束 - 添加弹性回弹
-  handleTouchEnd() {
+  handleTouchEnd(x, y) {
     this.isScrolling = false;
 
     // 检查是否需要弹性回弹
@@ -433,6 +430,7 @@ class RankingTouchHandler {
   resetScroll() {
     this.currentScrollY = 0;
     this.touchStartY = 0;
+    this.touchStartX = 0;
     this.lastTouchY = 0;
     this.isScrolling = false;
     this.maxScrollY = 0;
@@ -507,8 +505,6 @@ class RankingTouchHandler {
 
     const currentTime = Date.now();
     const deltaTime = Math.min(currentTime - this.lastInertiaTime, 50); // 限制最大时间间隔
-
-    this.debugFrameCount++;
 
     // 如果不在回弹状态，应用摩擦力
     if (!this.isBouncing) {
