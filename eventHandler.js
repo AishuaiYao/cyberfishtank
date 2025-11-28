@@ -1239,7 +1239,7 @@ async refreshFishTank() {
       return;
     }
 
-    console.log(`开始加载${currentMode}排行榜下一页数据，当前页: ${incrementalData.currentPage}`);
+    console.log(`开始预加载${currentMode}排行榜数据，当前页: ${incrementalData.currentPage + 1}`);
 
     incrementalData.isLoading = true;
     incrementalData.currentPage++;
@@ -1247,16 +1247,17 @@ async refreshFishTank() {
     try {
       let nextPageResult;
 
+      // 优化：加载后续20条小鱼数据
       if (currentMode === 'cyber') {
         nextPageResult = await this.databaseManager.getRankingDataPage(
           incrementalData.currentPage,
-          incrementalData.pageSize
+          20 // 固定加载20条小鱼
         );
       } else {
         const startOfWeek = this.getStartOfWeek();
         nextPageResult = await this.databaseManager.getWeeklyRankingDataPage(
           incrementalData.currentPage,
-          incrementalData.pageSize,
+          20, // 固定加载20条小鱼
           startOfWeek
         );
       }
@@ -1311,7 +1312,7 @@ async refreshFishTank() {
       // 将新加载的鱼添加到现有数据中
       this.rankingData.fishes = this.rankingData.fishes.concat(newFishes);
 
-      console.log(`成功加载 ${newFishes.length} 条新的排行榜数据，当前总数: ${this.rankingData.fishes.length}`);
+      console.log(`成功预加载 ${newFishes.length} 条新的排行榜数据，当前总数: ${this.rankingData.fishes.length}`);
 
       // 重新计算最大滚动距离
       this.touchHandlers.ranking.calculateMaxScroll();
@@ -1320,7 +1321,7 @@ async refreshFishTank() {
       this.uiManager.drawGameUI(this.gameState);
 
     } catch (error) {
-      Utils.handleError(error, `加载${currentMode}排行榜下一页数据失败`);
+      Utils.handleError(error, `预加载${currentMode}排行榜数据失败`);
     } finally {
       incrementalData.isLoading = false;
     }

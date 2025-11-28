@@ -316,11 +316,25 @@ class RankingTouchHandler {
       return;
     }
 
-    // 计算距离底部的距离
-    const distanceFromBottom = this.maxScrollY - this.currentScrollY;
-    const threshold = 300;
+    // 计算当前可见的鱼的数量
+    const cardHeight = 200;
+    const rowHeight = cardHeight + 15;
+    const startY = 100;
+    const visibleHeight = config.screenHeight - startY;
+    const visibleRows = Math.ceil(visibleHeight / rowHeight);
+    const visibleFishCount = Math.ceil((this.currentScrollY + visibleHeight) / rowHeight) * 2; // 2列
 
-    if (distanceFromBottom <= threshold && incrementalData.hasMore && !incrementalData.isLoading) {
+    // 计算总鱼数量
+    const totalFishCount = this.eventHandler.rankingData.fishes.length;
+
+    // 计算距离底部的名次数（不是像素距离）
+    // 优化：当距离最后一个小鱼10个名次时触发预加载
+    const distanceFromBottomInRank = totalFishCount - visibleFishCount;
+    const preloadThreshold = 10; // 提前10个名次触发预加载
+
+    if (distanceFromBottomInRank <= preloadThreshold && incrementalData.hasMore && !incrementalData.isLoading) {
+      console.log(`距离底部${distanceFromBottomInRank}个名次，触发预加载（阈值：${preloadThreshold}）`);
+      
       // 确保 loadNextRankingPage 方法存在
       if (typeof this.eventHandler.loadNextRankingPage === 'function') {
         this.eventHandler.loadNextRankingPage();

@@ -251,7 +251,7 @@ class DatabaseManager {
 
   // 新增：分页获取排行榜数据
   async getRankingDataPage(page = 0, pageSize = 20) {
-    if (!Utils.checkDatabaseInitialization(this, '获取排行榜分页数据')) return [];
+    if (!Utils.checkDatabaseInitialization(this, '获取排行榜分页数据')) return { data: [], hasMore: false };
 
     try {
       console.log(`获取排行榜第${page+1}页，每页${pageSize}条`);
