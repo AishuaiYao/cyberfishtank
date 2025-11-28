@@ -174,6 +174,211 @@ class UIManager {
     ctx.restore();
   }
 
+  // 新增：专业级预加载动画集合
+  drawProfessionalLoadingAnimation(x, y, size = 24) {
+    const ctx = this.ctx;
+    const now = Date.now();
+    const animationTime = (now % 2000) / 2000; // 2秒循环
+
+    // 方法1：渐变脉冲圆环
+    this.drawPulseRingLoading(ctx, x, y, size, animationTime);
+
+    // 方法2：波浪进度条（备用）
+    // this.drawWaveProgressLoading(ctx, x, y, size, animationTime);
+
+    // 方法3：3D旋转球体（备用）
+    // this.draw3DSphereLoading(ctx, x, y, size, animationTime);
+  }
+
+  // 渐变脉冲圆环加载动画
+  drawPulseRingLoading(ctx, x, y, size, animationTime) {
+    ctx.save();
+    ctx.translate(x, y);
+
+    // 主圆环 - 渐变脉冲效果
+    const pulseIntensity = Math.abs(Math.sin(animationTime * Math.PI * 2));
+    const ringWidth = 3 + pulseIntensity * 1.5;
+    
+    // 创建渐变
+    const gradient = ctx.createRadialGradient(0, 0, size/2 - ringWidth/2, 0, 0, size/2);
+    gradient.addColorStop(0, config.primaryColor);
+    gradient.addColorStop(0.7, '#5AC8FA');
+    gradient.addColorStop(1, '#FFFFFF');
+
+    // 绘制外圆环
+    ctx.strokeStyle = gradient;
+    ctx.lineWidth = ringWidth;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.arc(0, 0, size/2, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 绘制旋转的球体
+    const ballAngle = animationTime * Math.PI * 2;
+    const ballSize = 4 + pulseIntensity * 1;
+    const ballX = Math.cos(ballAngle) * size/2;
+    const ballY = Math.sin(ballAngle) * size/2;
+
+    // 球体渐变
+    const ballGradient = ctx.createRadialGradient(ballX, ballY, 0, ballX, ballY, ballSize);
+    ballGradient.addColorStop(0, '#FFFFFF');
+    ballGradient.addColorStop(1, config.primaryColor);
+
+    ctx.fillStyle = ballGradient;
+    ctx.beginPath();
+    ctx.arc(ballX, ballY, ballSize, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 添加光晕效果
+    ctx.shadowColor = config.primaryColor;
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+
+    ctx.restore();
+  }
+
+  // 波浪进度条加载动画
+  drawWaveProgressLoading(ctx, x, y, size, animationTime) {
+    ctx.save();
+    ctx.translate(x, y);
+
+    const waveHeight = size / 3;
+    const waveCount = 4;
+    const waveLength = size / waveCount;
+
+    // 绘制波浪背景
+    ctx.fillStyle = '#E5E5EA';
+    ctx.fillRect(-size/2, -waveHeight/2, size, waveHeight);
+
+    // 绘制波浪进度
+    ctx.fillStyle = config.primaryColor;
+    
+    for (let i = 0; i < waveCount; i++) {
+      const waveX = -size/2 + i * waveLength;
+      const wavePhase = (animationTime + i * 0.25) * Math.PI * 2;
+      const waveAmplitude = Math.sin(wavePhase) * waveHeight/2;
+      
+      ctx.beginPath();
+      ctx.moveTo(waveX, -waveHeight/2);
+      ctx.lineTo(waveX, waveAmplitude);
+      ctx.lineTo(waveX + waveLength, waveAmplitude);
+      ctx.lineTo(waveX + waveLength, -waveHeight/2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
+  // 3D旋转球体加载动画
+  draw3DSphereLoading(ctx, x, y, size, animationTime) {
+    ctx.save();
+    ctx.translate(x, y);
+
+    // 球体旋转角度
+    const rotationX = animationTime * Math.PI * 2;
+    const rotationY = animationTime * Math.PI * 1.5;
+
+    // 绘制球体
+    const sphereGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size/2);
+    sphereGradient.addColorStop(0, '#FFFFFF');
+    sphereGradient.addColorStop(0.5, config.primaryColor);
+    sphereGradient.addColorStop(1, '#0055CC');
+
+    ctx.fillStyle = sphereGradient;
+    ctx.beginPath();
+    ctx.arc(0, 0, size/2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 添加高光效果
+    const highlightSize = size/4;
+    const highlightX = Math.cos(rotationX) * size/4;
+    const highlightY = Math.sin(rotationY) * size/4;
+
+    const highlightGradient = ctx.createRadialGradient(
+      highlightX, highlightY, 0, 
+      highlightX, highlightY, highlightSize
+    );
+    highlightGradient.addColorStop(0, 'rgba(255,255,255,0.8)');
+    highlightGradient.addColorStop(1, 'rgba(255,255,255,0)');
+
+    ctx.fillStyle = highlightGradient;
+    ctx.beginPath();
+    ctx.arc(highlightX, highlightY, highlightSize, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  // 智能预加载提示（带进度指示）
+  drawSmartPreloadHint(x, y, progress = 0) {
+    const ctx = this.ctx;
+    
+    // 背景容器
+    const containerWidth = 120;
+    const containerHeight = 40;
+    
+    ctx.save();
+    ctx.translate(x, y);
+
+    // 绘制背景 - 兼容性处理：使用普通矩形+圆角路径
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.globalAlpha = 0.8;
+    
+    // 手动绘制圆角矩形（兼容性更好）
+    const radius = 8;
+    ctx.beginPath();
+    ctx.moveTo(-containerWidth/2 + radius, -containerHeight/2);
+    ctx.lineTo(containerWidth/2 - radius, -containerHeight/2);
+    ctx.arcTo(containerWidth/2, -containerHeight/2, containerWidth/2, -containerHeight/2 + radius, radius);
+    ctx.lineTo(containerWidth/2, containerHeight/2 - radius);
+    ctx.arcTo(containerWidth/2, containerHeight/2, containerWidth/2 - radius, containerHeight/2, radius);
+    ctx.lineTo(-containerWidth/2 + radius, containerHeight/2);
+    ctx.arcTo(-containerWidth/2, containerHeight/2, -containerWidth/2, containerHeight/2 - radius, radius);
+    ctx.lineTo(-containerWidth/2, -containerHeight/2 + radius);
+    ctx.arcTo(-containerWidth/2, -containerHeight/2, -containerWidth/2 + radius, -containerHeight/2, radius);
+    ctx.closePath();
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // 绘制进度条背景
+    const progressBarWidth = 80;
+    const progressBarHeight = 4;
+    const progressBarX = -progressBarWidth/2;
+    const progressBarY = 5;
+
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.fillRect(progressBarX, progressBarY, progressBarWidth, progressBarHeight);
+
+    // 绘制进度条
+    const progressWidth = progressBarWidth * Math.min(progress, 1);
+    const progressGradient = ctx.createLinearGradient(
+      progressBarX, progressBarY, 
+      progressBarX + progressWidth, progressBarY
+    );
+    progressGradient.addColorStop(0, '#4CD964');
+    progressGradient.addColorStop(1, '#007AFF');
+
+    ctx.fillStyle = progressGradient;
+    ctx.fillRect(progressBarX, progressBarY, progressWidth, progressBarHeight);
+
+    // 绘制文字
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 12px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    const text = progress < 1 ? '加载中...' : '加载完成';
+    ctx.fillText(text, 0, -5);
+
+    // 绘制进度百分比
+    const percentage = Math.round(progress * 100);
+    ctx.font = '11px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+    ctx.fillText(`${percentage}%`, 0, 15);
+
+    ctx.restore();
+  }
+
   // 绘制排行榜卡片（更新版）- 虚拟滚动优化
   drawRankingCards() {
     const ctx = this.ctx;
@@ -229,9 +434,12 @@ class UIManager {
         this.eventHandler.rankingIncrementalData[currentMode] &&
         this.eventHandler.rankingIncrementalData[currentMode].isLoading) {
 
-      // 在底部绘制加载动画
+      // 在底部绘制专业级加载动画
       const spinnerY = config.screenHeight - 50;
-      this.drawLoadingSpinner(Math.round(config.screenWidth / 2), spinnerY, 24);
+      this.drawProfessionalLoadingAnimation(Math.round(config.screenWidth / 2), spinnerY, 28);
+      
+      // 可选：添加智能预加载提示
+      // this.drawSmartPreloadHint(Math.round(config.screenWidth / 2), spinnerY - 30, 0.5);
     }
   }
 
@@ -310,9 +518,12 @@ class UIManager {
         this.eventHandler.rankingIncrementalData[currentMode] &&
         this.eventHandler.rankingIncrementalData[currentMode].isLoading) {
 
-      // 在底部绘制加载动画
+      // 在底部绘制专业级加载动画
       const spinnerY = config.screenHeight - 50;
-      this.drawLoadingSpinner(Math.round(config.screenWidth / 2), spinnerY, 24);
+      this.drawProfessionalLoadingAnimation(Math.round(config.screenWidth / 2), spinnerY, 28);
+      
+      // 可选：添加智能预加载提示
+      // this.drawSmartPreloadHint(Math.round(config.screenWidth / 2), spinnerY - 30, 0.5);
     }
   }
 
