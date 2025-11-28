@@ -1,4 +1,4 @@
-// uiManager.js - 优化后的UI管理器
+
 const { config, getAreaPositions } = require('./config.js');
 const InterfaceRenderer = require('./interfaceRenderer.js');
 const Utils = require('./utils.js');
@@ -15,6 +15,10 @@ class UIManager {
     
     // 初始化时优化渲染设置
     this.optimizeRendering();
+
+    // 新增：渲染性能优化
+    this.lastCardsRenderTime = 0;
+    this.renderFrameInterval = 1000 / 60; // 目标60fps
   }
 
   // 新增：优化渲染设置
@@ -31,8 +35,6 @@ class UIManager {
     // 设置清晰的线条渲染
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-
-    console.log('UI管理器渲染优化完成，像素比:', this.pixelRatio);
   }
 
   // 设置事件处理器引用
@@ -111,14 +113,6 @@ class UIManager {
     const switchButtonText = this.eventHandler.getRankingSwitchButtonText();
 
     Utils.drawModernButton(ctx, switchButtonX, 40, switchButtonWidth, 30, switchButtonText, false, false);
-
-//    // 绘制标题 - 上移50像素
-//    ctx.fillStyle = config.textColor;
-//    ctx.font = 'bold 20px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-//    ctx.textAlign = 'center';
-//    ctx.fillText(this.eventHandler.currentRankingMode === 'cyber' ? '🌐 赛博排行榜' : '📅 本周排行榜', Math.round(config.screenWidth / 2), 75);
-//
-//    ctx.textAlign = 'left';
 
     // 检查加载状态
     if (this.eventHandler.isLoadingRanking) {
@@ -249,7 +243,6 @@ class UIManager {
     }
   }
 
-
   // 高性能版本：排行榜卡片增量渲染优化
   drawRankingCardsOnly() {
     const ctx = this.ctx;
@@ -258,6 +251,13 @@ class UIManager {
     if (!this.eventHandler.rankingData || !this.eventHandler.rankingData.fishes) {
       return;
     }
+
+    // 使用时间间隔控制渲染频率
+    const now = Date.now();
+    if (now - this.lastCardsRenderTime < this.renderFrameInterval) {
+      return;
+    }
+    this.lastCardsRenderTime = now;
 
     const rankingFishes = this.eventHandler.rankingData.fishes;
     const scrollOffset = this.eventHandler.touchHandlers.ranking.getScrollOffset();

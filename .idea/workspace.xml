@@ -4,10 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="代码结构优化-排行榜惯性-顶部下拉">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/eventHandler.js" afterDir="false" />
+    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="代码结构优化-排行榜回弹效果">
       <change beforePath="$PROJECT_DIR$/touchHandlers/rankingTouchHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/rankingTouchHandler.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uiManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/uiManager.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -72,14 +71,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00039" summary="优化UI">
-      <option name="closed" value="true" />
-      <created>1763777874128</created>
-      <option name="number" value="00039" />
-      <option name="presentableId" value="LOCAL-00039" />
-      <option name="project" value="LOCAL" />
-      <updated>1763777874128</updated>
     </task>
     <task id="LOCAL-00040" summary="鱼缸渲染重复">
       <option name="closed" value="true" />
@@ -465,11 +456,18 @@
       <option name="project" value="LOCAL" />
       <updated>1764338856276</updated>
     </task>
-    <option name="localTasksCounter" value="88" />
+    <task id="LOCAL-00088" summary="代码结构优化-排行榜回弹效果">
+      <option name="closed" value="true" />
+      <created>1764339647758</created>
+      <option name="number" value="00088" />
+      <option name="presentableId" value="LOCAL-00088" />
+      <option name="project" value="LOCAL" />
+      <updated>1764339647758</updated>
+    </task>
+    <option name="localTasksCounter" value="89" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="优化绘画中断" />
     <MESSAGE value="刷新button调大" />
     <MESSAGE value="修复自己鱼缸不能显示自己的鱼问题" />
     <MESSAGE value="取消了点赞弹窗" />
@@ -494,6 +492,7 @@
     <MESSAGE value="代码结构优化-排行榜滑动-实现惯性" />
     <MESSAGE value="代码结构优化-排行榜惯性-去掉刷新" />
     <MESSAGE value="代码结构优化-排行榜惯性-顶部下拉" />
-    <option name="LAST_COMMIT_MESSAGE" value="代码结构优化-排行榜惯性-顶部下拉" />
+    <MESSAGE value="代码结构优化-排行榜回弹效果" />
+    <option name="LAST_COMMIT_MESSAGE" value="代码结构优化-排行榜回弹效果" />
   </component>
 </project>
