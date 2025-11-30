@@ -118,7 +118,7 @@ class DatabaseManager {
     }, null);
   }
 
-  // 修改：插入用户交互记录 - 现在接收openid参数
+  // 优化：插入用户交互记录 - 先检查是否已存在
   async insertUserInteraction(fishName, action, userOpenid) {
     return this._executeDatabaseOperation('插入交互记录', async () => {
       if (!userOpenid) {
@@ -126,12 +126,20 @@ class DatabaseManager {
         return false;
       }
 
+      // 1. 先检查是否已存在相同交互记录
+      const existingInteraction = await this.getUserInteraction(fishName, userOpenid);
+      
+      if (existingInteraction) {
+        console.log(`用户已存在对鱼 ${fishName} 的交互记录，无需重复插入`);
+        return false; // 返回false表示不需要插入新记录
+      }
+
+      // 2. 插入新记录
       const interactionData = {
         fishName: fishName,
         action: action,
         createdAt: new Date(),
         createTimestamp: Date.now()
-        // 不需要包含 openid 字段，系统会自动添加 _openid
       };
 
       console.log('准备插入交互记录:', interactionData);
