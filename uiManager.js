@@ -829,7 +829,7 @@ class UIManager {
 
     // 点赞按钮
     const isLiked = hasInteracted && userAction === 'star';
-    const likeButtonText = isLiked ? `取消点赞` : `👍`;
+    const likeButtonText = `👍`;
     this.drawInteractionButton(
       ctx,
       detailX + 20,
@@ -843,7 +843,7 @@ class UIManager {
 
     // 点踩按钮
     const isDisliked = hasInteracted && userAction === 'unstar';
-    const dislikeButtonText = isDisliked ? `取消点踩` : `👎`;
+    const dislikeButtonText = `👎`;
     this.drawInteractionButton(
       ctx,
       detailX + buttonWidth + 40,
