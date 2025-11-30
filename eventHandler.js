@@ -500,6 +500,69 @@ class EventHandler {
     }
   }
 
+  // 新增：切换交互操作（先删除原记录，再插入新记录）
+  async switchInteractionAction(fishData, currentAction, newAction, originalState, isRanking = false) {
+    const fishName = fishData.fishName;
+    const isStar = newAction === 'star';
+
+    // 1. 验证用户信息
+    if (!this.userOpenid) {
+      Utils.showError('用户信息未准备好');
+      return;
+    }
+
+    // 2. 检查当前交互记录
+    const existingInteraction = await this.databaseManager.getUserInteraction(fishName, this.userOpenid);
+    
+    if (!existingInteraction || existingInteraction.action !== currentAction) {
+      Utils.showError('无法找到要切换的交互记录');
+      return;
+    }
+
+    // 3. 立即更新本地状态
+    // 先减少当前操作的值
+    this.updateLocalFishData(fishData, currentAction, 'decrement');
+    // 再增加新操作的值
+    this.updateLocalFishData(fishData, newAction, 'increment');
+    
+    // 设置本地缓存状态
+    this.setLocalInteractionState(fishName, newAction, originalState);
+
+    // 4. 立即更新UI
+    this.immediatelyUpdateUI();
+
+    // 5. 异步执行数据库操作
+    try {
+      // 先删除原记录
+      const deleteSuccess = await this.databaseManager.deleteUserInteraction(existingInteraction._id);
+      
+      if (!deleteSuccess) {
+        throw new Error('删除原记录失败');
+      }
+
+      // 再插入新记录
+      const insertSuccess = await this.databaseManager.insertUserInteraction(
+        fishName, newAction, this.userOpenid
+      );
+
+      if (insertSuccess) {
+        console.log(`${isRanking ? '排行榜' : ''}切换操作成功：${currentAction} -> ${newAction}`);
+        
+        // 更新交互状态
+        await this.updateInteractionState(fishName, newAction, isRanking);
+      } else {
+        throw new Error('插入新记录失败');
+      }
+    } catch (error) {
+      console.error('切换操作失败:', error);
+      // 回滚状态
+      this.rollbackInteractionState(fishData, originalState, isRanking, fishName);
+      Utils.showError('切换操作失败，请重试');
+    } finally {
+      this.clearLocalInteractionState(fishName);
+    }
+  }
+
   // 新增：设置本地交互状态
   setLocalInteractionState(fishName, action, originalState = null) {
     this.localInteractionCache.set(fishName, {
@@ -1420,9 +1483,8 @@ async refreshFishTank() {
         // 取消操作
         await this.cancelRankingInteraction(fishItem, userInteraction, originalState);
       } else if (currentAction && currentAction !== action) {
-        // 不允许切换操作
-        const oppositeAction = action === 'star' ? '点踩' : '点赞';
-        Utils.showError(`请先取消${oppositeAction}`);
+        // 如果当前是相反操作状态，直接切换操作（先删除原记录，再插入新记录）
+        await this.switchInteractionAction(fishData, currentAction, action, originalState, true);
         return;
       } else {
         // 执行操作
@@ -1912,10 +1974,9 @@ async refreshFishTank() {
           this.selectedFishData.userInteraction = null;
         }
       } else if (currentAction === oppositeAction) {
-        // 如果当前是相反操作状态，不允许切换
-        const message = actionType === 'star' ? '请先取消点踩' : '请先取消点赞';
-        wx.showToast({ title: message, icon: 'none', duration: 1500 });
-        return;
+      // 如果当前是相反操作状态，直接切换操作（先删除原记录，再插入新记录）
+      await this.switchInteractionAction(fishData, currentAction, actionType, originalState, false);
+      return;
       } else {
         // 无交互状态，进行新操作
         await this.performInteractionAction(fishData, actionType, originalState, false);
