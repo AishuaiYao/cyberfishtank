@@ -868,7 +868,7 @@ class UIManager {
         deleteButtonY,
         deleteButtonWidth,
         deleteButtonHeight,
-        '🗑️ 删除',
+        '🗑️删除',
         false,
         false,
         false
