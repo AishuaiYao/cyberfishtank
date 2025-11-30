@@ -385,216 +385,117 @@ class EventHandler {
     return this.localInteractionCache.get(fishName);
   }
 
-  // 新增：通用的点赞/点踩操作
+  // 优化：通用的点赞/点踩操作 - 处理重复操作
   async performInteractionAction(fishData, action, originalState, isRanking = false) {
     const fishName = fishData.fishName;
     const isStar = action === 'star';
 
-    // 1. 立即更新本地状态
-    let newStarCount, newUnstarCount;
-
-    // 兼容新旧数据结构：只有当字段存在时才进行计数
-    if ('star' in fishData && 'unstar' in fishData) {
-      // 旧数据结构：有评分字段
-      if (isStar) {
-        newStarCount = (fishData.star || 0) + 1;
-        newUnstarCount = fishData.unstar || 0;
-      } else {
-        newStarCount = fishData.star || 0;
-        newUnstarCount = (fishData.unstar || 0) + 1;
-      }
-
-      const newScore = newStarCount - newUnstarCount;
-
-      // 更新本地数据
-      fishData.star = newStarCount;
-      fishData.unstar = newUnstarCount;
-      fishData.score = newScore;
-    } else {
-      // 新数据结构：没有评分字段，保持兼容性
-      newStarCount = 0;
-      newUnstarCount = 0;
-      
-      // 为了UI显示，可以临时添加这些字段
-      if (isStar) {
-        fishData.tempStar = (fishData.tempStar || 0) + 1;
-        fishData.tempUnstar = fishData.tempUnstar || 0;
-      } else {
-        fishData.tempStar = fishData.tempStar || 0;
-        fishData.tempUnstar = (fishData.tempUnstar || 0) + 1;
-      }
-      
-      fishData.tempScore = fishData.tempStar - fishData.tempUnstar;
+    // 1. 验证用户信息
+    if (!this.userOpenid) {
+      Utils.showError('用户信息未准备好');
+      return;
     }
 
+    // 2. 检查是否已存在相同交互记录
+    const existingInteraction = await this.databaseManager.getUserInteraction(fishName, this.userOpenid);
+    
+    if (existingInteraction) {
+      // 如果已存在记录，执行取消操作而不是重复插入
+      console.log(`检测到已存在交互记录，执行取消操作`);
+      await this.cancelInteractionAction(fishData, existingInteraction, originalState, isRanking);
+      return;
+    }
+
+    // 3. 立即更新本地状态
+    this.updateLocalFishData(fishData, action, 'increment');
+    
     // 设置本地缓存状态
     this.setLocalInteractionState(fishName, action, originalState);
 
-    // 2. 立即更新UI
+    // 4. 立即更新UI
     this.immediatelyUpdateUI();
 
-    // 3. 异步执行数据库操作
+    // 5. 异步执行数据库操作
     try {
       // 插入新的交互记录
-      let interactionSuccess = false;
-      try {
-        if (this.userOpenid) {
-          interactionSuccess = await this.databaseManager.insertUserInteraction(
-            fishName,
-            action,
-            this.userOpenid
-          );
-        }
-      } catch (error) {
-        console.warn('插入交互记录失败:', error);
-        // 插入失败，回滚UI状态
-        if (isRanking) {
-          this.rollbackRankingState({ fishData }, originalState);
-        } else {
-          this.rollbackDetailState(originalState);
-        }
-        Utils.showError('操作失败，请重试', 1500);
-        return;
-      }
+      const interactionSuccess = await this.databaseManager.insertUserInteraction(
+        fishName, action, this.userOpenid
+      );
 
-      // 只插入interaction记录，不再更新fishes集合
       if (interactionSuccess) {
         console.log(`${isRanking ? '排行榜' : ''}${isStar ? '点赞' : '点踩'}操作成功`);
-        // 成功后更新本地交互状态
-        if (isRanking && this.rankingData && this.rankingData.fishes) {
-          // 在排行榜模式下，找到对应的鱼并更新其交互状态
-          const fishItem = this.rankingData.fishes.find(item =>
-            item.fishData.fishName === fishName
-          );
-          if (fishItem) {
-            fishItem.userInteraction = {
-              fishName: fishName,
-              action: action,
-              _openid: this.userOpenid
-            };
-          }
-        } else if (!isRanking) {
-          // 在详情页模式下，更新选中鱼的交互状态
-          await this.loadUserInteraction(fishData.fishName);
-        }
+        
+        // 更新交互状态
+        await this.updateInteractionState(fishName, action, isRanking);
       } else {
-        // 插入交互记录失败，回滚UI状态
-        if (isRanking) {
-          this.rollbackRankingState({ fishData }, originalState);
-        } else {
-          this.rollbackDetailState(originalState);
-          // 在详情页模式下，需要重新加载用户交互状态
-          await this.loadUserInteraction(fishData.fishName);
-        }
+        // 插入失败，回滚状态
+        this.rollbackInteractionState(fishData, originalState, isRanking, fishName);
         Utils.showError('操作失败，请重试', 1500);
       }
     } catch (error) {
       console.error('数据库操作失败:', error);
-      // 数据库操作失败，回滚UI状态
-      if (isRanking) {
-        this.rollbackRankingState({ fishData }, originalState);
-      } else {
-        this.rollbackDetailState(originalState);
-      }
+      this.rollbackInteractionState(fishData, originalState, isRanking, fishName);
       Utils.showError('网络错误，操作失败');
     } finally {
-      // 无论成功失败，都清除本地缓存
       this.clearLocalInteractionState(fishName);
     }
   }
 
-  // 新增：通用的取消点赞/点踩操作
+  // 优化：通用的取消点赞/点踩操作
   async cancelInteractionAction(fishData, userInteraction, originalState, isRanking = false) {
     const fishName = fishData.fishName;
     const isStar = userInteraction && userInteraction.action === 'star';
 
-    // 1. 立即更新本地状态
-    let newStarCount, newUnstarCount;
-
-    // 兼容新旧数据结构：只有当字段存在时才进行计数
-    if ('star' in fishData && 'unstar' in fishData) {
-      // 旧数据结构：有评分字段
-      if (isStar) {
-        newStarCount = Math.max(0, (fishData.star || 0) - 1);
-        newUnstarCount = fishData.unstar || 0;
-      } else {
-        newStarCount = fishData.star || 0;
-        newUnstarCount = Math.max(0, (fishData.unstar || 0) - 1);
-      }
-
-      const newScore = newStarCount - newUnstarCount;
-
-      // 更新本地数据
-      fishData.star = newStarCount;
-      fishData.unstar = newUnstarCount;
-      fishData.score = newScore;
-    } else {
-      // 新数据结构：没有评分字段，保持兼容性
-      newStarCount = 0;
-      newUnstarCount = 0;
-      
-      // 更新临时字段
-      if (isStar) {
-        fishData.tempStar = Math.max(0, (fishData.tempStar || 0) - 1);
-        fishData.tempUnstar = fishData.tempUnstar || 0;
-      } else {
-        fishData.tempStar = fishData.tempStar || 0;
-        fishData.tempUnstar = Math.max(0, (fishData.tempUnstar || 0) - 1);
-      }
-      
-      fishData.tempScore = fishData.tempStar - fishData.tempUnstar;
+    // 1. 验证交互记录
+    if (!userInteraction) {
+      Utils.showError('无效的交互记录');
+      return;
     }
 
+    // 2. 如果userInteraction没有_id，尝试重新查询数据库获取完整的交互记录
+    let interactionToDelete = userInteraction;
+    if (!userInteraction._id && this.userOpenid) {
+      const dbInteraction = await this.databaseManager.getUserInteraction(fishName, this.userOpenid);
+      if (dbInteraction && dbInteraction._id) {
+        interactionToDelete = dbInteraction;
+        console.log('从数据库重新获取到完整交互记录:', dbInteraction);
+      }
+    }
+
+    if (!interactionToDelete._id) {
+      Utils.showError('无法找到要删除的交互记录');
+      return;
+    }
+
+    // 3. 立即更新本地状态
+    this.updateLocalFishData(fishData, userInteraction.action, 'decrement');
+    
     // 设置本地缓存状态为取消状态
     this.setLocalInteractionState(fishName, null, originalState);
 
-    // 2. 立即更新UI
+    // 4. 立即更新UI
     this.immediatelyUpdateUI();
 
-    // 3. 异步执行数据库操作
+    // 5. 异步执行数据库操作
     try {
       // 删除交互记录
-      let interactionSuccess = false;
-      if (userInteraction && userInteraction._id) {
-        interactionSuccess = await this.databaseManager.deleteUserInteraction(
-          userInteraction._id
-        );
-      }
+      const interactionSuccess = await this.databaseManager.deleteUserInteraction(interactionToDelete._id);
 
-      // 只删除interaction记录，不再更新fishes集合
       if (interactionSuccess) {
-        if (isRanking && this.rankingData && this.rankingData.fishes) {
-          // 在排行榜情况下，清除userInteraction
-          const fishItem = this.rankingData.fishes.find(item =>
-            item.fishData.fishName === fishName
-          );
-          if (fishItem) {
-            fishItem.userInteraction = null;
-          }
-        }
         console.log(`取消${isRanking ? '排行榜' : ''}${isStar ? '点赞' : '点踩'}成功`);
+        
+        // 清除交互状态
+        this.clearInteractionState(fishName, isRanking);
       } else {
-        // 数据库操作失败，回滚UI状态
-        if (isRanking) {
-          this.rollbackRankingState({ fishData }, originalState);
-        } else {
-          this.rollbackDetailState(originalState);
-          // 在详情页模式下，需要重新加载用户交互状态
-          await this.loadUserInteraction(fishData.fishName);
-        }
+        // 删除失败，回滚状态
+        this.rollbackInteractionState(fishData, originalState, isRanking, fishName);
         Utils.showError('操作失败', 1000);
       }
     } catch (error) {
       console.error('数据库操作失败:', error);
-      // 数据库操作失败，回滚UI状态
-      if (isRanking) {
-        this.rollbackRankingState({ fishData }, originalState);
-      } else {
-        this.rollbackDetailState(originalState);
-      }
+      this.rollbackInteractionState(fishData, originalState, isRanking, fishName);
       Utils.showError('网络错误，操作失败');
     } finally {
-      // 无论成功失败，都清除本地缓存
       this.clearLocalInteractionState(fishName);
     }
   }
@@ -611,6 +512,160 @@ class EventHandler {
   // 新增：清除本地交互状态
   clearLocalInteractionState(fishName) {
     this.localInteractionCache.delete(fishName);
+  }
+
+  // 新增：更新本地鱼数据状态
+  updateLocalFishData(fishData, action, operation) {
+    const isStar = action === 'star';
+    const change = operation === 'increment' ? 1 : -1;
+
+    // 兼容新旧数据结构
+    if ('star' in fishData && 'unstar' in fishData) {
+      // 旧数据结构：有评分字段
+      if (isStar) {
+        fishData.star = Math.max(0, (fishData.star || 0) + change);
+      } else {
+        fishData.unstar = Math.max(0, (fishData.unstar || 0) + change);
+      }
+      fishData.score = (fishData.star || 0) - (fishData.unstar || 0);
+    } else {
+      // 新数据结构：使用临时字段
+      if (isStar) {
+        fishData.tempStar = Math.max(0, (fishData.tempStar || 0) + change);
+      } else {
+        fishData.tempUnstar = Math.max(0, (fishData.tempUnstar || 0) + change);
+      }
+      fishData.tempScore = (fishData.tempStar || 0) - (fishData.tempUnstar || 0);
+    }
+  }
+
+  // 新增：更新交互状态
+  async updateInteractionState(fishName, action, isRanking) {
+    if (isRanking && this.rankingData && this.rankingData.fishes) {
+      const fishItem = this.rankingData.fishes.find(item =>
+        item.fishData.fishName === fishName
+      );
+      if (fishItem) {
+        // 重新查询数据库获取完整的交互记录（包含_id）
+        const dbInteraction = await this.databaseManager.getUserInteraction(fishName, this.userOpenid);
+        if (dbInteraction) {
+          fishItem.userInteraction = dbInteraction;
+          console.log('设置排行榜交互状态（包含_id）:', dbInteraction);
+        } else {
+          // 如果没有找到记录，创建一个包含基本信息的对象
+          fishItem.userInteraction = {
+            fishName: fishName,
+            action: action,
+            _openid: this.userOpenid
+          };
+        }
+      }
+    } else if (!isRanking) {
+      await this.loadUserInteraction(fishName);
+    }
+  }
+
+  // 新增：清除交互状态
+  clearInteractionState(fishName, isRanking) {
+    if (isRanking && this.rankingData && this.rankingData.fishes) {
+      const fishItem = this.rankingData.fishes.find(item =>
+        item.fishData.fishName === fishName
+      );
+      if (fishItem) {
+        fishItem.userInteraction = null;
+      }
+    } else if (!isRanking && this.selectedFishData) {
+      this.selectedFishData.userInteraction = null;
+    }
+  }
+
+  // 新增：统一回滚交互状态
+  rollbackInteractionState(fishData, originalState, isRanking, fishName) {
+    if (isRanking) {
+      this.rollbackRankingState({ fishData }, originalState);
+    } else {
+      this.rollbackDetailState(originalState);
+      if (!isRanking) {
+        this.loadUserInteraction(fishName);
+      }
+    }
+  }
+
+  // 新增：更新本地鱼数据状态
+  updateLocalFishData(fishData, action, operation) {
+    const isStar = action === 'star';
+    const change = operation === 'increment' ? 1 : -1;
+
+    // 兼容新旧数据结构
+    if ('star' in fishData && 'unstar' in fishData) {
+      // 旧数据结构：有评分字段
+      if (isStar) {
+        fishData.star = Math.max(0, (fishData.star || 0) + change);
+      } else {
+        fishData.unstar = Math.max(0, (fishData.unstar || 0) + change);
+      }
+      fishData.score = (fishData.star || 0) - (fishData.unstar || 0);
+    } else {
+      // 新数据结构：使用临时字段
+      if (isStar) {
+        fishData.tempStar = Math.max(0, (fishData.tempStar || 0) + change);
+      } else {
+        fishData.tempUnstar = Math.max(0, (fishData.tempUnstar || 0) + change);
+      }
+      fishData.tempScore = (fishData.tempStar || 0) - (fishData.tempUnstar || 0);
+    }
+  }
+
+  // 新增：更新交互状态
+  async updateInteractionState(fishName, action, isRanking) {
+    if (isRanking && this.rankingData && this.rankingData.fishes) {
+      const fishItem = this.rankingData.fishes.find(item =>
+        item.fishData.fishName === fishName
+      );
+      if (fishItem) {
+        // 重新查询数据库获取完整的交互记录（包含_id）
+        const dbInteraction = await this.databaseManager.getUserInteraction(fishName, this.userOpenid);
+        if (dbInteraction) {
+          fishItem.userInteraction = dbInteraction;
+          console.log('设置排行榜交互状态（包含_id）:', dbInteraction);
+        } else {
+          // 如果没有找到记录，创建一个包含基本信息的对象
+          fishItem.userInteraction = {
+            fishName: fishName,
+            action: action,
+            _openid: this.userOpenid
+          };
+        }
+      }
+    } else if (!isRanking) {
+      await this.loadUserInteraction(fishName);
+    }
+  }
+
+  // 新增：清除交互状态
+  clearInteractionState(fishName, isRanking) {
+    if (isRanking && this.rankingData && this.rankingData.fishes) {
+      const fishItem = this.rankingData.fishes.find(item =>
+        item.fishData.fishName === fishName
+      );
+      if (fishItem) {
+        fishItem.userInteraction = null;
+      }
+    } else if (!isRanking && this.selectedFishData) {
+      this.selectedFishData.userInteraction = null;
+    }
+  }
+
+  // 新增：统一回滚交互状态
+  rollbackInteractionState(fishData, originalState, isRanking, fishName) {
+    if (isRanking) {
+      this.rollbackRankingState({ fishData }, originalState);
+    } else {
+      this.rollbackDetailState(originalState);
+      if (!isRanking) {
+        this.loadUserInteraction(fishName);
+      }
+    }
   }
 
   // 新增：获取最终的交互状态（优先本地缓存）
