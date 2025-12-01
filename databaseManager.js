@@ -128,7 +128,7 @@ class DatabaseManager {
 
       // 1. 先检查是否已存在相同交互记录
       const existingInteraction = await this.getUserInteraction(fishName, userOpenid);
-      
+
       if (existingInteraction) {
         console.log(`用户已存在对鱼 ${fishName} 的交互记录，无需重复插入`);
         return false; // 返回false表示不需要插入新记录

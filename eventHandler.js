@@ -1240,16 +1240,16 @@ async refreshFishTank() {
     try {
       // 提取所有鱼的名称
       const fishNames = fishesWithImages.map(item => item.fishData.fishName);
-      
+
       // 批量计算评分
       const scoresMap = await this.databaseManager.calculateMultipleFishesScores(fishNames);
-      
+
       // 更新每条鱼的评分数据
       fishesWithImages.forEach(item => {
         const fishName = item.fishData.fishName;
         if (scoresMap[fishName]) {
           const { score, starCount, unstarCount } = scoresMap[fishName];
-          
+
           // 兼容新旧数据结构：如果鱼数据有评分字段则更新，否则使用临时字段
           if ('score' in item.fishData) {
             item.fishData.score = score;
@@ -1261,11 +1261,11 @@ async refreshFishTank() {
             item.fishData.tempStar = starCount;
             item.fishData.tempUnstar = unstarCount;
           }
-          
+
           console.log(`鱼 ${fishName} 评分更新: ${score} (star: ${starCount}, unstar: ${unstarCount})`);
         }
       });
-      
+
       console.log('鱼的评分计算完成');
     } catch (error) {
       Utils.handleError(error, '计算鱼的评分失败');
@@ -1284,7 +1284,7 @@ async refreshFishTank() {
       // 计算评分
       const scoreData = await this.databaseManager.calculateFishScore(fishData.fishName);
       const { score, starCount, unstarCount } = scoreData;
-      
+
       // 兼容新旧数据结构：如果鱼数据有评分字段则更新，否则使用临时字段
       if ('score' in fishData) {
         fishData.score = score;
@@ -1296,7 +1296,7 @@ async refreshFishTank() {
         fishData.tempStar = starCount;
         fishData.tempUnstar = unstarCount;
       }
-      
+
       console.log(`鱼 ${fishData.fishName} 评分更新: ${score} (star: ${starCount}, unstar: ${unstarCount})`);
     } catch (error) {
       Utils.handleError(error, `计算鱼 ${fishData.fishName} 的评分失败`);
@@ -1464,7 +1464,7 @@ async refreshFishTank() {
       const originalState = {
         userInteraction: userInteraction ? {...userInteraction} : null
       };
-      
+
       // 兼容新旧数据结构
       if ('star' in fishData && 'unstar' in fishData) {
         // 旧数据结构：有评分字段
@@ -1557,7 +1557,7 @@ async refreshFishTank() {
       fishData.tempUnstar = originalState.tempUnstarCount || 0;
       fishData.tempScore = originalState.tempScore || 0;
     }
-    
+
     fishItem.userInteraction = originalState.userInteraction;
 
     // 立即更新UI
@@ -1758,7 +1758,25 @@ async refreshFishTank() {
       // 检查失败时继续流程，不阻止用户
     }
 
-    // 名称可用，继续保存流程
+    // 新增：文本内容安全校验
+    wx.showLoading({ title: '安全检查中...', mask: true });
+    
+    try {
+      const safetyResult = await this.checkFishNameSafety(finalName);
+      wx.hideLoading();
+
+      if (!safetyResult.isSafe) {
+        Utils.showError(`名称"${finalName}"包含不合规内容，请换一个`, 2000);
+        return; // 内容不合规，不继续后续逻辑
+      }
+      console.log('文本安全校验通过:', finalName);
+    } catch (error) {
+      wx.hideLoading();
+      Utils.handleWarning(error, '文本安全校验失败，继续保存流程');
+      // 校验失败时继续流程，不阻止用户
+    }
+
+    // 名称可用且安全，继续保存流程
     this.hideNameInputDialog();
     wx.showLoading({ title: '保存中...', mask: true });
 
@@ -2065,6 +2083,195 @@ async refreshFishTank() {
       return {
         nickName: '匿名用户',
         avatarUrl: ''
+      };
+    }
+  }
+
+  // 新增：文本内容安全校验方法
+  async checkFishNameSafety(fishName) {
+    if (!fishName || fishName.trim().length === 0) {
+      return {
+        isSafe: false,
+        error: '鱼名不能为空'
+      };
+    }
+
+    // 获取用户openid
+    let userOpenid;
+    try {
+      userOpenid = await this.getRealUserOpenid();
+    } catch (error) {
+      console.warn('获取用户openid失败，使用默认值进行安全校验:', error);
+      // 如果获取openid失败，返回安全通过（避免因openid问题阻止用户操作）
+      return {
+        isSafe: true,
+        message: '用户信息获取失败，跳过安全校验'
+      };
+    }
+
+    try {
+      console.log('开始调用文本安全校验云函数...');
+      
+      const result = await wx.cloud.callFunction({
+        name: 'msgSecCheck',
+        data: {
+          content: fishName,
+          openid: userOpenid
+        }
+      });
+
+      console.log('文本安全校验云函数返回:', result);
+
+      if (result.result.success) {
+        return {
+          isSafe: result.result.isSafe,
+          suggest: result.result.suggest,
+          label: result.result.label,
+          message: result.result.message
+        };
+      } else {
+        // 云函数调用失败，返回安全通过（避免因服务异常阻止用户操作）
+        console.warn('文本安全校验服务异常，跳过校验:', result.result.error);
+        return {
+          isSafe: true,
+          error: result.result.error,
+          message: '安全校验服务异常，跳过校验'
+        };
+      }
+
+    } catch (error) {
+      console.error('调用文本安全校验云函数失败:', error);
+      // 网络错误或其它异常，返回安全通过（避免因网络问题阻止用户操作）
+      return {
+        isSafe: true,
+        error: error.message || '网络异常',
+        message: '安全校验网络异常，跳过校验'
+      };
+    }
+  }
+
+  // 新增：文本内容安全校验方法
+  async checkFishNameSafety(fishName) {
+    if (!fishName || fishName.trim().length === 0) {
+      return {
+        isSafe: false,
+        error: '鱼名不能为空'
+      };
+    }
+
+    // 获取用户openid
+    let userOpenid;
+    try {
+      userOpenid = await this.getRealUserOpenid();
+    } catch (error) {
+      console.warn('获取用户openid失败，使用默认值进行安全校验:', error);
+      // 如果获取openid失败，返回安全通过（避免因openid问题阻止用户操作）
+      return {
+        isSafe: true,
+        message: '用户信息获取失败，跳过安全校验'
+      };
+    }
+
+    try {
+      console.log('开始调用文本安全校验云函数...');
+      
+      const result = await wx.cloud.callFunction({
+        name: 'msgSecCheck',
+        data: {
+          content: fishName,
+          openid: userOpenid
+        }
+      });
+
+      console.log('文本安全校验云函数返回:', result);
+
+      if (result.result.success) {
+        return {
+          isSafe: result.result.isSafe,
+          suggest: result.result.suggest,
+          label: result.result.label,
+          message: result.result.message
+        };
+      } else {
+        // 云函数调用失败，返回安全通过（避免因服务异常阻止用户操作）
+        console.warn('文本安全校验服务异常，跳过校验:', result.result.error);
+        return {
+          isSafe: true,
+          error: result.result.error,
+          message: '安全校验服务异常，跳过校验'
+        };
+      }
+
+    } catch (error) {
+      console.error('调用文本安全校验云函数失败:', error);
+      // 网络错误或其它异常，返回安全通过（避免因网络问题阻止用户操作）
+      return {
+        isSafe: true,
+        error: error.message || '网络异常',
+        message: '安全校验网络异常，跳过校验'
+      };
+    }
+  }
+
+  // 新增：文本内容安全校验方法
+  async checkFishNameSafety(fishName) {
+    if (!fishName || fishName.trim().length === 0) {
+      return {
+        isSafe: false,
+        error: '鱼名不能为空'
+      };
+    }
+
+    // 获取用户openid
+    let userOpenid;
+    try {
+      userOpenid = await this.getRealUserOpenid();
+    } catch (error) {
+      console.warn('获取用户openid失败，使用默认值进行安全校验:', error);
+      // 如果获取openid失败，返回安全通过（避免因openid问题阻止用户操作）
+      return {
+        isSafe: true,
+        message: '用户信息获取失败，跳过安全校验'
+      };
+    }
+
+    try {
+      console.log('开始调用文本安全校验云函数...');
+      
+      const result = await wx.cloud.callFunction({
+        name: 'msgSecCheck',
+        data: {
+          content: fishName,
+          openid: userOpenid
+        }
+      });
+
+      console.log('文本安全校验云函数返回:', result);
+
+      if (result.result.success) {
+        return {
+          isSafe: result.result.isSafe,
+          suggest: result.result.suggest,
+          label: result.result.label,
+          message: result.result.message
+        };
+      } else {
+        // 云函数调用失败，返回安全通过（避免因服务异常阻止用户操作）
+        console.warn('文本安全校验服务异常，跳过校验:', result.result.error);
+        return {
+          isSafe: true,
+          error: result.result.error,
+          message: '安全校验服务异常，跳过校验'
+        };
+      }
+
+    } catch (error) {
+      console.error('调用文本安全校验云函数失败:', error);
+      // 网络错误或其它异常，返回安全通过（避免因网络问题阻止用户操作）
+      return {
+        isSafe: true,
+        error: error.message || '网络异常',
+        message: '安全校验网络异常，跳过校验'
       };
     }
   }
