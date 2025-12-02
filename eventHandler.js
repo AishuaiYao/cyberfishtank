@@ -769,7 +769,8 @@ class EventHandler {
       ranking: this.isRankingInterfaceVisible,
       fishDetail: this.isFishDetailVisible,
       dialog: this.isDialogVisible,
-      swim: this.isSwimInterfaceVisible
+      swim: this.isSwimInterfaceVisible,
+      team: this.isTeamInterfaceVisible
     });
 
     // 根据当前界面状态路由到对应的触摸处理器
@@ -784,6 +785,9 @@ class EventHandler {
       this.touchHandlers.dialog.handleTouch(x, y);
     } else if (this.isSwimInterfaceVisible) {
       this.touchHandlers.swim.handleTouch(x, y);
+    } else if (this.isTeamInterfaceVisible) {
+      console.log('路由到组队处理器');
+      this.touchHandlers.team.handleTeamTouch(x, y);
     } else {
       // 主界面
       this.touchHandlers.main.handleTouchStart(x, y);
@@ -806,6 +810,8 @@ class EventHandler {
       // 对话框界面不需要处理移动
     } else if (this.isSwimInterfaceVisible) {
       // 游泳界面不需要处理移动
+    } else if (this.isTeamInterfaceVisible) {
+      // 共同绘画界面不需要处理移动
     } else {
       // 主界面
       this.touchHandlers.main.handleTouchMove(x, y);
@@ -830,7 +836,7 @@ class EventHandler {
       }
 
       this.touchHandlers.ranking.handleTouchEnd();
-    } else if (this.isFishDetailVisible || this.isDialogVisible || this.isSwimInterfaceVisible) {
+    } else if (this.isFishDetailVisible || this.isDialogVisible || this.isSwimInterfaceVisible || this.isTeamInterfaceVisible) {
       // 这些界面不需要处理触摸结束
     } else {
       // 主界面
