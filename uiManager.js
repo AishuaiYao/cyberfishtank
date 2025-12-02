@@ -198,7 +198,7 @@ class UIManager {
     // 主圆环 - 渐变脉冲效果
     const pulseIntensity = Math.abs(Math.sin(animationTime * Math.PI * 2));
     const ringWidth = 3 + pulseIntensity * 1.5;
-    
+
     // 创建渐变
     const gradient = ctx.createRadialGradient(0, 0, size/2 - ringWidth/2, 0, 0, size/2);
     gradient.addColorStop(0, config.primaryColor);
@@ -253,12 +253,12 @@ class UIManager {
 
     // 绘制波浪进度
     ctx.fillStyle = config.primaryColor;
-    
+
     for (let i = 0; i < waveCount; i++) {
       const waveX = -size/2 + i * waveLength;
       const wavePhase = (animationTime + i * 0.25) * Math.PI * 2;
       const waveAmplitude = Math.sin(wavePhase) * waveHeight/2;
-      
+
       ctx.beginPath();
       ctx.moveTo(waveX, -waveHeight/2);
       ctx.lineTo(waveX, waveAmplitude);
@@ -296,7 +296,7 @@ class UIManager {
     const highlightY = Math.sin(rotationY) * size/4;
 
     const highlightGradient = ctx.createRadialGradient(
-      highlightX, highlightY, 0, 
+      highlightX, highlightY, 0,
       highlightX, highlightY, highlightSize
     );
     highlightGradient.addColorStop(0, 'rgba(255,255,255,0.8)');
@@ -313,18 +313,18 @@ class UIManager {
   // 智能预加载提示（带进度指示）
   drawSmartPreloadHint(x, y, progress = 0) {
     const ctx = this.ctx;
-    
+
     // 背景容器
     const containerWidth = 120;
     const containerHeight = 40;
-    
+
     ctx.save();
     ctx.translate(x, y);
 
     // 绘制背景 - 兼容性处理：使用普通矩形+圆角路径
     ctx.fillStyle = 'rgba(0,0,0,0.7)';
     ctx.globalAlpha = 0.8;
-    
+
     // 手动绘制圆角矩形（兼容性更好）
     const radius = 8;
     ctx.beginPath();
@@ -353,7 +353,7 @@ class UIManager {
     // 绘制进度条
     const progressWidth = progressBarWidth * Math.min(progress, 1);
     const progressGradient = ctx.createLinearGradient(
-      progressBarX, progressBarY, 
+      progressBarX, progressBarY,
       progressBarX + progressWidth, progressBarY
     );
     progressGradient.addColorStop(0, '#4CD964');
@@ -367,7 +367,7 @@ class UIManager {
     ctx.font = 'bold 12px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    
+
     const text = progress < 1 ? '加载中...' : '加载完成';
     ctx.fillText(text, 0, -5);
 
@@ -437,7 +437,7 @@ class UIManager {
       // 在底部绘制专业级加载动画
       const spinnerY = config.screenHeight - 50;
       this.drawProfessionalLoadingAnimation(Math.round(config.screenWidth / 2), spinnerY, 28);
-      
+
       // 可选：添加智能预加载提示
       // this.drawSmartPreloadHint(Math.round(config.screenWidth / 2), spinnerY - 30, 0.5);
     }
@@ -521,7 +521,7 @@ class UIManager {
       // 在底部绘制专业级加载动画
       const spinnerY = config.screenHeight - 50;
       this.drawProfessionalLoadingAnimation(Math.round(config.screenWidth / 2), spinnerY, 28);
-      
+
       // 可选：添加智能预加载提示
       // this.drawSmartPreloadHint(Math.round(config.screenWidth / 2), spinnerY - 30, 0.5);
     }
@@ -644,7 +644,7 @@ class UIManager {
     // 最终评分（点赞-点踩）- 使用即时更新的本地数据
     ctx.fillStyle = config.primaryColor;
     ctx.font = 'bold 14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-    
+
     // 兼容新旧数据结构：优先使用旧数据结构，否则使用临时字段
     let finalScore = 0;
     if ('score' in fishData) {
@@ -652,7 +652,7 @@ class UIManager {
     } else if ('tempScore' in fishData) {
       finalScore = fishData.tempScore || 0;
     }
-    
+
     ctx.fillText(`评分: ${finalScore}`, Math.round(x + width / 2), textStartY + 40);
 
     // 绘制点赞点踩按钮区域 - 传入最终交互状态
@@ -808,7 +808,7 @@ class UIManager {
     // 评分 - 使用即时更新的本地数据，兼容新旧数据结构
     ctx.fillStyle = config.primaryColor;
     ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-    
+
     // 兼容新旧数据结构：优先使用旧数据结构，否则使用临时字段
     let score = 0;
     if ('score' in fishData) {
@@ -816,7 +816,7 @@ class UIManager {
     } else if ('tempScore' in fishData) {
       score = fishData.tempScore || 0;
     }
-    
+
     ctx.fillText(`评分: ${score}`, detailX + detailWidth / 2, textStartY + 50);
 
     // 绘制点赞和点踩按钮 - 使用最终交互状态
@@ -972,20 +972,20 @@ class UIManager {
     ctx.textAlign = 'left';
   }
 
-// 绘制主界面标题 - 现代黑体斜体
+// 绘制主界面底部标题 - 现代黑体斜体
 drawMainTitle() {
   const ctx = this.ctx;
 
   // 现代黑体字体栈，优先使用系统黑体
   const title = '赛博鱼缸DrawAFish';
   const x = 20;
-  const y = 60;
+  const y = config.screenHeight - 20; // 使用配置的屏幕高度，移动到画布底部
 
   // 方案1：使用斜体黑体
-  ctx.font = 'italic bold 18px "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Source Han Sans CN", "Noto Sans CJK", "Helvetica Neue", Arial, sans-serif';
-  ctx.fillStyle = config.textColor;
+  ctx.font = 'italic bold 16px "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Source Han Sans CN", "Noto Sans CJK", "Helvetica Neue", Arial, sans-serif';
+  ctx.fillStyle = config.lightTextColor; // 使用浅色
   ctx.textAlign = 'left';
-  ctx.textBaseline = 'top';
+  ctx.textBaseline = 'bottom';
 
   // 添加轻微文字阴影，增强立体感
   ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';

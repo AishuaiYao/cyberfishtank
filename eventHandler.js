@@ -1760,7 +1760,7 @@ async refreshFishTank() {
 
     // 新增：文本内容安全校验
     wx.showLoading({ title: '安全检查中...', mask: true });
-    
+
     try {
       const safetyResult = await this.checkFishNameSafety(finalName);
       wx.hideLoading();
