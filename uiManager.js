@@ -1072,6 +1072,11 @@ drawMainTitle() {
         this.drawTeamInterface();
         return;
       }
+
+      if (this.eventHandler.isCollaborativePaintingVisible) {
+        this.drawCollaborativePaintingInterface(gameState);
+        return;
+      }
     }
 
     // 绘制主游戏界面
@@ -1082,6 +1087,69 @@ drawMainTitle() {
     this.interfaceRenderer.drawDrawingArea(gameState, positions);
     this.interfaceRenderer.drawScoreArea(gameState, positions);
     this.interfaceRenderer.drawJumpArea(positions);
+  }
+
+  // 绘制共同绘画界面
+  drawCollaborativePaintingInterface(gameState) {
+    const positions = getAreaPositions();
+    
+    // 绘制背景和主绘画区域
+    this.interfaceRenderer.drawBackground();
+    this.interfaceRenderer.drawDrawingArea(gameState, positions);
+    
+    // 绘制顶部房间号
+    this.drawRoomNumberHeader();
+    
+    // 绘制底部的"让它游起来"按钮
+    this.drawMakeItSwimButton();
+  }
+
+  // 绘制房间号头部
+  drawRoomNumberHeader() {
+    const ctx = wx.getSystemInfoSync().canvas.getContext('2d');
+    
+    // 获取房间号
+    const roomNumber = this.eventHandler.touchHandlers.team?.roomNumber || '00000000';
+    
+    // 绘制顶部背景
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(0, 0, config.screenWidth, 80);
+    
+    // 绘制房间号
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 32px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`房间号: ${roomNumber}`, config.screenWidth / 2, 40);
+    
+    // 绘制返回提示
+    ctx.font = '16px Arial';
+    ctx.fillText('点击顶部返回', config.screenWidth / 2, 70);
+  }
+
+  // 绘制"让它游起来"按钮
+  drawMakeItSwimButton() {
+    const ctx = wx.getSystemInfoSync().canvas.getContext('2d');
+    const buttonWidth = 120;
+    const buttonHeight = 44;
+    const buttonX = (config.screenWidth - buttonWidth) / 2;
+    const buttonY = config.screenHeight - 80;
+    
+    // 绘制按钮背景
+    ctx.fillStyle = '#4CAF50';
+    ctx.fillRect(buttonX, buttonY, buttonWidth, buttonHeight);
+    
+    // 绘制按钮边框
+    ctx.strokeStyle = '#388E3C';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(buttonX, buttonY, buttonWidth, buttonHeight);
+    
+    // 绘制按钮文字
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 20px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('让它游起来', buttonX + buttonWidth / 2, buttonY + buttonHeight / 2);
   }
 }
 
