@@ -86,6 +86,7 @@ class MainTouchHandler {
     if (this.handleBrushSizeClick(x, y)) return;
     if (this.handleToolButtonClick(x, y)) return;
     if (this.handleJumpButtonClick(x, y)) return;
+    if (this.handleTeamButtonClick(x, y)) return;
   }
 
   // 颜色按钮点击 - 修改：不取消评分
@@ -275,6 +276,33 @@ class MainTouchHandler {
         this.eventHandler.handleRanking();
         break;
     }
+  }
+
+  // 组队按钮点击
+  handleTeamButtonClick(x, y) {
+    const functionAreaY = this.positions.functionAreaY;
+    const buttonSize = config.team.buttonSize;
+    const buttonMargin = config.team.buttonMargin;
+    const buttonY = functionAreaY - buttonSize - buttonMargin;
+    
+    // 组队按钮位置（左上角）
+    const buttonX = buttonMargin;
+    
+    // 检查是否点击了组队按钮
+    if (x >= buttonX && x <= buttonX + buttonSize &&
+        y >= buttonY && y <= buttonY + buttonSize) {
+      
+      console.log('组队按钮被点击');
+      
+      // 显示组队界面
+      if (this.eventHandler.handleTeam) {
+        this.eventHandler.handleTeam();
+      }
+      
+      return true;
+    }
+    
+    return false;
   }
 
   // 绘画功能

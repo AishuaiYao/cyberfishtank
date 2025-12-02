@@ -10,6 +10,7 @@ const RankingTouchHandler = require('./touchHandlers/rankingTouchHandler.js');
 const FishDetailTouchHandler = require('./touchHandlers/fishDetailTouchHandler.js');
 const DialogTouchHandler = require('./touchHandlers/dialogTouchHandler.js');
 const SwimTouchHandler = require('./touchHandlers/swimTouchHandler.js');
+const TeamTouchHandler = require('./touchHandlers/teamTouchHandler.js'); // 新增：组队触摸处理器
 const FishProcessor = require('./fishManager/fishProcessor.js');
 const FishAnimator = require('./fishManager/fishAnimator.js');
 const FishDataManager = require('./fishManager/fishDataManager.js');
@@ -32,7 +33,8 @@ class EventHandler {
       ranking: new RankingTouchHandler(this),
       fishDetail: new FishDetailTouchHandler(this),
       dialog: new DialogTouchHandler(this),
-      swim: new SwimTouchHandler(this)
+      swim: new SwimTouchHandler(this),
+      team: new TeamTouchHandler(this) // 新增：组队触摸处理器
     };
 
     this.fishManager = {
@@ -46,6 +48,8 @@ class EventHandler {
     this.isRankingInterfaceVisible = false;
     this.isFishDetailVisible = false;
     this.isDialogVisible = false;
+    this.isTeamInterfaceVisible = false; // 新增：组队界面状态
+    this.isTeamInterfaceVisible = false; // 新增：组队界面状态
 
     // 数据状态
     this.swimInterfaceData = null;
@@ -53,6 +57,8 @@ class EventHandler {
     this.selectedFishData = null;
     this.dialogData = null;
     this.fishNameInput = '';
+    this.teamInterfaceData = null; // 新增：组队界面数据
+    this.teamInterfaceData = null; // 新增：组队界面数据
 
     // 动画相关
     this.fishTank = null;
@@ -1143,6 +1149,20 @@ async refreshFishTank() {
   // 排行榜功能
   async handleRanking() {
     await this.showRankingInterface();
+  }
+
+  // 组队功能
+  handleTeam() {
+    this.isTeamInterfaceVisible = true;
+    this.uiManager.drawGameUI(this.gameState);
+    console.log('组队界面已显示');
+  }
+
+  // 隐藏组队界面
+  hideTeamInterface() {
+    this.isTeamInterfaceVisible = false;
+    this.uiManager.drawGameUI(this.gameState);
+    console.log('组队界面已隐藏');
   }
 
   // 在eventHandler.js的showRankingInterface方法中确保正确调用：

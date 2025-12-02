@@ -37,6 +37,20 @@ const config = {
       maxWidth: 0, // 动态计算
       maxHeight: 80
     }
+  },
+
+  // 新增：组队配置
+  team: {
+    buttonSize: 36, // 组队按钮大小
+    buttonMargin: 15, // 按钮间距
+    buttonIcon: '👥', // 组队按钮图标
+    teamInterface: {
+      width: 280,
+      height: 200,
+      borderRadius: 12,
+      buttonWidth: 100,
+      buttonHeight: 40
+    }
   }
 };
 

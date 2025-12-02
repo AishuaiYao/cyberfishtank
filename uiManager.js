@@ -1,6 +1,7 @@
 
 const { config, getAreaPositions } = require('./config.js');
 const InterfaceRenderer = require('./interfaceRenderer.js');
+const TeamInterfaceRenderer = require('./teamInterfaceRenderer.js');
 const Utils = require('./utils.js');
 
 class UIManager {
@@ -9,6 +10,7 @@ class UIManager {
     this.pixelRatio = pixelRatio;
     this.eventHandler = null;
     this.interfaceRenderer = new InterfaceRenderer(ctx, pixelRatio);
+    this.teamInterfaceRenderer = new TeamInterfaceRenderer(ctx, pixelRatio);
     
     // 新增：加载动画相关变量
     this.loadingSpinnerAngle = 0;
@@ -126,11 +128,50 @@ class UIManager {
       return;
     }
 
-    // 绘制排行榜卡片（带滚动效果）
-    this.drawRankingCards();
+  // 绘制排行榜卡片（带滚动效果）
+  this.drawRankingCards();
+}
+
+// 绘制组队界面
+  drawTeamInterface() {
+    const ctx = this.ctx;
+
+    // 绘制主游戏界面作为背景
+    const gameState = this.eventHandler ? this.eventHandler.gameState : null;
+    const positions = getAreaPositions();
+    
+    this.interfaceRenderer.drawBackground();
+    this.drawMainTitle();
+    this.interfaceRenderer.drawFunctionArea(gameState, positions);
+    this.interfaceRenderer.drawIndicatorArea(positions);
+    this.interfaceRenderer.drawDrawingArea(gameState, positions);
+    this.interfaceRenderer.drawScoreArea(gameState, positions);
+    this.interfaceRenderer.drawJumpArea(positions);
+
+    // 绘制组队界面
+    if (this.eventHandler && this.eventHandler.teamTouchHandler) {
+      const currentTeamState = this.eventHandler.teamTouchHandler.currentTeamState;
+      
+      switch (currentTeamState) {
+        case 'main':
+          this.teamInterfaceRenderer.drawTeamInterface();
+          break;
+        case 'createRoom':
+          this.teamInterfaceRenderer.drawCreateRoomInterface();
+          break;
+        case 'searchRoom':
+          this.teamInterfaceRenderer.drawSearchRoomInterface();
+          break;
+        default:
+          this.teamInterfaceRenderer.drawTeamInterface();
+      }
+    } else {
+      // 默认绘制主组队界面
+      this.teamInterfaceRenderer.drawTeamInterface();
+    }
   }
 
-  // 绘制加载消息
+// 绘制加载消息
   drawLoadingMessage(message) {
     const ctx = this.ctx;
     ctx.fillStyle = config.lightTextColor;
@@ -978,14 +1019,14 @@ drawMainTitle() {
 
   // 现代黑体字体栈，优先使用系统黑体
   const title = '赛博鱼缸DrawAFish';
-  const x = 20;
-  const y = config.screenHeight - 20; // 使用配置的屏幕高度，移动到画布底部
+  const x = 60;
+  const y = 50;
 
   // 方案1：使用斜体黑体
-  ctx.font = 'italic bold 16px "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Source Han Sans CN", "Noto Sans CJK", "Helvetica Neue", Arial, sans-serif';
-  ctx.fillStyle = config.lightTextColor; // 使用浅色
+  ctx.font = 'italic bold 18px "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Source Han Sans CN", "Noto Sans CJK", "Helvetica Neue", Arial, sans-serif';
+  ctx.fillStyle = config.textColor;
   ctx.textAlign = 'left';
-  ctx.textBaseline = 'bottom';
+  ctx.textBaseline = 'top';
 
   // 添加轻微文字阴影，增强立体感
   ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
@@ -1024,6 +1065,11 @@ drawMainTitle() {
 
       if (this.eventHandler.isSwimInterfaceVisible) {
         this.drawFishTankInterface();
+        return;
+      }
+
+      if (this.eventHandler.isTeamInterfaceVisible) {
+        this.drawTeamInterface();
         return;
       }
     }
