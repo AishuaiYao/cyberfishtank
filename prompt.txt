@@ -105,6 +105,30 @@ canvasGetImageData
 
 
 
+读一下这个文档的云函数实现部分，不要回答我，读完就行，回头我在问你。https://developers.weixin.qq.com/miniprogram/dev/OpenApiDoc/sec-center/sec-check/msgSecCheck.html
+
+在读下这篇，同样不用回答，读完我在问你。https://developers.weixin.qq.com/miniprogram/dev/wxcloudservice/wxcloud/guide/openapi/openapi.html#%E4%BA%91%E8%B0%83%E7%94%A8
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
