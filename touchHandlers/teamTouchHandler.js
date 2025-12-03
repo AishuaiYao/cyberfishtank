@@ -92,7 +92,7 @@ class TeamTouchHandler {
     // 检查是否点击了输入框区域
     if (this.isPointInRect(x, y, inputBox)) {
       console.log('点击输入框，弹出键盘');
-      this.showTeamInputDialog();
+      this.showKeyboard();
       return true;
     }
 
@@ -202,7 +202,7 @@ class TeamTouchHandler {
     // 检查是否点击了输入框区域
     if (this.isPointInRect(x, y, inputBox)) {
       console.log('点击输入框，弹出键盘');
-      this.showInputDialog();
+      this.showKeyboard();
       return true;
     }
 
@@ -436,6 +436,92 @@ class TeamTouchHandler {
            x <= rect.x + rect.width && 
            y >= rect.y && 
            y <= rect.y + rect.height;
+  }
+
+  // 显示键盘
+  showKeyboard() {
+    console.log('显示键盘');
+    
+    // 使用微信小程序的键盘控制API
+    wx.showKeyboard({
+      defaultValue: this.teamInput || '',
+      maxLength: 50,
+      multiple: false,
+      confirmHold: false,
+      confirmType: 'done'
+    });
+    
+    // 监听键盘确认事件
+    wx.onKeyboardConfirm((res) => {
+      console.log('键盘确认，输入内容:', res.value);
+      this.teamInput = res.value;
+      this.searchRoomInput = res.value;
+      
+      // 重新绘制界面
+      this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
+      
+      // 隐藏键盘
+      wx.hideKeyboard();
+    });
+    
+    // 监听键盘输入事件
+    wx.onKeyboardInput((res) => {
+      console.log('键盘输入:', res.value);
+      this.teamInput = res.value;
+      this.searchRoomInput = res.value;
+      
+      // 实时更新界面显示
+      this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
+    });
+    
+    // 监听键盘完成事件
+    wx.onKeyboardComplete((res) => {
+      console.log('键盘完成');
+      wx.hideKeyboard();
+    });
+  }
+
+  // 显示键盘
+  showKeyboard() {
+    console.log('显示键盘');
+    
+    // 使用微信小程序的键盘控制API
+    wx.showKeyboard({
+      defaultValue: this.teamInput || '',
+      maxLength: 50,
+      multiple: false,
+      confirmHold: false,
+      confirmType: 'done'
+    });
+    
+    // 监听键盘确认事件
+    wx.onKeyboardConfirm((res) => {
+      console.log('键盘确认，输入内容:', res.value);
+      this.teamInput = res.value;
+      this.searchRoomInput = res.value;
+      
+      // 重新绘制界面
+      this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
+      
+      // 隐藏键盘
+      wx.hideKeyboard();
+    });
+    
+    // 监听键盘输入事件
+    wx.onKeyboardInput((res) => {
+      console.log('键盘输入:', res.value);
+      this.teamInput = res.value;
+      this.searchRoomInput = res.value;
+      
+      // 实时更新界面显示
+      this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
+    });
+    
+    // 监听键盘完成事件
+    wx.onKeyboardComplete((res) => {
+      console.log('键盘完成');
+      wx.hideKeyboard();
+    });
   }
 
   // 重置状态
