@@ -186,11 +186,7 @@ class TeamTouchHandler {
     this.eventHandler.isTeamInterfaceVisible = false; // 关闭组队界面
     this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
     
-    wx.showToast({
-      title: `房间 ${this.roomNumber} 创建成功`,
-      icon: 'success',
-      duration: 2000
-    });
+    // 移除创建房间成功的提示框，避免首次进入共同绘画界面时弹出提示
   }
 
   // 处理共同绘画界面触摸
@@ -260,7 +256,7 @@ class TeamTouchHandler {
   exitCollaborativePainting() {
     this.currentTeamState = 'main';
     this.eventHandler.isCollaborativePaintingVisible = false;
-    this.eventHandler.isTeamInterfaceVisible = true; // 重新显示组队界面
+    this.eventHandler.isTeamInterfaceVisible = false; // 直接返回到主界面，不显示组队界面
     this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
   }
 
