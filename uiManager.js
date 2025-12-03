@@ -1093,9 +1093,8 @@ drawMainTitle() {
   drawCollaborativePaintingInterface(gameState) {
     const positions = getAreaPositions();
     
-    // 绘制背景和主标题
+    // 绘制背景（不绘制主标题，避免显示"赛博鱼缸DrawAFish"）
     this.interfaceRenderer.drawBackground();
-    this.drawMainTitle();
     
     // 绘制功能区，但隐藏共同绘画按钮
     this.drawCollaborativeFunctionArea(gameState, positions);
@@ -1108,8 +1107,9 @@ drawMainTitle() {
     // 只保留"让它游起来"按钮，隐藏其他两个按钮
     this.drawCollaborativePaintingJumpArea(positions);
 
-    // 绘制左上角返回按钮
+    // 绘制左上角返回按钮和房间号
     this.drawBackButton();
+    this.drawRoomNumberHeader();
   }
 
   // 修改跳转区域绘制，只保留"让它游起来"按钮
@@ -1140,27 +1140,24 @@ drawMainTitle() {
     ctx.fillText('让它游起来', buttonX + buttonWidth / 2, buttonY + buttonHeight / 2);
   }
 
-  // 绘制房间号头部（替代主界面的共同绘画按钮和文本）
+  // 绘制房间号头部（放在返回键旁边对齐）
   drawRoomNumberHeader() {
     const ctx = this.ctx;
-    const positions = getAreaPositions();
-    const functionAreaY = positions.functionAreaY;
 
     // 获取房间号
     const roomNumber = this.eventHandler.touchHandlers.team?.roomNumber || '00000000';
 
-    // 绘制房间号（在功能区的共同绘画按钮位置）
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 24px Arial';
-    ctx.textAlign = 'center';
+    // 绘制房间号（放在返回键旁边对齐）
+    ctx.fillStyle = '#333333';
+    ctx.font = 'bold 20px Arial';
+    ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
 
-    // 计算共同绘画按钮的位置（功能区第3个按钮）
-    const buttonWidth = config.screenWidth / 3;
-    const collaborativeButtonX = buttonWidth * 2;
-    const collaborativeButtonCenterX = collaborativeButtonX + buttonWidth / 2;
+    // 放在返回按钮右侧，垂直居中
+    const roomNumberX = 80; // 返回按钮宽度50 + 间距30
+    const roomNumberY = 55; // 返回按钮垂直居中位置
 
-    ctx.fillText(`房间号: ${roomNumber}`, collaborativeButtonCenterX, functionAreaY + config.partHeight / 2);
+    ctx.fillText(`房间号: ${roomNumber}`, roomNumberX, roomNumberY);
   }
 
   // 绘制左上角返回按钮
