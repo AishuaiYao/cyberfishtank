@@ -6,7 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="共同绘画-绘制房间-搜房间">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/teamInterfaceRenderer.js" beforeDir="false" afterPath="$PROJECT_DIR$/teamInterfaceRenderer.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/touchHandlers/teamTouchHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/teamTouchHandler.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -72,14 +71,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00067" summary="放大功能">
-      <option name="closed" value="true" />
-      <created>1763944168353</created>
-      <option name="number" value="00067" />
-      <option name="presentableId" value="LOCAL-00067" />
-      <option name="project" value="LOCAL" />
-      <updated>1763944168353</updated>
     </task>
     <task id="LOCAL-00068" summary="优化了openid在初始化获取">
       <option name="closed" value="true" />
@@ -465,7 +456,15 @@
       <option name="project" value="LOCAL" />
       <updated>1764772783413</updated>
     </task>
-    <option name="localTasksCounter" value="116" />
+    <task id="LOCAL-00116" summary="共同绘画-绘制房间-搜房间">
+      <option name="closed" value="true" />
+      <created>1764774095079</created>
+      <option name="number" value="00116" />
+      <option name="presentableId" value="LOCAL-00116" />
+      <option name="project" value="LOCAL" />
+      <updated>1764774095079</updated>
+    </task>
+    <option name="localTasksCounter" value="117" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">

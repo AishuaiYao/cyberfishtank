@@ -227,24 +227,15 @@ class TeamTouchHandler {
   async handleCreateRoomAction() {
     console.log('开始建立房间...');
     
-    // 检查是否输入了房间号
+    // 如果没有输入房间号，自动生成一个随机房间号
     if (!this.teamInput) {
-      return;
+      this.teamInput = this.generateRoomNumber();
+      console.log('自动生成房间号:', this.teamInput);
     }
 
-    // 验证房间号格式
-    if (!this.validateRoomNumber(this.teamInput)) {
-      wx.showToast({
-        title: '请输入8位数字',
-        icon: 'none',
-        duration: 2000
-      });
-      return;
-    }
-
-    // 使用用户输入的房间号
+    // 直接使用用户输入的房间号（无需验证格式）
     this.roomNumber = this.teamInput;
-    console.log('使用用户输入的房间号:', this.roomNumber);
+    console.log('使用房间号:', this.roomNumber);
     
     // 切换到共同绘画界面
     this.currentTeamState = 'collaborativePainting';
@@ -333,25 +324,19 @@ class TeamTouchHandler {
   // 显示团队界面输入对话框（模拟键盘输入）
   showTeamInputDialog() {
     wx.showModal({
-      title: '输入房间号',
-      content: '请输入8位数字',
+      title: '',
+      content: '',
       editable: true,
-      placeholderText: '例如: 12345678',
+      placeholderText: '请输入8位房间号',
       success: (res) => {
         if (res.confirm) {
-          // 验证输入的房间号
+          // 直接使用用户输入的内容
           const roomNumber = res.content.trim();
-          if (this.validateRoomNumber(roomNumber)) {
+          if (roomNumber) {
             this.teamInput = roomNumber;
             console.log('团队界面输入的房间号:', roomNumber);
             // 重新绘制界面以显示输入内容
             this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
-          } else {
-            wx.showToast({
-              title: '请输入8位数字',
-              icon: 'none',
-              duration: 2000
-            });
           }
         }
       }
@@ -361,25 +346,19 @@ class TeamTouchHandler {
   // 显示搜索房间输入对话框（模拟键盘输入）
   showInputDialog() {
     wx.showModal({
-      title: '输入房间号',
-      content: '请输入8位数字',
+      title: '',
+      content: '',
       editable: true,
-      placeholderText: '例如: 12345678',
+      placeholderText: '请输入8位房间号',
       success: (res) => {
         if (res.confirm) {
-          // 验证输入的房间号
+          // 直接使用用户输入的内容
           const roomNumber = res.content.trim();
-          if (this.validateRoomNumber(roomNumber)) {
+          if (roomNumber) {
             this.searchRoomInput = roomNumber;
             console.log('搜索房间输入的房间号:', roomNumber);
             // 重新绘制界面以显示输入内容
             this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
-          } else {
-            wx.showToast({
-              title: '请输入8位数字',
-              icon: 'none',
-              duration: 2000
-            });
           }
         }
       }
@@ -404,16 +383,8 @@ class TeamTouchHandler {
       return;
     }
 
-    // 验证房间号格式
-    if (!this.validateRoomNumber(this.teamInput)) {
-      wx.showToast({
-        title: '请输入8位数字',
-        icon: 'none',
-        duration: 2000
-      });
-      return;
-    }
-
+    // 直接使用用户输入的房间号（无需验证格式）
+    
     // 模拟搜索房间过程
     wx.showLoading({
       title: '搜索房间中...',
