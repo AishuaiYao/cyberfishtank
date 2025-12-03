@@ -92,7 +92,7 @@ class TeamTouchHandler {
     // 检查是否点击了输入框区域
     if (this.isPointInRect(x, y, inputBox)) {
       console.log('点击输入框，弹出键盘');
-      this.showKeyboard();
+      this.showSearchRoomKeyboard();
       return true;
     }
 
@@ -202,7 +202,7 @@ class TeamTouchHandler {
     // 检查是否点击了输入框区域
     if (this.isPointInRect(x, y, inputBox)) {
       console.log('点击输入框，弹出键盘');
-      this.showKeyboard();
+      this.showSearchRoomKeyboard();
       return true;
     }
 
@@ -226,7 +226,7 @@ class TeamTouchHandler {
   // 建立房间操作
   async handleCreateRoomAction() {
     console.log('开始建立房间...');
-    
+
     // 如果没有输入房间号，自动生成一个随机房间号
     if (!this.teamInput) {
       this.teamInput = this.generateRoomNumber();
@@ -236,13 +236,13 @@ class TeamTouchHandler {
     // 直接使用用户输入的房间号（无需验证格式）
     this.roomNumber = this.teamInput;
     console.log('使用房间号:', this.roomNumber);
-    
+
     // 切换到共同绘画界面
     this.currentTeamState = 'collaborativePainting';
     this.eventHandler.isCollaborativePaintingVisible = true;
     this.eventHandler.isTeamInterfaceVisible = false; // 关闭组队界面
     this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
-    
+
     wx.showToast({
       title: '房间创建成功',
       icon: 'success',
@@ -253,7 +253,7 @@ class TeamTouchHandler {
   // 处理共同绘画界面触摸
   handleCollaborativePaintingTouch(x, y) {
     console.log('共同绘画界面触摸:', x, y);
-    
+
     // 检查是否点击了左上角返回按钮
     const backButtonArea = {
       x: 20,
@@ -261,13 +261,13 @@ class TeamTouchHandler {
       width: 50,
       height: 30
     };
-    
+
     if (this.isPointInRect(x, y, backButtonArea)) {
       console.log('点击返回按钮，返回组队主界面');
       this.exitCollaborativePainting();
       return true;
     }
-    
+
     // 检查是否点击了"让它游起来"按钮
     const buttonArea = this.getCollaborativePaintingButtonArea();
     if (this.isPointInRect(x, y, buttonArea)) {
@@ -296,7 +296,7 @@ class TeamTouchHandler {
     const buttonHeight = 44;
     const buttonX = (config.screenWidth - buttonWidth) / 2;
     const buttonY = config.screenHeight - 80;
-    
+
     return {
       x: buttonX,
       y: buttonY,
@@ -308,7 +308,7 @@ class TeamTouchHandler {
   // 处理房间内的"让它游起来"
   async handleMakeItSwimInRoom() {
     console.log('房间内处理"让它游起来"');
-    
+
     // 调用主界面的让它游起来逻辑
     await this.eventHandler.handleMakeItSwim();
   }
@@ -377,14 +377,14 @@ class TeamTouchHandler {
   // 搜索房间操作
   async handleSearchRoomAction() {
     console.log('开始搜索房间...');
-    
+
     // 检查是否输入了房间号
-    if (!this.teamInput) {
+    if (!this.searchRoomInput) {
       return;
     }
 
     // 直接使用用户输入的房间号（无需验证格式）
-    
+
     // 模拟搜索房间过程
     wx.showLoading({
       title: '搜索房间中...',
@@ -392,27 +392,27 @@ class TeamTouchHandler {
 
     setTimeout(() => {
       wx.hideLoading();
-      
+
       // 模拟房间存在性检查
-      const roomExists = this.checkRoomExists(this.teamInput);
-      
+      const roomExists = this.checkRoomExists(this.searchRoomInput);
+
       if (roomExists) {
-        console.log('找到房间，进入房间:', this.teamInput);
-        this.roomNumber = this.teamInput;
-        
+        console.log('找到房间，进入房间:', this.searchRoomInput);
+        this.roomNumber = this.searchRoomInput;
+
         // 切换到共同绘画界面
         this.currentTeamState = 'collaborativePainting';
         this.eventHandler.isCollaborativePaintingVisible = true;
         this.eventHandler.isTeamInterfaceVisible = false;
         this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
-        
+
         wx.showToast({
           title: '成功进入房间',
           icon: 'success',
           duration: 1500
         });
       } else {
-        console.log('房间不存在:', this.teamInput);
+        console.log('房间不存在:', this.searchRoomInput);
         wx.showToast({
           title: '没有这个房间',
           icon: 'none',
@@ -432,48 +432,47 @@ class TeamTouchHandler {
 
   // 检查点是否在矩形内
   isPointInRect(x, y, rect) {
-    return x >= rect.x && 
-           x <= rect.x + rect.width && 
-           y >= rect.y && 
+    return x >= rect.x &&
+           x <= rect.x + rect.width &&
+           y >= rect.y &&
            y <= rect.y + rect.height;
   }
 
-  // 显示键盘
+  // 显示键盘（主界面输入框）
   showKeyboard() {
     console.log('显示键盘');
-    
+    const currentInput = this.teamInput || '';
+
     // 使用微信小程序的键盘控制API
     wx.showKeyboard({
-      defaultValue: this.teamInput || '',
-      maxLength: 50,
+      defaultValue: currentInput,
+      maxLength: 8,
       multiple: false,
       confirmHold: false,
       confirmType: 'done'
     });
-    
+
     // 监听键盘确认事件
     wx.onKeyboardConfirm((res) => {
       console.log('键盘确认，输入内容:', res.value);
       this.teamInput = res.value;
-      this.searchRoomInput = res.value;
-      
+
       // 重新绘制界面
       this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
-      
+
       // 隐藏键盘
       wx.hideKeyboard();
     });
-    
+
     // 监听键盘输入事件
     wx.onKeyboardInput((res) => {
       console.log('键盘输入:', res.value);
       this.teamInput = res.value;
-      this.searchRoomInput = res.value;
-      
+
       // 实时更新界面显示
       this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
     });
-    
+
     // 监听键盘完成事件
     wx.onKeyboardComplete((res) => {
       console.log('键盘完成');
@@ -481,42 +480,41 @@ class TeamTouchHandler {
     });
   }
 
-  // 显示键盘
-  showKeyboard() {
-    console.log('显示键盘');
-    
+  // 显示搜索房间键盘
+  showSearchRoomKeyboard() {
+    console.log('显示搜索房间键盘');
+    const currentInput = this.searchRoomInput || '';
+
     // 使用微信小程序的键盘控制API
     wx.showKeyboard({
-      defaultValue: this.teamInput || '',
-      maxLength: 50,
+      defaultValue: currentInput,
+      maxLength: 8,
       multiple: false,
       confirmHold: false,
       confirmType: 'done'
     });
-    
+
     // 监听键盘确认事件
     wx.onKeyboardConfirm((res) => {
       console.log('键盘确认，输入内容:', res.value);
-      this.teamInput = res.value;
       this.searchRoomInput = res.value;
-      
+
       // 重新绘制界面
       this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
-      
+
       // 隐藏键盘
       wx.hideKeyboard();
     });
-    
+
     // 监听键盘输入事件
     wx.onKeyboardInput((res) => {
       console.log('键盘输入:', res.value);
-      this.teamInput = res.value;
       this.searchRoomInput = res.value;
-      
+
       // 实时更新界面显示
       this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
     });
-    
+
     // 监听键盘完成事件
     wx.onKeyboardComplete((res) => {
       console.log('键盘完成');

@@ -72,22 +72,6 @@
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
     </task>
-    <task id="LOCAL-00068" summary="优化了openid在初始化获取">
-      <option name="closed" value="true" />
-      <created>1763993578040</created>
-      <option name="number" value="00068" />
-      <option name="presentableId" value="LOCAL-00068" />
-      <option name="project" value="LOCAL" />
-      <updated>1763993578040</updated>
-    </task>
-    <task id="LOCAL-00069" summary="修复了个人鱼缸随机刷新问题">
-      <option name="closed" value="true" />
-      <created>1763994962714</created>
-      <option name="number" value="00069" />
-      <option name="presentableId" value="LOCAL-00069" />
-      <option name="project" value="LOCAL" />
-      <updated>1763994962714</updated>
-    </task>
     <task id="LOCAL-00070" summary="修复了个人鱼缸随机刷新问题">
       <option name="closed" value="true" />
       <created>1763995347834</created>
@@ -464,7 +448,23 @@
       <option name="project" value="LOCAL" />
       <updated>1764774095079</updated>
     </task>
-    <option name="localTasksCounter" value="117" />
+    <task id="LOCAL-00117" summary="共同绘画-绘制房间-搜房间">
+      <option name="closed" value="true" />
+      <created>1764774738855</created>
+      <option name="number" value="00117" />
+      <option name="presentableId" value="LOCAL-00117" />
+      <option name="project" value="LOCAL" />
+      <updated>1764774738855</updated>
+    </task>
+    <task id="LOCAL-00118" summary="共同绘画-绘制房间-搜房间">
+      <option name="closed" value="true" />
+      <created>1764775053360</created>
+      <option name="number" value="00118" />
+      <option name="presentableId" value="LOCAL-00118" />
+      <option name="project" value="LOCAL" />
+      <updated>1764775053360</updated>
+    </task>
+    <option name="localTasksCounter" value="119" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
