@@ -155,11 +155,19 @@ drawBrushSizeControl(startY, gameState) {
   // 上移10像素
   const adjustedY = startY - 10;
 
+  // 保存当前文本基线设置
+  const originalTextBaseline = ctx.textBaseline;
+
   // 使用调整后的Y坐标
   ctx.fillStyle = config.textColor;
   ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+  
   ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic'; // 确保使用标准基线
   ctx.fillText('画笔大小:', 25, adjustedY);
+  
+  // 重置文本基线
+  ctx.textBaseline = originalTextBaseline;
 
   const sliderX = 100;
   const sliderWidth = config.screenWidth - 140;
@@ -194,9 +202,14 @@ drawBrushSizeControl(startY, gameState) {
   // 大小显示
   ctx.fillStyle = config.primaryColor;
   ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+  
   ctx.textAlign = 'right';
+  ctx.textBaseline = 'alphabetic'; // 确保使用标准基线
   ctx.fillText(`${gameState.brushSize}px`, config.screenWidth - 25, adjustedY);
+  
+  // 重置文本对齐和基线
   ctx.textAlign = 'left';
+  ctx.textBaseline = originalTextBaseline;
 }
 
   // 绘制工具按钮 - 修改：翻转按钮显示状态

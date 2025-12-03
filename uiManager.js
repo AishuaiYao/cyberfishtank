@@ -1022,6 +1022,9 @@ drawMainTitle() {
   const x = 60;
   const y = 50;
 
+  // 保存当前文本基线设置
+  const originalTextBaseline = ctx.textBaseline;
+
   // 方案1：使用斜体黑体
   ctx.font = 'italic bold 18px "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Source Han Sans CN", "Noto Sans CJK", "Helvetica Neue", Arial, sans-serif';
   ctx.fillStyle = config.textColor;
@@ -1036,10 +1039,10 @@ drawMainTitle() {
 
   ctx.fillText(title, x, y);
 
-  // 重置阴影
+  // 重置阴影和文本基线
   ctx.shadowColor = 'transparent';
   ctx.shadowBlur = 0;
-  ctx.textBaseline = 'alphabetic';
+  ctx.textBaseline = originalTextBaseline;
 }
 
   // 绘制完整UI
@@ -1179,8 +1182,9 @@ drawMainTitle() {
 
     // 不绘制共同绘画按钮
 
-    // 画笔大小调节
+    // 画笔大小调节 - 使用与主界面一致的位置计算
     Utils.drawCard(ctx, 15, startY + config.partHeight -15 , config.screenWidth - 30, config.partHeight - 40);
+    // 使用与主界面相同的Y坐标计算，确保画笔大小显示位置一致
     this.interfaceRenderer.drawBrushSizeControl(startY + config.partHeight + 15, gameState);
 
     // 工具按钮
