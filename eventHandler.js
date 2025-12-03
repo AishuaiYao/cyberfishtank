@@ -788,11 +788,8 @@ class EventHandler {
       this.touchHandlers.dialog.handleTouch(x, y);
     } else if (this.isSwimInterfaceVisible) {
       this.touchHandlers.swim.handleTouch(x, y);
-    } else if (this.isTeamInterfaceVisible) {
+    } else if (this.isTeamInterfaceVisible || this.isCollaborativePaintingVisible) {
       console.log('路由到组队处理器');
-      this.touchHandlers.team.handleTeamTouch(x, y);
-    } else if (this.isCollaborativePaintingVisible) {
-      console.log('路由到组队处理器（共同绘画界面）');
       this.touchHandlers.team.handleTeamTouch(x, y);
     } else {
       // 主界面
