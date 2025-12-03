@@ -8,6 +8,66 @@ class TeamInterfaceRenderer {
     this.pixelRatio = pixelRatio;
   }
 
+  // 获取搜索房间输入内容
+  getSearchRoomInput() {
+    // 这里需要从事件处理器中获取输入内容
+    // 在实际项目中，应该通过事件处理器传递输入内容
+    if (typeof window !== 'undefined' && window.eventHandler) {
+      return window.eventHandler.touchHandlers.team?.searchRoomInput || '';
+    }
+    return '';
+  }
+
+  // 获取团队界面输入内容
+  getTeamInput() {
+    // 这里需要从事件处理器中获取输入内容
+    // 在实际项目中，应该通过事件处理器传递输入内容
+    if (typeof window !== 'undefined' && window.eventHandler) {
+      return window.eventHandler.touchHandlers.team?.teamInput || '';
+    }
+    return '';
+  }
+
+  // 获取团队界面输入内容
+  getTeamInput() {
+    // 这里需要从事件处理器中获取输入内容
+    // 在实际项目中，应该通过事件处理器传递输入内容
+    if (typeof window !== 'undefined' && window.eventHandler) {
+      return window.eventHandler.touchHandlers.team?.teamInput || '';
+    }
+    return '';
+  }
+
+  // 获取搜索房间输入内容
+  getSearchRoomInput() {
+    // 这里需要从事件处理器中获取输入内容
+    // 在实际项目中，应该通过事件处理器传递输入内容
+    if (typeof window !== 'undefined' && window.eventHandler) {
+      return window.eventHandler.touchHandlers.team?.searchRoomInput || '';
+    }
+    return '';
+  }
+
+  // 获取团队界面输入内容
+  getTeamInput() {
+    // 这里需要从事件处理器中获取输入内容
+    // 在实际项目中，应该通过事件处理器传递输入内容
+    if (typeof window !== 'undefined' && window.eventHandler) {
+      return window.eventHandler.touchHandlers.team?.teamInput || '';
+    }
+    return '';
+  }
+
+  // 获取团队界面输入内容
+  getTeamInput() {
+    // 这里需要从事件处理器中获取输入内容
+    // 在实际项目中，应该通过事件处理器传递输入内容
+    if (typeof window !== 'undefined' && window.eventHandler) {
+      return window.eventHandler.touchHandlers.team?.teamInput || '';
+    }
+    return '';
+  }
+
   // 绘制组队界面
   drawTeamInterface() {
     const ctx = this.ctx;
@@ -53,11 +113,32 @@ class TeamInterfaceRenderer {
     // 搜索房间按钮
     Utils.drawModernButton(ctx, startX + buttonWidth + buttonSpacing, buttonY, buttonWidth, buttonHeight, '搜房间', false, false);
 
-    // 绘制提示文字
-    ctx.fillStyle = config.lightTextColor;
+    // 绘制输入框标签
+    ctx.fillStyle = config.textColor;
     ctx.font = 'bold 14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('选择您想要的操作', teamX + teamWidth / 2, teamY + 80);
+    ctx.fillText('请输入房间号:', teamX + teamWidth / 2, teamY + 80);
+
+    // 绘制输入框背景
+    const inputBoxY = teamY + 95;
+    ctx.fillStyle = '#F8F9FA';
+    Utils.drawRoundedRect(ctx, teamX + 30, inputBoxY, teamWidth - 60, 40, 8, true, false);
+    ctx.strokeStyle = config.borderColor;
+    ctx.lineWidth = 1;
+    Utils.drawRoundedRect(ctx, teamX + 30, inputBoxY, teamWidth - 60, 40, 8, false, true);
+
+    // 绘制输入文本
+    ctx.fillStyle = config.textColor;
+    ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+    ctx.textAlign = 'left';
+    
+    // 获取输入的房间号
+    const teamInput = this.getTeamInput();
+    const displayText = teamInput || '点击输入房间号';
+    const textColor = teamInput ? config.textColor : config.lightTextColor;
+    
+    ctx.fillStyle = textColor;
+    ctx.fillText(displayText, teamX + 40, inputBoxY + 25);
 
     ctx.textAlign = 'left';
   }
@@ -106,8 +187,8 @@ class TeamInterfaceRenderer {
     ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
 
     // 计算界面位置（居中）
-    const dialogWidth = 280;
-    const dialogHeight = 180;
+    const dialogWidth = 320;
+    const dialogHeight = 220;
     const dialogX = (config.screenWidth - dialogWidth) / 2;
     const dialogY = (config.screenHeight - dialogHeight) / 2;
 
@@ -120,14 +201,37 @@ class TeamInterfaceRenderer {
     ctx.textAlign = 'center';
     ctx.fillText('搜索房间', dialogX + dialogWidth / 2, dialogY + 40);
 
-    // 绘制提示文字
-    ctx.fillStyle = config.lightTextColor;
+    // 绘制输入框标签
+    ctx.fillStyle = config.textColor;
     ctx.font = 'bold 14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('正在搜索可用房间...', dialogX + dialogWidth / 2, dialogY + 80);
+    ctx.textAlign = 'left';
+    ctx.fillText('请输入房间号:', dialogX + 30, dialogY + 75);
+
+    // 绘制输入框背景
+    ctx.fillStyle = '#F8F9FA';
+    Utils.drawRoundedRect(ctx, dialogX + 30, dialogY + 90, dialogWidth - 60, 40, 8, true, false);
+    ctx.strokeStyle = config.borderColor;
+    ctx.lineWidth = 1;
+    Utils.drawRoundedRect(ctx, dialogX + 30, dialogY + 90, dialogWidth - 60, 40, 8, false, true);
+
+    // 绘制输入文本
+    ctx.fillStyle = config.textColor;
+    ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+    ctx.textAlign = 'left';
+    
+    // 获取输入的房间号
+    const searchRoomInput = this.getSearchRoomInput();
+    const displayText = searchRoomInput || '点击输入房间号';
+    const textColor = searchRoomInput ? config.textColor : config.lightTextColor;
+    
+    ctx.fillStyle = textColor;
+    ctx.fillText(displayText, dialogX + 40, dialogY + 115);
+
+    // 绘制搜索按钮
+    Utils.drawModernButton(ctx, dialogX + 30, dialogY + dialogHeight - 90, dialogWidth - 60, 36, '搜索房间', false, true);
 
     // 绘制取消按钮
-    Utils.drawModernButton(ctx, dialogX + 60, dialogY + dialogHeight - 50, dialogWidth - 120, 36, '取消', false, false);
+    Utils.drawModernButton(ctx, dialogX + 30, dialogY + dialogHeight - 50, dialogWidth - 60, 36, '取消', false, false);
 
     ctx.textAlign = 'left';
   }

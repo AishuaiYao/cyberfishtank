@@ -10,6 +10,15 @@ class TeamTouchHandler {
     
     // 房间号（Unix时间戳后8位）
     this.roomNumber = null;
+    
+    // 搜索房间输入框内容
+    this.searchRoomInput = '';
+    
+    // 团队界面输入框内容
+    this.teamInput = '';
+    
+    // 团队界面输入框内容
+    this.teamInput = '';
   }
 
   // 处理主界面触摸事件
@@ -62,6 +71,14 @@ class TeamTouchHandler {
       height: buttonHeight
     };
 
+    // 输入框区域
+    const inputBox = {
+      x: teamX + 30,
+      y: teamY + 95,
+      width: teamWidth - 60,
+      height: 40
+    };
+
     // 检查点击位置
     if (this.isPointInRect(x, y, createRoomButton)) {
       console.log('点击建立房间按钮');
@@ -72,6 +89,13 @@ class TeamTouchHandler {
     if (this.isPointInRect(x, y, searchRoomButton)) {
       console.log('点击搜索房间按钮');
       this.handleSearchRoomAction();
+      return true;
+    }
+
+    // 检查是否点击了输入框区域
+    if (this.isPointInRect(x, y, inputBox)) {
+      console.log('点击输入框，弹出键盘');
+      this.showTeamInputDialog();
       return true;
     }
 
@@ -134,24 +158,54 @@ class TeamTouchHandler {
 
   // 处理搜索房间界面触摸
   handleSearchRoomInterfaceTouch(x, y) {
-    const dialogWidth = 280;
-    const dialogHeight = 180;
+    const dialogWidth = 320;
+    const dialogHeight = 220;
     const dialogX = (config.screenWidth - dialogWidth) / 2;
     const dialogY = (config.screenHeight - dialogHeight) / 2;
 
+    // 输入框区域
+    const inputBox = {
+      x: dialogX + 30,
+      y: dialogY + 90,
+      width: dialogWidth - 60,
+      height: 40
+    };
+
+    // 搜索按钮区域
+    const searchButton = {
+      x: dialogX + 30,
+      y: dialogY + dialogHeight - 90,
+      width: dialogWidth - 60,
+      height: 36
+    };
+
     // 取消按钮区域
     const cancelButton = {
-      x: dialogX + 60,
+      x: dialogX + 30,
       y: dialogY + dialogHeight - 50,
-      width: dialogWidth - 120,
+      width: dialogWidth - 60,
       height: 36
     };
 
     // 检查点击位置
+    if (this.isPointInRect(x, y, searchButton)) {
+      console.log('点击搜索按钮，搜索房间:', this.searchRoomInput);
+      this.handleSearchRoomAction();
+      return true;
+    }
+
     if (this.isPointInRect(x, y, cancelButton)) {
       console.log('点击取消按钮，返回主界面');
       this.currentTeamState = 'main';
+      this.searchRoomInput = ''; // 清空输入框
       this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
+      return true;
+    }
+
+    // 检查是否点击了输入框区域
+    if (this.isPointInRect(x, y, inputBox)) {
+      console.log('点击输入框，弹出键盘');
+      this.showInputDialog();
       return true;
     }
 
@@ -176,9 +230,29 @@ class TeamTouchHandler {
   async handleCreateRoomAction() {
     console.log('开始建立房间...');
     
-    // 生成房间号（Unix时间戳后8位）
-    this.roomNumber = this.generateRoomNumber();
-    console.log('生成房间号:', this.roomNumber);
+    // 检查是否输入了房间号
+    if (!this.teamInput) {
+      wx.showToast({
+        title: '请输入房间号',
+        icon: 'none',
+        duration: 2000
+      });
+      return;
+    }
+
+    // 验证房间号格式
+    if (!this.validateRoomNumber(this.teamInput)) {
+      wx.showToast({
+        title: '请输入8位数字的房间号',
+        icon: 'none',
+        duration: 2000
+      });
+      return;
+    }
+
+    // 使用用户输入的房间号
+    this.roomNumber = this.teamInput;
+    console.log('使用用户输入的房间号:', this.roomNumber);
     
     // 切换到共同绘画界面
     this.currentTeamState = 'collaborativePainting';
@@ -186,7 +260,11 @@ class TeamTouchHandler {
     this.eventHandler.isTeamInterfaceVisible = false; // 关闭组队界面
     this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
     
-    // 移除创建房间成功的提示框，避免首次进入共同绘画界面时弹出提示
+    wx.showToast({
+      title: '房间创建成功',
+      icon: 'success',
+      duration: 1500
+    });
   }
 
   // 处理共同绘画界面触摸
@@ -260,26 +338,138 @@ class TeamTouchHandler {
     this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
   }
 
+  // 显示团队界面输入对话框（模拟键盘输入）
+  showTeamInputDialog() {
+    wx.showModal({
+      title: '请输入房间号',
+      content: '请输入8位数字的房间号',
+      editable: true,
+      placeholderText: '例如: 12345678',
+      success: (res) => {
+        if (res.confirm) {
+          // 验证输入的房间号
+          const roomNumber = res.content.trim();
+          if (this.validateRoomNumber(roomNumber)) {
+            this.teamInput = roomNumber;
+            console.log('团队界面输入的房间号:', roomNumber);
+            // 重新绘制界面以显示输入内容
+            this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
+          } else {
+            wx.showToast({
+              title: '请输入8位数字的房间号',
+              icon: 'none',
+              duration: 2000
+            });
+          }
+        }
+      }
+    });
+  }
+
+  // 显示搜索房间输入对话框（模拟键盘输入）
+  showInputDialog() {
+    wx.showModal({
+      title: '请输入房间号',
+      content: '请输入8位数字的房间号',
+      editable: true,
+      placeholderText: '例如: 12345678',
+      success: (res) => {
+        if (res.confirm) {
+          // 验证输入的房间号
+          const roomNumber = res.content.trim();
+          if (this.validateRoomNumber(roomNumber)) {
+            this.searchRoomInput = roomNumber;
+            console.log('搜索房间输入的房间号:', roomNumber);
+            // 重新绘制界面以显示输入内容
+            this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
+          } else {
+            wx.showToast({
+              title: '请输入8位数字的房间号',
+              icon: 'none',
+              duration: 2000
+            });
+          }
+        }
+      }
+    });
+  }
+
+  // 验证房间号格式
+  validateRoomNumber(roomNumber) {
+    if (!roomNumber || roomNumber.length !== 8) {
+      return false;
+    }
+    // 检查是否为纯数字
+    return /^\d{8}$/.test(roomNumber);
+  }
+
   // 搜索房间操作
   async handleSearchRoomAction() {
     console.log('开始搜索房间...');
     
-    // 切换到搜索房间界面
-    this.currentTeamState = 'searchRoom';
-    this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
-
-    // 模拟搜索房间过程
-    setTimeout(() => {
-      console.log('搜索房间完成');
+    // 检查是否输入了房间号
+    if (!this.teamInput) {
       wx.showToast({
-        title: '未找到可用房间',
+        title: '请输入房间号',
         icon: 'none',
         duration: 2000
       });
+      return;
+    }
+
+    // 验证房间号格式
+    if (!this.validateRoomNumber(this.teamInput)) {
+      wx.showToast({
+        title: '请输入8位数字的房间号',
+        icon: 'none',
+        duration: 2000
+      });
+      return;
+    }
+
+    // 模拟搜索房间过程
+    wx.showLoading({
+      title: '搜索房间中...',
+    });
+
+    setTimeout(() => {
+      wx.hideLoading();
       
-      // 返回主界面
-      this.eventHandler.hideTeamInterface();
-    }, 2000);
+      // 模拟房间存在性检查
+      const roomExists = this.checkRoomExists(this.teamInput);
+      
+      if (roomExists) {
+        console.log('找到房间，进入房间:', this.teamInput);
+        this.roomNumber = this.teamInput;
+        
+        // 切换到共同绘画界面
+        this.currentTeamState = 'collaborativePainting';
+        this.eventHandler.isCollaborativePaintingVisible = true;
+        this.eventHandler.isTeamInterfaceVisible = false;
+        this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
+        
+        wx.showToast({
+          title: '成功进入房间',
+          icon: 'success',
+          duration: 1500
+        });
+      } else {
+        console.log('房间不存在:', this.teamInput);
+        wx.showToast({
+          title: '没有这个房间',
+          icon: 'none',
+          duration: 2000
+        });
+      }
+    }, 1500);
+  }
+
+  // 检查房间是否存在（模拟实现）
+  checkRoomExists(roomNumber) {
+    // 这里应该是真实的房间存在性检查逻辑
+    // 目前模拟实现：随机决定房间是否存在（50%概率存在）
+    // 实际项目中应该调用云函数检查房间状态
+    return Math.random() > 0.5;
   }
 
   // 检查点是否在矩形内
