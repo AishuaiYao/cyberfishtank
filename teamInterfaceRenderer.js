@@ -28,46 +28,6 @@ class TeamInterfaceRenderer {
     return '';
   }
 
-  // 获取团队界面输入内容
-  getTeamInput() {
-    // 这里需要从事件处理器中获取输入内容
-    // 在实际项目中，应该通过事件处理器传递输入内容
-    if (typeof window !== 'undefined' && window.eventHandler) {
-      return window.eventHandler.touchHandlers.team?.teamInput || '';
-    }
-    return '';
-  }
-
-  // 获取搜索房间输入内容
-  getSearchRoomInput() {
-    // 这里需要从事件处理器中获取输入内容
-    // 在实际项目中，应该通过事件处理器传递输入内容
-    if (typeof window !== 'undefined' && window.eventHandler) {
-      return window.eventHandler.touchHandlers.team?.searchRoomInput || '';
-    }
-    return '';
-  }
-
-  // 获取团队界面输入内容
-  getTeamInput() {
-    // 这里需要从事件处理器中获取输入内容
-    // 在实际项目中，应该通过事件处理器传递输入内容
-    if (typeof window !== 'undefined' && window.eventHandler) {
-      return window.eventHandler.touchHandlers.team?.teamInput || '';
-    }
-    return '';
-  }
-
-  // 获取团队界面输入内容
-  getTeamInput() {
-    // 这里需要从事件处理器中获取输入内容
-    // 在实际项目中，应该通过事件处理器传递输入内容
-    if (typeof window !== 'undefined' && window.eventHandler) {
-      return window.eventHandler.touchHandlers.team?.teamInput || '';
-    }
-    return '';
-  }
-
   // 绘制组队界面
   drawTeamInterface() {
     const ctx = this.ctx;
@@ -95,14 +55,22 @@ class TeamInterfaceRenderer {
 
     // 绘制标题
     ctx.fillStyle = config.textColor;
-    ctx.font = 'bold 18px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+    ctx.font = 'bold 20px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('共同绘画', teamX + teamWidth / 2, teamY + 40);
+    ctx.fillText('共同绘画', teamX + teamWidth / 2, teamY + 50);
+
+    // 绘制输入框背景（调整位置，避免与按钮重叠）
+    const inputBoxY = teamY + 70;
+    ctx.fillStyle = '#F8F9FA';
+    Utils.drawRoundedRect(ctx, teamX + 30, inputBoxY, teamWidth - 60, 45, 8, true, false);
+    ctx.strokeStyle = config.borderColor;
+    ctx.lineWidth = 1;
+    Utils.drawRoundedRect(ctx, teamX + 30, inputBoxY, teamWidth - 60, 45, 8, false, true);
 
     // 绘制按钮
     const buttonWidth = config.team.teamInterface.buttonWidth;
     const buttonHeight = config.team.teamInterface.buttonHeight;
-    const buttonY = teamY + teamHeight - buttonHeight - 40;
+    const buttonY = teamY + teamHeight - buttonHeight - 30;
     const buttonSpacing = 20;
     const totalButtonWidth = buttonWidth * 2 + buttonSpacing;
     const startX = teamX + (teamWidth - totalButtonWidth) / 2;
@@ -111,21 +79,7 @@ class TeamInterfaceRenderer {
     Utils.drawModernButton(ctx, startX, buttonY, buttonWidth, buttonHeight, '建立房间', false, true);
 
     // 搜索房间按钮
-    Utils.drawModernButton(ctx, startX + buttonWidth + buttonSpacing, buttonY, buttonWidth, buttonHeight, '搜房间', false, false);
-
-    // 绘制输入框标签
-    ctx.fillStyle = config.textColor;
-    ctx.font = 'bold 14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('请输入房间号:', teamX + teamWidth / 2, teamY + 80);
-
-    // 绘制输入框背景
-    const inputBoxY = teamY + 95;
-    ctx.fillStyle = '#F8F9FA';
-    Utils.drawRoundedRect(ctx, teamX + 30, inputBoxY, teamWidth - 60, 40, 8, true, false);
-    ctx.strokeStyle = config.borderColor;
-    ctx.lineWidth = 1;
-    Utils.drawRoundedRect(ctx, teamX + 30, inputBoxY, teamWidth - 60, 40, 8, false, true);
+    Utils.drawModernButton(ctx, startX + buttonWidth + buttonSpacing, buttonY, buttonWidth, buttonHeight, '搜索房间', false, false);
 
     // 绘制输入文本
     ctx.fillStyle = config.textColor;
@@ -205,7 +159,7 @@ class TeamInterfaceRenderer {
     ctx.fillStyle = config.textColor;
     ctx.font = 'bold 14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText('请输入房间号:', dialogX + 30, dialogY + 75);
+    ctx.fillText('房间号:', dialogX + 30, dialogY + 75);
 
     // 绘制输入框背景
     ctx.fillStyle = '#F8F9FA';

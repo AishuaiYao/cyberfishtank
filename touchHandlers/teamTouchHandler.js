@@ -16,9 +16,6 @@ class TeamTouchHandler {
     
     // 团队界面输入框内容
     this.teamInput = '';
-    
-    // 团队界面输入框内容
-    this.teamInput = '';
   }
 
   // 处理主界面触摸事件
@@ -71,10 +68,10 @@ class TeamTouchHandler {
       height: buttonHeight
     };
 
-    // 输入框区域
+    // 输入框区域（调整位置避免与按钮重叠）
     const inputBox = {
       x: teamX + 30,
-      y: teamY + 95,
+      y: teamY + 70,
       width: teamWidth - 60,
       height: 40
     };
@@ -232,18 +229,13 @@ class TeamTouchHandler {
     
     // 检查是否输入了房间号
     if (!this.teamInput) {
-      wx.showToast({
-        title: '请输入房间号',
-        icon: 'none',
-        duration: 2000
-      });
       return;
     }
 
     // 验证房间号格式
     if (!this.validateRoomNumber(this.teamInput)) {
       wx.showToast({
-        title: '请输入8位数字的房间号',
+        title: '请输入8位数字',
         icon: 'none',
         duration: 2000
       });
@@ -341,8 +333,8 @@ class TeamTouchHandler {
   // 显示团队界面输入对话框（模拟键盘输入）
   showTeamInputDialog() {
     wx.showModal({
-      title: '请输入房间号',
-      content: '请输入8位数字的房间号',
+      title: '输入房间号',
+      content: '请输入8位数字',
       editable: true,
       placeholderText: '例如: 12345678',
       success: (res) => {
@@ -356,7 +348,7 @@ class TeamTouchHandler {
             this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
           } else {
             wx.showToast({
-              title: '请输入8位数字的房间号',
+              title: '请输入8位数字',
               icon: 'none',
               duration: 2000
             });
@@ -369,8 +361,8 @@ class TeamTouchHandler {
   // 显示搜索房间输入对话框（模拟键盘输入）
   showInputDialog() {
     wx.showModal({
-      title: '请输入房间号',
-      content: '请输入8位数字的房间号',
+      title: '输入房间号',
+      content: '请输入8位数字',
       editable: true,
       placeholderText: '例如: 12345678',
       success: (res) => {
@@ -384,7 +376,7 @@ class TeamTouchHandler {
             this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
           } else {
             wx.showToast({
-              title: '请输入8位数字的房间号',
+              title: '请输入8位数字',
               icon: 'none',
               duration: 2000
             });
@@ -409,18 +401,13 @@ class TeamTouchHandler {
     
     // 检查是否输入了房间号
     if (!this.teamInput) {
-      wx.showToast({
-        title: '请输入房间号',
-        icon: 'none',
-        duration: 2000
-      });
       return;
     }
 
     // 验证房间号格式
     if (!this.validateRoomNumber(this.teamInput)) {
       wx.showToast({
-        title: '请输入8位数字的房间号',
+        title: '请输入8位数字',
         icon: 'none',
         duration: 2000
       });
