@@ -197,6 +197,20 @@ class TeamTouchHandler {
   handleCollaborativePaintingTouch(x, y) {
     console.log('共同绘画界面触摸:', x, y);
     
+    // 检查是否点击了左上角返回按钮
+    const backButtonArea = {
+      x: 20,
+      y: 40,
+      width: 50,
+      height: 30
+    };
+    
+    if (this.isPointInRect(x, y, backButtonArea)) {
+      console.log('点击返回按钮，返回组队主界面');
+      this.exitCollaborativePainting();
+      return true;
+    }
+    
     // 检查是否点击了"让它游起来"按钮
     const buttonArea = this.getCollaborativePaintingButtonArea();
     if (this.isPointInRect(x, y, buttonArea)) {
@@ -204,26 +218,12 @@ class TeamTouchHandler {
       this.handleMakeItSwimInRoom();
       return true;
     }
-    
-    // 检查是否点击了返回按钮（顶部区域）
-    const topArea = {
-      x: 0,
-      y: 0,
-      width: config.screenWidth,
-      height: 80
-    };
-    
-    if (this.isPointInRect(x, y, topArea)) {
-      console.log('点击顶部区域，返回组队主界面');
-      this.exitCollaborativePainting();
-      return true;
-    }
-    
+
     // 其他触摸事件交给主触摸处理器处理（绘画功能）
     if (this.eventHandler.touchHandlers.main) {
       return this.eventHandler.touchHandlers.main.handleTouchStart(x, y);
     }
-    
+
     return false;
   }
 

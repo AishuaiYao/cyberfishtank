@@ -1093,41 +1093,45 @@ drawMainTitle() {
   drawCollaborativePaintingInterface(gameState) {
     const positions = getAreaPositions();
     
-    // 完全复用主界面的绘制代码
+    // 绘制背景和主标题
     this.interfaceRenderer.drawBackground();
     this.drawMainTitle();
-    this.interfaceRenderer.drawFunctionArea(gameState, positions);
+    
+    // 绘制功能区，但隐藏共同绘画按钮
+    this.drawCollaborativeFunctionArea(gameState, positions);
+    
+    // 绘制其他区域
     this.interfaceRenderer.drawIndicatorArea(positions);
     this.interfaceRenderer.drawDrawingArea(gameState, positions);
     this.interfaceRenderer.drawScoreArea(gameState, positions);
-    
+
     // 只保留"让它游起来"按钮，隐藏其他两个按钮
     this.drawCollaborativePaintingJumpArea(positions);
-    
-    // 绘制顶部房间号（替代共同绘画按钮和文本）
-    this.drawRoomNumberHeader();
+
+    // 绘制左上角返回按钮
+    this.drawBackButton();
   }
 
   // 修改跳转区域绘制，只保留"让它游起来"按钮
   drawCollaborativePaintingJumpArea(positions) {
     const ctx = this.ctx;
     const jumpAreaY = positions.jumpAreaY;
-    
+
     // 只绘制"让它游起来"按钮
     const buttonWidth = 120;
     const buttonHeight = 44;
     const buttonX = (config.screenWidth - buttonWidth) / 2;
     const buttonY = jumpAreaY + (config.jumpHeight - buttonHeight) / 2;
-    
+
     // 绘制按钮背景
     ctx.fillStyle = '#4CAF50';
     ctx.fillRect(buttonX, buttonY, buttonWidth, buttonHeight);
-    
+
     // 绘制按钮边框
     ctx.strokeStyle = '#388E3C';
     ctx.lineWidth = 2;
     ctx.strokeRect(buttonX, buttonY, buttonWidth, buttonHeight);
-    
+
     // 绘制按钮文字
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 20px Arial';
@@ -1141,26 +1145,50 @@ drawMainTitle() {
     const ctx = this.ctx;
     const positions = getAreaPositions();
     const functionAreaY = positions.functionAreaY;
-    
+
     // 获取房间号
     const roomNumber = this.eventHandler.touchHandlers.team?.roomNumber || '00000000';
-    
+
     // 绘制房间号（在功能区的共同绘画按钮位置）
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 24px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    
+
     // 计算共同绘画按钮的位置（功能区第3个按钮）
     const buttonWidth = config.screenWidth / 3;
     const collaborativeButtonX = buttonWidth * 2;
     const collaborativeButtonCenterX = collaborativeButtonX + buttonWidth / 2;
-    
+
     ctx.fillText(`房间号: ${roomNumber}`, collaborativeButtonCenterX, functionAreaY + config.partHeight / 2);
+  }
+
+  // 绘制左上角返回按钮
+  drawBackButton() {
+    const ctx = this.ctx;
     
-    // 绘制返回提示（在顶部）
-    ctx.font = '14px Arial';
-    ctx.fillText('点击顶部返回', config.screenWidth / 2, 30);
+    // 绘制返回按钮（与其他界面保持一致）
+    Utils.drawModernButton(ctx, 20, 40, 50, 30, '返回', false, true);
+  }
+
+  // 绘制共同绘画界面的功能区（隐藏共同绘画按钮）
+  drawCollaborativeFunctionArea(gameState, positions) {
+    const startY = positions.functionAreaY;
+    const ctx = this.ctx;
+
+    // 颜色选择 - 使用更清晰的阴影
+    Utils.drawCard(ctx, 15, startY, config.screenWidth - 30, config.partHeight - 20);
+    this.interfaceRenderer.drawColorButtons(startY + 10, gameState);
+
+    // 不绘制共同绘画按钮
+
+    // 画笔大小调节
+    Utils.drawCard(ctx, 15, startY + config.partHeight -15 , config.screenWidth - 30, config.partHeight - 40);
+    this.interfaceRenderer.drawBrushSizeControl(startY + config.partHeight + 15, gameState);
+
+    // 工具按钮
+    Utils.drawCard(ctx, 15, startY + config.partHeight * 2 - 50, config.screenWidth - 30, config.partHeight - 10);
+    this.interfaceRenderer.drawToolButtons(startY + config.partHeight * 2 - 40, gameState);
   }
 }
 
