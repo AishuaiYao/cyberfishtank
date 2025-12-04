@@ -6,7 +6,9 @@
   <component name="ChangeListManager">
     <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="共同绘画-绘制房间-搜房间">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/teamInterfaceRenderer.js" beforeDir="false" afterPath="$PROJECT_DIR$/teamInterfaceRenderer.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/touchHandlers/teamTouchHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/teamTouchHandler.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uiManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/uiManager.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -71,14 +73,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00070" summary="修复了个人鱼缸随机刷新问题">
-      <option name="closed" value="true" />
-      <created>1763995347834</created>
-      <option name="number" value="00070" />
-      <option name="presentableId" value="LOCAL-00070" />
-      <option name="project" value="LOCAL" />
-      <updated>1763995347834</updated>
     </task>
     <task id="LOCAL-00071" summary="删除功能">
       <option name="closed" value="true" />
@@ -464,7 +458,15 @@
       <option name="project" value="LOCAL" />
       <updated>1764775053360</updated>
     </task>
-    <option name="localTasksCounter" value="119" />
+    <task id="LOCAL-00119" summary="共同绘画-绘制房间-搜房间">
+      <option name="closed" value="true" />
+      <created>1764775623481</created>
+      <option name="number" value="00119" />
+      <option name="presentableId" value="LOCAL-00119" />
+      <option name="project" value="LOCAL" />
+      <updated>1764775623481</updated>
+    </task>
+    <option name="localTasksCounter" value="120" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">

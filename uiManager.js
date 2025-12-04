@@ -148,9 +148,13 @@ class UIManager {
     this.interfaceRenderer.drawScoreArea(gameState, positions);
     this.interfaceRenderer.drawJumpArea(positions);
 
-    // 绘制组队界面
-    if (this.eventHandler && this.eventHandler.teamTouchHandler) {
-      const currentTeamState = this.eventHandler.teamTouchHandler.currentTeamState;
+    // 确保teamInterfaceRenderer能够访问到事件处理器的输入数据
+    if (this.eventHandler && this.eventHandler.touchHandlers && this.eventHandler.touchHandlers.team) {
+      const currentTeamState = this.eventHandler.touchHandlers.team.currentTeamState;
+      
+      // 将输入数据设置到teamInterfaceRenderer中
+      this.teamInterfaceRenderer.setTeamInput(this.eventHandler.touchHandlers.team.teamInput);
+      this.teamInterfaceRenderer.setSearchRoomInput(this.eventHandler.touchHandlers.team.searchRoomInput);
       
       switch (currentTeamState) {
         case 'main':

@@ -92,7 +92,7 @@ class TeamTouchHandler {
     // 检查是否点击了输入框区域
     if (this.isPointInRect(x, y, inputBox)) {
       console.log('点击输入框，弹出键盘');
-      this.showSearchRoomKeyboard();
+      this.showKeyboard();
       return true;
     }
 
@@ -202,7 +202,7 @@ class TeamTouchHandler {
     // 检查是否点击了输入框区域
     if (this.isPointInRect(x, y, inputBox)) {
       console.log('点击输入框，弹出键盘');
-      this.showSearchRoomKeyboard();
+      this.showKeyboard();
       return true;
     }
 
@@ -452,6 +452,11 @@ class TeamTouchHandler {
       confirmType: 'done'
     });
 
+    // 先移除之前的监听器，避免重复绑定
+    wx.offKeyboardInput();
+    wx.offKeyboardConfirm();
+    wx.offKeyboardComplete();
+
     // 监听键盘确认事件
     wx.onKeyboardConfirm((res) => {
       console.log('键盘确认，输入内容:', res.value);
@@ -493,6 +498,11 @@ class TeamTouchHandler {
       confirmHold: false,
       confirmType: 'done'
     });
+
+    // 先移除之前的监听器，避免重复绑定
+    wx.offKeyboardInput();
+    wx.offKeyboardConfirm();
+    wx.offKeyboardComplete();
 
     // 监听键盘确认事件
     wx.onKeyboardConfirm((res) => {

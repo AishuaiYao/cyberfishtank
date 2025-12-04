@@ -6,26 +6,32 @@ class TeamInterfaceRenderer {
   constructor(ctx, pixelRatio = 1) {
     this.ctx = ctx;
     this.pixelRatio = pixelRatio;
+    
+    // 初始化输入值
+    this.searchRoomInput = '';
+    this.teamInput = '';
   }
 
   // 获取搜索房间输入内容
   getSearchRoomInput() {
-    // 这里需要从事件处理器中获取输入内容
-    // 在实际项目中，应该通过事件处理器传递输入内容
-    if (typeof window !== 'undefined' && window.eventHandler) {
-      return window.eventHandler.touchHandlers.team?.searchRoomInput || '';
-    }
-    return '';
+    // 在微信小程序环境中，直接从实例属性获取输入内容
+    return this.searchRoomInput || '';
   }
 
   // 获取团队界面输入内容
   getTeamInput() {
-    // 这里需要从事件处理器中获取输入内容
-    // 在实际项目中，应该通过事件处理器传递输入内容
-    if (typeof window !== 'undefined' && window.eventHandler) {
-      return window.eventHandler.touchHandlers.team?.teamInput || '';
-    }
-    return '';
+    // 在微信小程序环境中，直接从实例属性获取输入内容
+    return this.teamInput || '';
+  }
+
+  // 设置搜索房间输入内容
+  setSearchRoomInput(input) {
+    this.searchRoomInput = input;
+  }
+
+  // 设置团队界面输入内容
+  setTeamInput(input) {
+    this.teamInput = input;
   }
 
   // 绘制组队界面
