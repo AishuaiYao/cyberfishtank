@@ -1124,27 +1124,15 @@ drawMainTitle() {
     const ctx = this.ctx;
     const jumpAreaY = positions.jumpAreaY;
 
-    // 只绘制"让它游起来"按钮
-    const buttonWidth = 120;
-    const buttonHeight = 44;
-    const buttonX = (config.screenWidth - buttonWidth) / 2;
-    const buttonY = jumpAreaY + (config.jumpHeight - buttonHeight) / 2;
+    // 使用与主界面相同的按钮绘制方式
+    const jumpButtons = ['🚀 让它游起来！'];
+    const buttonWidth = (config.screenWidth - 50) / 3; // 使用与主界面相同的宽度计算
+    const buttonX = (config.screenWidth - buttonWidth) / 2; // 居中显示
+    const isPrimary = true; // 主按钮样式
 
-    // 绘制按钮背景
-    ctx.fillStyle = '#4CAF50';
-    ctx.fillRect(buttonX, buttonY, buttonWidth, buttonHeight);
-
-    // 绘制按钮边框
-    ctx.strokeStyle = '#388E3C';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(buttonX, buttonY, buttonWidth, buttonHeight);
-
-    // 绘制按钮文字
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 20px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('让它游起来', buttonX + buttonWidth / 2, buttonY + buttonHeight / 2);
+    // 使用Utils.drawModernButton绘制按钮，与主界面保持一致
+    Utils.drawModernButton(ctx, buttonX, jumpAreaY + 13, buttonWidth - 10, config.buttonHeight,
+                          jumpButtons[0], false, isPrimary);
   }
 
   // 绘制房间号头部（放在返回键旁边对齐）

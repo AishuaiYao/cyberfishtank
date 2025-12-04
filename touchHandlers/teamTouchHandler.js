@@ -292,16 +292,17 @@ class TeamTouchHandler {
 
   // 获取共同绘画界面按钮区域
   getCollaborativePaintingButtonArea() {
-    const buttonWidth = 120;
-    const buttonHeight = 44;
-    const buttonX = (config.screenWidth - buttonWidth) / 2;
-    const buttonY = config.screenHeight - 80;
-
+    const positions = require('../config.js').getAreaPositions();
+    const { config } = require('../config.js');
+    const jumpAreaY = positions.jumpAreaY;
+    const buttonWidth = (config.screenWidth - 50) / 3; // 与UI绘制保持一致
+    const buttonX = (config.screenWidth - buttonWidth) / 2; // 居中显示
+    
     return {
       x: buttonX,
-      y: buttonY,
-      width: buttonWidth,
-      height: buttonHeight
+      y: jumpAreaY + 13, // 与UI绘制保持一致
+      width: buttonWidth - 10, // 与UI绘制保持一致
+      height: config.buttonHeight // 使用配置中的按钮高度
     };
   }
 
