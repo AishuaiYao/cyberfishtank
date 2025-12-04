@@ -16,6 +16,9 @@ class TeamTouchHandler {
     
     // 团队界面输入框内容
     this.teamInput = '';
+    
+    // 房间数据初始化状态
+    this.isRoomDataInitialized = false;
   }
 
   // 处理主界面触摸事件
@@ -237,7 +240,10 @@ class TeamTouchHandler {
     this.roomNumber = this.teamInput;
     console.log('使用房间号:', this.roomNumber);
 
-    // 切换到共同绘画界面
+    // 重置房间数据初始化状态
+    this.isRoomDataInitialized = false;
+
+    // 切换到共同绘画界面（不先插入数据）
     this.currentTeamState = 'collaborativePainting';
     this.eventHandler.isCollaborativePaintingVisible = true;
     this.eventHandler.isTeamInterfaceVisible = false; // 关闭组队界面
@@ -248,6 +254,46 @@ class TeamTouchHandler {
       icon: 'success',
       duration: 1500
     });
+
+    // 延迟插入数据，确保UI已更新
+    setTimeout(async () => {
+      // 获取用户openid
+      let userOpenid;
+      try {
+        userOpenid = await this.eventHandler.getRealUserOpenid();
+        if (!userOpenid) {
+          throw new Error('无法获取用户openid');
+        }
+      } catch (error) {
+        console.error('获取用户openid失败:', error);
+        wx.showToast({
+          title: '初始化房间失败',
+          icon: 'none',
+          duration: 1500
+        });
+        return;
+      }
+
+      // 向drawing集合插入两条数据
+      try {
+        const success = await this.eventHandler.databaseManager.createInitialDrawingData(this.roomNumber, userOpenid);
+        if (!success) {
+          throw new Error('创建房间绘画数据失败');
+        }
+        console.log('房间绘画数据创建成功');
+        // 标记房间数据已初始化
+        this.isRoomDataInitialized = true;
+        // 数据插入完成后，重新绘制界面以显示等待状态更新
+        this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
+      } catch (error) {
+        console.error('创建房间绘画数据失败:', error);
+        wx.showToast({
+          title: '初始化房间失败',
+          icon: 'none',
+          duration: 1500
+        });
+      }
+    }, 500); // 延迟500ms确保UI已完全更新
   }
 
   // 处理共同绘画界面触摸

@@ -112,7 +112,26 @@ canvasGetImageData
 
 
 
+dic = {
+  "roomId": xxx, # 数字，房间号
+  "role": "homeowner", # 字符，这条数据的所有者
+  "uid": _openid, # 字符，用户在小游戏里的唯一id，房主的_openid
+  "operationType": "", # 字符，操作类型
+  "trace": [], # list，本次绘画笔迹的坐标序列信息
+  "color": "#ff0000", # 字符，颜色
+  "lineWidth": 3 # 数字，画笔或者橡皮的粗细大小
+}
+dic = {
+  "roomId": xxx, # 数字，房间号
+  "role": "teamworker", # 字符，这条数据的所有者
+  "uid": “”, # 字符，用户在小游戏里的唯一id,先初始化为空，将来是协作者的_openid
+  "operationType": "", # 字符，操作类型
+  "trace": [], # list，本次绘画笔迹的坐标序列信息
+  "color": "#ff0000", # 字符，颜色
+  "lineWidth": 3 # 数字，画笔或者橡皮的粗细大小
+}
 
+插入完毕后，开始监听teamworker这条数据的uid有没有变化，如果有变化
 
 
 

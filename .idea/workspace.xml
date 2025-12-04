@@ -4,11 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="共同绘画-绘制房间-搜房间">
+    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="共同绘画-绘制房间-对齐button">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/teamInterfaceRenderer.js" beforeDir="false" afterPath="$PROJECT_DIR$/teamInterfaceRenderer.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/databaseManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/databaseManager.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/prompt.txt" beforeDir="false" afterPath="$PROJECT_DIR$/prompt.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/touchHandlers/teamTouchHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/teamTouchHandler.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uiManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/uiManager.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -73,22 +73,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00071" summary="删除功能">
-      <option name="closed" value="true" />
-      <created>1764029586131</created>
-      <option name="number" value="00071" />
-      <option name="presentableId" value="LOCAL-00071" />
-      <option name="project" value="LOCAL" />
-      <updated>1764029586131</updated>
-    </task>
-    <task id="LOCAL-00072" summary="删除功能">
-      <option name="closed" value="true" />
-      <created>1764030853225</created>
-      <option name="number" value="00072" />
-      <option name="presentableId" value="LOCAL-00072" />
-      <option name="project" value="LOCAL" />
-      <updated>1764030853225</updated>
     </task>
     <task id="LOCAL-00073" summary="代码结构优化1">
       <option name="closed" value="true" />
@@ -466,12 +450,26 @@
       <option name="project" value="LOCAL" />
       <updated>1764775623481</updated>
     </task>
-    <option name="localTasksCounter" value="120" />
+    <task id="LOCAL-00120" summary="共同绘画-绘制房间-显示房间号输入框">
+      <option name="closed" value="true" />
+      <created>1764855174761</created>
+      <option name="number" value="00120" />
+      <option name="presentableId" value="LOCAL-00120" />
+      <option name="project" value="LOCAL" />
+      <updated>1764855174762</updated>
+    </task>
+    <task id="LOCAL-00121" summary="共同绘画-绘制房间-对齐button">
+      <option name="closed" value="true" />
+      <created>1764855344524</created>
+      <option name="number" value="00121" />
+      <option name="presentableId" value="LOCAL-00121" />
+      <option name="project" value="LOCAL" />
+      <updated>1764855344524</updated>
+    </task>
+    <option name="localTasksCounter" value="122" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="代码结构优化-排行榜滑动-实现惯性" />
-    <MESSAGE value="代码结构优化-排行榜惯性-去掉刷新" />
     <MESSAGE value="代码结构优化-排行榜惯性-顶部下拉" />
     <MESSAGE value="代码结构优化-排行榜回弹效果" />
     <MESSAGE value="代码结构优化-排行榜惯性性能提升" />
@@ -495,6 +493,8 @@
     <MESSAGE value="共同绘画-绘制房间-画笔大小提示跳动" />
     <MESSAGE value="共同绘画-绘制房间" />
     <MESSAGE value="共同绘画-绘制房间-搜房间" />
-    <option name="LAST_COMMIT_MESSAGE" value="共同绘画-绘制房间-搜房间" />
+    <MESSAGE value="共同绘画-绘制房间-显示房间号输入框" />
+    <MESSAGE value="共同绘画-绘制房间-对齐button" />
+    <option name="LAST_COMMIT_MESSAGE" value="共同绘画-绘制房间-对齐button" />
   </component>
 </project>

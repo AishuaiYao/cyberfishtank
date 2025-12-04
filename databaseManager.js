@@ -565,6 +565,69 @@ async getRandomFishesByUserFallback(openid, count = 20) {
     return Utils.handleDatabaseError(error, '备选方案随机查询用户鱼数据', []);
   }
 }
+
+  // 新增：插入房间绘画数据
+  async insertDrawingData(drawingData) {
+    if (!Utils.checkDatabaseInitialization(this, '插入房间绘画数据')) return false;
+
+    try {
+      console.log('准备插入房间绘画数据:', drawingData);
+
+      await this.cloudDb.collection('drawing').add({
+        data: drawingData
+      });
+
+      console.log('房间绘画数据插入成功');
+      return true;
+    } catch (error) {
+      return Utils.handleDatabaseError(error, '插入房间绘画数据', false);
+    }
+  }
+
+  // 新增：为房间创建初始绘画数据（房主和协作者记录）
+  async createInitialDrawingData(roomId, homeownerOpenid) {
+    if (!Utils.checkDatabaseInitialization(this, '创建房间初始绘画数据')) return false;
+
+    try {
+      // 创建房主绘画数据
+      const homeownerData = {
+        roomId: roomId,
+        role: "homeowner",
+        uid: homeownerOpenid,
+        operationType: "",
+        trace: [],
+        color: "#ff0000",
+        lineWidth: 3,
+        createdAt: new Date()
+      };
+
+      // 创建协作者绘画数据
+      const teamworkerData = {
+        roomId: roomId,
+        role: "teamworker",
+        uid: "", // 初始化为空，将来是协作者的_openid
+        operationType: "",
+        trace: [],
+        color: "#ff0000",
+        lineWidth: 3,
+        createdAt: new Date()
+      };
+
+      // 批量插入两条记录
+      await this.cloudDb.collection('drawing').add({
+        data: homeownerData
+      });
+
+      await this.cloudDb.collection('drawing').add({
+        data: teamworkerData
+      });
+
+      console.log(`房间 ${roomId} 的初始绘画数据创建成功`);
+      return true;
+    } catch (error) {
+      return Utils.handleDatabaseError(error, '创建房间初始绘画数据', false);
+    }
+  }
 }
 
 module.exports = DatabaseManager;

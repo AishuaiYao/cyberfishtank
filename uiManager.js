@@ -1117,6 +1117,9 @@ drawMainTitle() {
     // 绘制左上角返回按钮和房间号
     this.drawBackButton();
     this.drawRoomNumberHeader();
+    
+    // 绘制等待伙伴进入的提示
+    this.drawWaitingPartnerMessage();
   }
 
   // 修改跳转区域绘制，只保留"让它游起来"按钮
@@ -1161,6 +1164,65 @@ drawMainTitle() {
     
     // 绘制返回按钮（与其他界面保持一致）
     Utils.drawModernButton(ctx, 20, 40, 50, 30, '返回', false, true);
+  }
+
+  // 绘制等待伙伴进入的提示
+  drawWaitingPartnerMessage() {
+    const ctx = this.ctx;
+    
+    // 获取房间数据初始化状态
+    const isInitialized = this.eventHandler.touchHandlers.team?.isRoomDataInitialized || false;
+    
+    // 绘制半透明提示框
+    const messageBoxWidth = 280;
+    const messageBoxHeight = 80;
+    const messageBoxX = (config.screenWidth - messageBoxWidth) / 2;
+    const messageBoxY = config.screenHeight / 2 - 100;
+    
+    // 背景框
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    Utils.drawRoundedRect(ctx, messageBoxX, messageBoxY, messageBoxWidth, messageBoxHeight, 10, true, false);
+    
+    // 根据初始化状态显示不同的提示
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    if (isInitialized) {
+      ctx.fillText('房间已准备就绪，等待伙伴加入...', messageBoxX + messageBoxWidth / 2, messageBoxY + messageBoxHeight / 2 - 10);
+    } else {
+      ctx.fillText('正在初始化房间数据...', messageBoxX + messageBoxWidth / 2, messageBoxY + messageBoxHeight / 2 - 10);
+    }
+    
+    // 房间号提示
+    const roomNumber = this.eventHandler.touchHandlers.team?.roomNumber || '00000000';
+    ctx.font = 'bold 14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+    ctx.fillText(`房间号: ${roomNumber}`, messageBoxX + messageBoxWidth / 2, messageBoxY + messageBoxHeight / 2 + 15);
+    
+    // 如果正在初始化，添加加载动画
+    if (!isInitialized) {
+      const loadingRadius = 4;
+      const loadingX = messageBoxX + messageBoxWidth - 30;
+      const loadingY = messageBoxY + 20;
+      const time = Date.now() / 1000;
+      
+      ctx.fillStyle = '#4CD964';
+      ctx.beginPath();
+      ctx.arc(loadingX, loadingY, loadingRadius, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath();
+      ctx.arc(loadingX + Math.cos(time * 5) * (loadingRadius - 2), 
+                loadingY + Math.sin(time * 5) * (loadingRadius - 2), 
+                2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    
+    // 重置文本对齐
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
   }
 
   // 绘制共同绘画界面的功能区（隐藏共同绘画按钮）
