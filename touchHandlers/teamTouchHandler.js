@@ -249,12 +249,6 @@ class TeamTouchHandler {
     this.eventHandler.isTeamInterfaceVisible = false; // 关闭组队界面
     this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
 
-    wx.showToast({
-      title: '房间创建成功',
-      icon: 'success',
-      duration: 1500
-    });
-
     // 延迟插入数据，确保UI已更新
     setTimeout(async () => {
       // 获取用户openid
