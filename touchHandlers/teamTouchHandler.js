@@ -95,7 +95,8 @@ class TeamTouchHandler {
     // 检查是否点击了输入框区域
     if (this.isPointInRect(x, y, inputBox)) {
       console.log('点击输入框，弹出键盘');
-      this.showKeyboard();
+      // 主界面的输入框用于搜索房间，所以使用搜索房间键盘
+      this.showSearchRoomKeyboard();
       return true;
     }
 
@@ -205,7 +206,8 @@ class TeamTouchHandler {
     // 检查是否点击了输入框区域
     if (this.isPointInRect(x, y, inputBox)) {
       console.log('点击输入框，弹出键盘');
-      this.showKeyboard();
+      // 主界面的输入框用于搜索房间，所以使用搜索房间键盘
+      this.showSearchRoomKeyboard();
       return true;
     }
 
@@ -337,7 +339,7 @@ class TeamTouchHandler {
     const jumpAreaY = positions.jumpAreaY;
     const buttonWidth = (config.screenWidth - 50) / 3; // 与UI绘制保持一致
     const buttonX = (config.screenWidth - buttonWidth) / 2; // 居中显示
-    
+
     return {
       x: buttonX,
       y: jumpAreaY + 13, // 与UI绘制保持一致
@@ -421,24 +423,93 @@ class TeamTouchHandler {
 
     // 检查是否输入了房间号
     if (!this.searchRoomInput) {
+      wx.showToast({
+        title: '请输入房间号',
+        icon: 'none',
+        duration: 1500
+      });
       return;
     }
 
-    // 直接使用用户输入的房间号（无需验证格式）
+    // 获取用户openid
+    let userOpenid;
+    try {
+      userOpenid = await this.eventHandler.getRealUserOpenid();
+      if (!userOpenid) {
+        throw new Error('无法获取用户openid');
+      }
+    } catch (error) {
+      console.error('获取用户openid失败:', error);
+      wx.showToast({
+        title: '用户信息获取失败',
+        icon: 'none',
+        duration: 1500
+      });
+      return;
+    }
 
-    // 模拟搜索房间过程
+    // 显示加载提示
     wx.showLoading({
       title: '搜索房间中...',
     });
 
-    setTimeout(() => {
-      wx.hideLoading();
+    try {
+      console.log('开始查询数据库，房间号:', this.searchRoomInput, '用户openid:', userOpenid);
 
-      // 模拟房间存在性检查
-      const roomExists = this.checkRoomExists(this.searchRoomInput);
+      // 查询数据库，查找符合条件的数据
+      const result = await this.eventHandler.databaseManager.cloudDb
+        .collection('drawing')
+        .where({
+          roomId: this.searchRoomInput,
+          role: 'teamworker'
+        })
+        .get();
 
-      if (roomExists) {
-        console.log('找到房间，进入房间:', this.searchRoomInput);
+      console.log('数据库查询结果:', result);
+
+      if (result.data.length === 0) {
+        // 没有找到对应的房间数据
+        console.log('没有找到对应的房间数据');
+        wx.hideLoading();
+        wx.showToast({
+          title: '房间不存在',
+          icon: 'none',
+          duration: 2000
+        });
+        return;
+      }
+
+      // 找到数据，更新uid为当前用户的openid
+      const drawingData = result.data[0];
+      console.log('找到房间数据:', drawingData);
+
+      // 检查该记录是否已经被其他用户占用
+      if (drawingData.uid && drawingData.uid !== '') {
+        console.log('该房间已被其他用户占用');
+        wx.hideLoading();
+        wx.showToast({
+          title: '房间已被占用',
+          icon: 'none',
+          duration: 2000
+        });
+        return;
+      }
+
+      // 更新uid为当前用户的openid
+      const updateResult = await this.eventHandler.databaseManager.cloudDb
+        .collection('drawing')
+        .doc(drawingData._id)
+        .update({
+          data: {
+            uid: userOpenid,
+            updateTime: new Date()
+          }
+        });
+
+      console.log('数据库更新结果:', updateResult);
+
+      if (updateResult.stats.updated === 1) {
+        console.log('房间数据更新成功，进入房间:', this.searchRoomInput);
         this.roomNumber = this.searchRoomInput;
 
         // 切换到共同绘画界面
@@ -447,20 +518,25 @@ class TeamTouchHandler {
         this.eventHandler.isTeamInterfaceVisible = false;
         this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
 
+        wx.hideLoading();
         wx.showToast({
           title: '成功进入房间',
           icon: 'success',
           duration: 1500
         });
       } else {
-        console.log('房间不存在:', this.searchRoomInput);
-        wx.showToast({
-          title: '没有这个房间',
-          icon: 'none',
-          duration: 2000
-        });
+        throw new Error('数据库更新失败');
       }
-    }, 1500);
+
+    } catch (error) {
+      console.error('搜索房间失败:', error);
+      wx.hideLoading();
+      wx.showToast({
+        title: '搜索房间失败',
+        icon: 'none',
+        duration: 2000
+      });
+    }
   }
 
   // 检查房间是否存在（模拟实现）

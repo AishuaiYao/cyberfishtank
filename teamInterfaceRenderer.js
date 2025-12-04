@@ -92,10 +92,10 @@ class TeamInterfaceRenderer {
     ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'left';
     
-    // 获取输入的房间号
-    const teamInput = this.getTeamInput();
-    const displayText = teamInput || '点击输入房间号';
-    const textColor = teamInput ? config.textColor : config.lightTextColor;
+    // 获取输入的房间号（主界面的输入框用于搜索房间）
+    const searchRoomInput = this.getSearchRoomInput();
+    const displayText = searchRoomInput || '点击输入房间号';
+    const textColor = searchRoomInput ? config.textColor : config.lightTextColor;
     
     ctx.fillStyle = textColor;
     ctx.fillText(displayText, teamX + 40, inputBoxY + 25);
