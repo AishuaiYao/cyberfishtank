@@ -4,10 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="共同绘画-提示正常">
+    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="共同绘画-房主侧绘画正常">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/touchHandlers/teamTouchHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/teamTouchHandler.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uiManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/uiManager.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -72,22 +71,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00082" summary="代码结构优化-排行榜滑动-分页查询展示">
-      <option name="closed" value="true" />
-      <created>1764327648648</created>
-      <option name="number" value="00082" />
-      <option name="presentableId" value="LOCAL-00082" />
-      <option name="project" value="LOCAL" />
-      <updated>1764327648648</updated>
-    </task>
-    <task id="LOCAL-00083" summary="代码结构优化-排行榜滑动-分页查询展示1">
-      <option name="closed" value="true" />
-      <created>1764328823885</created>
-      <option name="number" value="00083" />
-      <option name="presentableId" value="LOCAL-00083" />
-      <option name="project" value="LOCAL" />
-      <updated>1764328823885</updated>
     </task>
     <task id="LOCAL-00084" summary="代码结构优化-排行榜滑动-实现惯性">
       <option name="closed" value="true" />
@@ -465,11 +448,26 @@
       <option name="project" value="LOCAL" />
       <updated>1764946035039</updated>
     </task>
-    <option name="localTasksCounter" value="131" />
+    <task id="LOCAL-00131" summary="共同绘画-提示正常">
+      <option name="closed" value="true" />
+      <created>1764947465653</created>
+      <option name="number" value="00131" />
+      <option name="presentableId" value="LOCAL-00131" />
+      <option name="project" value="LOCAL" />
+      <updated>1764947465653</updated>
+    </task>
+    <task id="LOCAL-00132" summary="共同绘画-房主侧绘画正常">
+      <option name="closed" value="true" />
+      <created>1764947899153</created>
+      <option name="number" value="00132" />
+      <option name="presentableId" value="LOCAL-00132" />
+      <option name="project" value="LOCAL" />
+      <updated>1764947899153</updated>
+    </task>
+    <option name="localTasksCounter" value="133" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="代码结构优化-优化评分计算" />
     <MESSAGE value="代码结构优化-排行榜预加载" />
     <MESSAGE value="代码结构优化-排行榜预加载-去掉外显提示" />
     <MESSAGE value="代码结构优化-排行榜预加载优化" />
@@ -494,6 +492,7 @@
     <MESSAGE value="共同绘画-绘制房间-监测加入" />
     <MESSAGE value="共同绘画-房主的提示消失" />
     <MESSAGE value="共同绘画-提示正常" />
-    <option name="LAST_COMMIT_MESSAGE" value="共同绘画-提示正常" />
+    <MESSAGE value="共同绘画-房主侧绘画正常" />
+    <option name="LAST_COMMIT_MESSAGE" value="共同绘画-房主侧绘画正常" />
   </component>
 </project>

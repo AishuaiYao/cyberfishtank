@@ -711,6 +711,14 @@ class TeamTouchHandler {
         console.log('房间数据更新成功，进入房间:', this.searchRoomInput);
         this.roomNumber = this.searchRoomInput;
 
+        // 伙伴侧：进入房间后立即设置自己为已加入状态
+        // 判断是否为伙伴侧（不是房主）
+        const isRoomOwner = this.roomNumber === this.teamInput;
+        if (!isRoomOwner) {
+          console.log('伙伴侧进入房间，立即设置isTeammateJoined为true');
+          this.isTeammateJoined = true;
+        }
+
         // 切换到共同绘画界面
         this.currentTeamState = 'collaborativePainting';
         this.eventHandler.isCollaborativePaintingVisible = true;
