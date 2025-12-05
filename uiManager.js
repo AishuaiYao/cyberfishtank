@@ -1118,9 +1118,19 @@ drawMainTitle() {
     this.drawBackButton();
     this.drawRoomNumberHeader();
     
-    // 只在队友未加入时显示等待伙伴提示
+    // 只在队友未加入时显示等待伙伴提示（仅房主侧显示）
     const isTeammateJoined = this.eventHandler.touchHandlers.team?.isTeammateJoined || false;
-    if (!isTeammateJoined) {
+    const isRoomOwner = this.eventHandler.touchHandlers.team?.roomNumber === this.eventHandler.touchHandlers.team?.teamInput;
+    
+    console.log('房间状态检查:', {
+      isTeammateJoined,
+      isRoomOwner,
+      roomNumber: this.eventHandler.touchHandlers.team?.roomNumber,
+      teamInput: this.eventHandler.touchHandlers.team?.teamInput
+    });
+    
+    // 如果是房主且队友未加入，才显示等待提示
+    if (!isTeammateJoined && isRoomOwner) {
       this.drawWaitingPartnerMessage();
     }
   }
