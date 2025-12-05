@@ -1111,8 +1111,14 @@ drawMainTitle() {
     this.interfaceRenderer.drawDrawingArea(gameState, positions);
     this.interfaceRenderer.drawScoreArea(gameState, positions);
 
-    // 只保留"让它游起来"按钮，隐藏其他两个按钮
-    this.drawCollaborativePaintingJumpArea(positions);
+    // 判断是否为房主，房主显示"让它游起来"按钮，伙伴不显示
+    const isRoomOwner = this.eventHandler.touchHandlers.team?.roomNumber === this.eventHandler.touchHandlers.team?.teamInput;
+    
+    if (isRoomOwner) {
+      // 房主侧：显示"让它游起来"按钮
+      this.drawCollaborativePaintingJumpArea(positions);
+    }
+    // 伙伴侧：不显示任何按钮
 
     // 绘制左上角返回按钮和房间号
     this.drawBackButton();
@@ -1120,7 +1126,6 @@ drawMainTitle() {
     
     // 只在队友未加入时显示等待伙伴提示（仅房主侧显示）
     const isTeammateJoined = this.eventHandler.touchHandlers.team?.isTeammateJoined || false;
-    const isRoomOwner = this.eventHandler.touchHandlers.team?.roomNumber === this.eventHandler.touchHandlers.team?.teamInput;
     
     console.log('房间状态检查:', {
       isTeammateJoined,

@@ -453,12 +453,21 @@ class TeamTouchHandler {
       return true;
     }
 
-    // 检查是否点击了"让它游起来"按钮
+    // 判断是否为房主，只有房主才能使用"让它游起来"按钮
+    const isRoomOwner = this.roomNumber === this.teamInput;
+    
+    // 检查是否点击了"让它游起来"按钮区域（只有房主才响应）
     const buttonArea = this.getCollaborativePaintingButtonArea();
     if (this.isPointInRect(x, y, buttonArea)) {
-      console.log('点击"让它游起来"按钮');
-      this.handleMakeItSwimInRoom();
-      return true;
+      if (isRoomOwner) {
+        console.log('房主点击"让它游起来"按钮');
+        this.handleMakeItSwimInRoom();
+        return true;
+      } else {
+        console.log('伙伴点击"让它游起来"按钮区域，但无操作');
+        // 伙伴侧点击按钮区域不执行任何操作
+        return true;
+      }
     }
 
     // 检查队友是否已加入，如果未加入则不允许绘画
