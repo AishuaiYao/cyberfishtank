@@ -4,11 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="共同绘画-双侧绘画正常">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/databaseManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/databaseManager.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/prompt.txt" beforeDir="false" afterPath="$PROJECT_DIR$/prompt.txt" afterDir="false" />
+    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="共同绘画-将房主的绘画同步到伙伴">
+      <change beforePath="$PROJECT_DIR$/collaborationManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/collaborationManager.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/touchHandlers/mainTouchHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/mainTouchHandler.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/touchHandlers/teamTouchHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/teamTouchHandler.js" afterDir="false" />
     </list>
@@ -75,14 +72,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00085" summary="代码结构优化-排行榜惯性-去掉刷新">
-      <option name="closed" value="true" />
-      <created>1764337172350</created>
-      <option name="number" value="00085" />
-      <option name="presentableId" value="LOCAL-00085" />
-      <option name="project" value="LOCAL" />
-      <updated>1764337172350</updated>
     </task>
     <task id="LOCAL-00086" summary="代码结构优化-排行榜惯性-顶部下拉">
       <option name="closed" value="true" />
@@ -468,11 +457,18 @@
       <option name="project" value="LOCAL" />
       <updated>1764948218444</updated>
     </task>
-    <option name="localTasksCounter" value="134" />
+    <task id="LOCAL-00134" summary="共同绘画-将房主的绘画同步到伙伴">
+      <option name="closed" value="true" />
+      <created>1764949801794</created>
+      <option name="number" value="00134" />
+      <option name="presentableId" value="LOCAL-00134" />
+      <option name="project" value="LOCAL" />
+      <updated>1764949801795</updated>
+    </task>
+    <option name="localTasksCounter" value="135" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="代码结构优化-排行榜预加载-去掉外显提示" />
     <MESSAGE value="代码结构优化-排行榜预加载优化" />
     <MESSAGE value="代码结构优化-排行榜预加载等待符号优化" />
     <MESSAGE value="代码结构优化-点赞点踩数据更新优化-去掉插入fishes" />
@@ -497,6 +493,7 @@
     <MESSAGE value="共同绘画-提示正常" />
     <MESSAGE value="共同绘画-房主侧绘画正常" />
     <MESSAGE value="共同绘画-双侧绘画正常" />
-    <option name="LAST_COMMIT_MESSAGE" value="共同绘画-双侧绘画正常" />
+    <MESSAGE value="共同绘画-将房主的绘画同步到伙伴" />
+    <option name="LAST_COMMIT_MESSAGE" value="共同绘画-将房主的绘画同步到伙伴" />
   </component>
 </project>
