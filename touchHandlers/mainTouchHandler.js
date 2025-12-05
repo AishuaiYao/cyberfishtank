@@ -6,6 +6,11 @@ class MainTouchHandler {
     this.positions = getAreaPositions();
     this.lastDrawTime = 0;
     this.scoringTimer = null;
+    
+    // 协作绘画相关
+    this.isCollaborativeMode = false;
+    this.collaborationManager = null;
+    this.lastOperationRecorded = 0;
   }
 
   // 处理主界面触摸开始
@@ -358,9 +363,252 @@ class MainTouchHandler {
     this.eventHandler.uiManager.drawGameUI(gameState);
   }
 
+  // 新增：初始化协作模式
+  initializeCollaboration(roomId, userRole) {
+    console.log(`初始化协作模式，房间ID: ${roomId}, 角色: ${userRole}`);
+    
+    this.isCollaborativeMode = true;
+    
+    // 创建协作管理器实例
+    const CollaborationManager = require('../collaborationManager.js');
+    this.collaborationManager = new CollaborationManager(this.eventHandler);
+    
+    // 初始化协作会话
+    this.collaborationManager.initialize(roomId, userRole)
+      .then(success => {
+        if (success) {
+          console.log(`协作模式初始化成功，角色: ${userRole}`);
+          
+          // 设置操作回调
+          this.collaborationManager.onDrawingOperationReceived = (path) => {
+            console.log('收到房主绘画操作，模拟绘制');
+          };
+          
+          this.collaborationManager.onTeammateOperationApplied = (data) => {
+            console.log('协作者操作已应用到画布');
+          };
+        } else {
+          console.error('协作模式初始化失败');
+          this.isCollaborativeMode = false;
+        }
+      });
+  }
+
+  // 新增：停止协作模式
+  stopCollaboration() {
+    console.log('停止协作模式');
+    
+    if (this.collaborationManager) {
+      this.collaborationManager.stop();
+      this.collaborationManager = null;
+    }
+    
+    this.isCollaborativeMode = false;
+  }
+
+  // 新增：记录协作操作（房主使用）
+  async recordCollaborativeOperation(operationType, trace = null) {
+    if (!this.isCollaborativeMode || !this.collaborationManager) {
+      return false;
+    }
+    
+    // 只有房主才能记录操作
+    const teamHandler = this.eventHandler.touchHandlers.team;
+    const isRoomOwner = teamHandler && teamHandler.roomNumber === teamHandler.teamInput;
+    
+    if (!isRoomOwner) {
+      console.log('非房主角色，不记录协作操作');
+      return false;
+    }
+    
+    // 优化路径数据
+    let optimizedTrace = trace;
+    if (trace && Array.isArray(trace) && operationType.includes('draw')) {
+      optimizedTrace = this.collaborationManager.optimizePathTransmission(trace);
+    }
+    
+    const gameState = this.eventHandler.gameState;
+    const success = await this.collaborationManager.recordOperation(
+      operationType,
+      optimizedTrace,
+      gameState.isEraser ? '#FFFFFF' : gameState.currentColor,
+      gameState.brushSize
+    );
+    
+    if (success) {
+      console.log(`协作操作已记录: ${operationType}`);
+      this.lastOperationRecorded = Date.now();
+    }
+    
+    return success;
+  }
+
+  // 修改：startDrawing 方法，添加协作操作记录
+  startDrawing(x, y) {
+    const gameState = this.eventHandler.gameState;
+    gameState.isDrawing = true;
+
+    // 应用翻转变换到起始坐标
+    const startX = gameState.isFlipped ? config.screenWidth - x : x;
+    const startY = y;
+
+    gameState.lastX = startX;
+    gameState.lastY = startY;
+    gameState.startNewPath(startX, startY);
+    
+    // 协作模式：记录绘制开始（只在房主模式下）
+    if (this.isCollaborativeMode && gameState.currentPath) {
+      this.recordCollaborativeOperation('draw_start', [gameState.currentPath.points[0]]);
+    }
+  }
+
+  // 修改：continueDrawing 方法，添加协作操作记录
+  continueDrawing(x, y) {
+    const ctx = this.eventHandler.canvas.getContext('2d');
+    const gameState = this.eventHandler.gameState;
+
+    // 应用翻转变换到坐标
+    const currentX = gameState.isFlipped ? config.screenWidth - x : x;
+    const currentY = y;
+
+    ctx.beginPath();
+    ctx.moveTo(gameState.lastX, gameState.lastY);
+    ctx.lineTo(currentX, currentY);
+    ctx.strokeStyle = gameState.isEraser ? '#FFFFFF' : gameState.currentColor;
+    ctx.lineWidth = gameState.brushSize;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+
+    gameState.addPointToPath(currentX, currentY);
+    gameState.lastX = currentX;
+    gameState.lastY = currentY;
+    
+    // 协作模式：记录绘制移动（节流，避免记录过多点）
+    if (this.isCollaborativeMode && gameState.currentPath && 
+        Date.now() - this.lastOperationRecorded > 100) {
+      this.recordCollaborativeOperation('draw_move', gameState.currentPath.points);
+    }
+  }
+
+  // 修改：finishDrawing 方法，添加协作操作记录
+  async finishDrawing() {
+    const gameState = this.eventHandler.gameState;
+    if (gameState.completePath()) {
+      console.log('绘画完成，将在空闲时触发AI评分');
+      
+      // 协作模式：记录绘制完成
+      if (this.isCollaborativeMode && gameState.drawingPaths.length > 0) {
+        const lastPath = gameState.drawingPaths[gameState.drawingPaths.length - 1];
+        await this.recordCollaborativeOperation('draw_complete', lastPath.points);
+      }
+    }
+    gameState.isDrawing = false;
+
+    // 立即更新UI
+    this.eventHandler.uiManager.drawGameUI(gameState);
+  }
+
+  // 修改：工具操作 - 修改：实现翻转功能，添加协作操作记录
+  handleToolAction(toolIndex) {
+    const gameState = this.eventHandler.gameState;
+
+    switch (toolIndex) {
+      case 0: // 橡皮 - 不取消评分
+        gameState.toggleEraser();
+        // 协作模式：记录橡皮切换
+        if (this.isCollaborativeMode) {
+          this.recordCollaborativeOperation('eraser_toggle');
+        }
+        break;
+      case 1: // 撤销 - 不取消评分
+        gameState.undo();
+        // 协作模式：记录撤销操作
+        if (this.isCollaborativeMode) {
+          this.recordCollaborativeOperation('undo');
+        }
+        break;
+      case 2: // 清空 - 需要取消评分，因为内容完全变了
+        gameState.clear();
+        this.cancelPendingScoring();
+        // 协作模式：记录清空操作
+        if (this.isCollaborativeMode) {
+          this.recordCollaborativeOperation('clear');
+        }
+        break;
+      case 3: // 翻转 - 实现翻转功能
+        this.handleFlipAction();
+        // 协作模式：记录翻转操作
+        if (this.isCollaborativeMode) {
+          this.recordCollaborativeOperation('flip');
+        }
+        break;
+    }
+    this.eventHandler.uiManager.drawGameUI(gameState);
+  }
+
+  // 修改：颜色按钮点击 - 修改：不取消评分，添加协作操作记录
+  handleColorButtonClick(x, y) {
+    const functionAreaY = this.positions.functionAreaY;
+    const colorButtonsY = functionAreaY + 10; // 调整为与UI一致
+    const totalWidth = config.colorButtonSize * 7 + 18 * 6;
+    const startX = (config.screenWidth - totalWidth) / 2;
+
+    for (let i = 0; i < 7; i++) {
+      const buttonX = startX + i * (config.colorButtonSize + 18);
+      const buttonY = colorButtonsY;
+
+      if (x >= buttonX && x <= buttonX + config.colorButtonSize &&
+          y >= buttonY && y <= buttonY + config.colorButtonSize) {
+
+        const previousColor = this.eventHandler.gameState.currentColor;
+        this.eventHandler.gameState.setColor(config.colors[i]);
+        
+        // 协作模式：记录颜色变更
+        if (this.isCollaborativeMode && previousColor !== config.colors[i]) {
+          this.recordCollaborativeOperation('color_change');
+        }
+        
+        this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // 修改：画笔大小点击 - 修改：不取消评分，添加协作操作记录
+  handleBrushSizeClick(x, y) {
+    const functionAreaY = this.positions.functionAreaY;
+    // 调整为与UI一致的位置
+    const sizeControlY = functionAreaY + config.partHeight - 5;
+    const sliderX = 100;
+    const sliderWidth = config.screenWidth - 140;
+
+    // 扩大触摸区域，便于操作
+    if (y >= sizeControlY - 15 && y <= sizeControlY + 15 &&
+        x >= sliderX - 10 && x <= sliderX + sliderWidth + 10) {
+
+      const progress = Math.max(0, Math.min(1, (x - sliderX) / sliderWidth));
+      const newSize = Math.round(progress * 19) + 1; // 1-20范围
+      const previousSize = this.eventHandler.gameState.brushSize;
+      
+      this.eventHandler.gameState.setBrushSize(newSize);
+      
+      // 协作模式：记录画笔大小变更
+      if (this.isCollaborativeMode && previousSize !== newSize) {
+        this.recordCollaborativeOperation('brush_size_change');
+      }
+      
+      this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
+      return true;
+    }
+    return false;
+  }
+
   // 新增：清理资源
   cleanup() {
     this.cancelPendingScoring();
+    this.stopCollaboration();
   }
 }
 

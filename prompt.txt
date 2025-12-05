@@ -135,7 +135,7 @@ dic = {
 
 
 
-
+"operationType","trace","color","lineWidth"
 
 
 

@@ -285,6 +285,11 @@ class TeamTouchHandler {
         // 标记房间数据已初始化
         this.isRoomDataInitialized = true;
         
+        // 初始化协作模式（房主角色）
+        if (this.eventHandler.touchHandlers.main) {
+          this.eventHandler.touchHandlers.main.initializeCollaboration(this.roomNumber, 'homeowner');
+        }
+        
         // 启动协作者数据监听
         await this.startTeamworkerWatch(this.roomNumber);
         
@@ -554,6 +559,11 @@ class TeamTouchHandler {
     // 停止所有协作者监听
     this.stopAllTeamworkerWatches();
     
+    // 停止协作模式
+    if (this.eventHandler.touchHandlers.main) {
+      this.eventHandler.touchHandlers.main.stopCollaboration();
+    }
+    
     // 重置队友加入状态
     this.isTeammateJoined = false;
     
@@ -717,6 +727,11 @@ class TeamTouchHandler {
         if (!isRoomOwner) {
           console.log('伙伴侧进入房间，立即设置isTeammateJoined为true');
           this.isTeammateJoined = true;
+          
+          // 初始化协作模式（协作者角色）
+          if (this.eventHandler.touchHandlers.main) {
+            this.eventHandler.touchHandlers.main.initializeCollaboration(this.roomNumber, 'teamworker');
+          }
         }
 
         // 切换到共同绘画界面

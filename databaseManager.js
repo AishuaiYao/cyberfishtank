@@ -756,6 +756,72 @@ async getRandomFishesByUserFallback(openid, count = 20) {
       return false;
     }
   }
+
+  // 新增：更新房间绘画数据（用于实时同步）
+  async updateDrawingData(roomId, role, updateData) {
+    if (!Utils.checkDatabaseInitialization(this, '更新房间绘画数据')) return false;
+
+    try {
+      // 先查询对应的记录
+      const result = await this.cloudDb.collection('drawing')
+        .where({
+          roomId: roomId,
+          role: role
+        })
+        .get();
+
+      if (result.data.length === 0) {
+        console.warn(`未找到房间 ${roomId} 角色 ${role} 的绘画数据`);
+        return false;
+      }
+
+      // 更新记录
+      const updateResult = await this.cloudDb.collection('drawing')
+        .doc(result.data[0]._id)
+        .update({
+          data: {
+            ...updateData,
+            lastUpdated: new Date()
+          }
+        });
+
+      if (updateResult.stats.updated > 0) {
+        console.log(`房间 ${roomId} 角色 ${role} 绘画数据更新成功`);
+        return true;
+      } else {
+        console.warn(`房间 ${roomId} 角色 ${role} 绘画数据更新失败`);
+        return false;
+      }
+    } catch (error) {
+      console.error('更新房间绘画数据失败:', error);
+      return false;
+    }
+  }
+
+  // 新增：获取房间绘画数据（用于同步）
+  async getDrawingData(roomId, role) {
+    if (!Utils.checkDatabaseInitialization(this, '获取房间绘画数据')) return null;
+
+    try {
+      const result = await this.cloudDb.collection('drawing')
+        .where({
+          roomId: roomId,
+          role: role
+        })
+        .get();
+
+      if (result.data.length > 0) {
+        console.log(`获取到房间 ${roomId} 角色 ${role} 的绘画数据`);
+        return result.data[0];
+      } else {
+        console.warn(`未找到房间 ${roomId} 角色 ${role} 的绘画数据`);
+        return null;
+      }
+    } catch (error) {
+      console.error('获取房间绘画数据失败:', error);
+      return null;
+    }
+  }
 }
 
 module.exports = DatabaseManager;
