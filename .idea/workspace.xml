@@ -69,14 +69,6 @@
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
     </task>
-    <task id="LOCAL-00080" summary="代码结构优化-排行榜滑动-使用score排序">
-      <option name="closed" value="true" />
-      <created>1764326083361</created>
-      <option name="number" value="00080" />
-      <option name="presentableId" value="LOCAL-00080" />
-      <option name="project" value="LOCAL" />
-      <updated>1764326083361</updated>
-    </task>
     <task id="LOCAL-00081" summary="代码结构优化-排行榜滑动-使用score排序1">
       <option name="closed" value="true" />
       <created>1764326985551</created>
@@ -461,7 +453,15 @@
       <option name="project" value="LOCAL" />
       <updated>1764945270462</updated>
     </task>
-    <option name="localTasksCounter" value="129" />
+    <task id="LOCAL-00129" summary="共同绘画-提示正常">
+      <option name="closed" value="true" />
+      <created>1764945522959</created>
+      <option name="number" value="00129" />
+      <option name="presentableId" value="LOCAL-00129" />
+      <option name="project" value="LOCAL" />
+      <updated>1764945522959</updated>
+    </task>
+    <option name="localTasksCounter" value="130" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
