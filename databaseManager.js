@@ -628,6 +628,112 @@ async getRandomFishesByUserFallback(openid, count = 20) {
       return Utils.handleDatabaseError(error, '创建房间初始绘画数据', false);
     }
   }
+
+  // 新增：监听房间协作者数据变化
+  async watchTeamworkerData(roomId, callback) {
+    if (!Utils.checkDatabaseInitialization(this, '监听协作者数据')) return null;
+
+    try {
+      console.log(`开始监听房间 ${roomId} 的协作者数据变化`);
+      
+      // 使用数据库的watch功能监听指定房间的teamworker数据变化
+      const watch = this.cloudDb.collection('drawing').where({
+        roomId: roomId,
+        role: 'teamworker'
+      }).watch({
+        onChange: (snapshot) => {
+          console.log('监听到协作者数据变化:', snapshot);
+          
+          // 处理不同类型的变更
+          if (snapshot.type === 'update' && snapshot.updated && snapshot.updated.length > 0) {
+            // 检查uid字段是否从空变为非空（表示有队友加入）
+            const updatedDoc = snapshot.updated[0];
+            if (updatedDoc && updatedDoc.uid && updatedDoc.uid !== '') {
+              console.log(`队友已加入房间 ${roomId}: ${updatedDoc.uid}`);
+              callback(true, updatedDoc.uid);
+            }
+          } else if (snapshot.type === 'init') {
+            // 初始化时检查当前状态
+            console.log('监听初始化完成，检查当前协作者状态');
+            this.checkCurrentTeamworkerStatus(roomId, callback);
+          }
+        },
+        onError: (error) => {
+          console.error('监听协作者数据出错:', error);
+          callback(false, null, error);
+        }
+      });
+
+      console.log('协作者数据监听已启动');
+      return watch;
+    } catch (error) {
+      console.error('启动协作者数据监听失败:', error);
+      callback(false, null, error);
+      return null;
+    }
+  }
+
+  // 新增：检查当前协作者状态
+  async checkCurrentTeamworkerStatus(roomId, callback) {
+    try {
+      const result = await this.cloudDb.collection('drawing')
+        .where({
+          roomId: roomId,
+          role: 'teamworker'
+        })
+        .get();
+
+      if (result.data.length > 0) {
+        const teamworkerData = result.data[0];
+        if (teamworkerData.uid && teamworkerData.uid !== '') {
+          console.log(`当前协作者状态: 已加入房间 ${roomId}: ${teamworkerData.uid}`);
+          callback(true, teamworkerData.uid);
+        } else {
+          console.log(`当前协作者状态: 未加入房间 ${roomId}`);
+        }
+      }
+    } catch (error) {
+      console.error('检查当前协作者状态失败:', error);
+    }
+  }
+
+  // 新增：停止监听协作者数据变化
+  async stopWatchingTeamworkerData(watchInstance) {
+    if (watchInstance && watchInstance.close) {
+      try {
+        await watchInstance.close();
+        console.log('协作者数据监听已停止');
+      } catch (error) {
+        console.error('停止协作者数据监听失败:', error);
+      }
+    }
+  }
+
+  // 新增：检查协作者是否已加入房间
+  async checkTeamworkerJoined(roomId) {
+    if (!Utils.checkDatabaseInitialization(this, '检查协作者状态')) return false;
+
+    try {
+      const result = await this.cloudDb.collection('drawing')
+        .where({
+          roomId: roomId,
+          role: 'teamworker'
+        })
+        .get();
+
+      if (result.data.length > 0) {
+        const teamworkerData = result.data[0];
+        const isJoined = teamworkerData.uid && teamworkerData.uid !== '';
+        console.log(`房间 ${roomId} 协作者状态: ${isJoined ? '已加入' : '未加入'}`);
+        return isJoined;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('检查协作者状态失败:', error);
+      return false;
+    }
+  }
 }
 
 module.exports = DatabaseManager;

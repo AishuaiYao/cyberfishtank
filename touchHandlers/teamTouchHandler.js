@@ -19,6 +19,11 @@ class TeamTouchHandler {
     
     // 房间数据初始化状态
     this.isRoomDataInitialized = false;
+    
+    // 队友监听相关状态
+    this.isTeammateJoined = false; // 队友是否已加入
+    this.teamworkerWatch = null; // 数据库监听实例
+    this.pollingInterval = null; // 轮询定时器
   }
 
   // 处理主界面触摸事件
@@ -279,6 +284,10 @@ class TeamTouchHandler {
         console.log('房间绘画数据创建成功');
         // 标记房间数据已初始化
         this.isRoomDataInitialized = true;
+        
+        // 启动协作者数据监听
+        await this.startTeamworkerWatch(this.roomNumber);
+        
         // 数据插入完成后，重新绘制界面以显示等待状态更新
         this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
       } catch (error) {
@@ -290,6 +299,123 @@ class TeamTouchHandler {
         });
       }
     }, 500); // 延迟500ms确保UI已完全更新
+  }
+
+  // 新增：启动协作者数据监听
+  async startTeamworkerWatch(roomId) {
+    try {
+      console.log(`启动房间 ${roomId} 的协作者监听`);
+      
+      // 启动数据库监听
+      this.teamworkerWatch = await this.eventHandler.databaseManager.watchTeamworkerData(
+        roomId,
+        (success, teammateOpenid, error) => {
+          if (success) {
+            console.log(`监听到队友 ${teammateOpenid} 加入房间`);
+            this.handleTeammateJoined();
+          } else if (error) {
+            console.error('监听协作者数据出错:', error);
+            // 监听出错，自动切换到轮询方案
+            console.warn('监听出错，切换到轮询方案');
+            this.startPollingTeamworkerStatus(roomId);
+          }
+        }
+      );
+      
+      if (!this.teamworkerWatch) {
+        console.warn('协作者监听启动失败，将使用轮询方案');
+        // 监听启动失败，使用备选方案：定时检查
+        this.startPollingTeamworkerStatus(roomId);
+      } else {
+        console.log('协作者监听启动成功');
+        // 监听启动成功后，立即检查一次当前状态
+        setTimeout(() => {
+          this.checkCurrentTeamworkerStatus(roomId);
+        }, 1000);
+      }
+      
+    } catch (error) {
+      console.error('启动协作者监听失败:', error);
+      // 启动失败，使用备选方案：定时检查
+      this.startPollingTeamworkerStatus(roomId);
+    }
+  }
+
+  // 新增：检查当前协作者状态
+  async checkCurrentTeamworkerStatus(roomId) {
+    try {
+      const isJoined = await this.eventHandler.databaseManager.checkTeamworkerJoined(roomId);
+      if (isJoined) {
+        console.log(`当前协作者状态: 已加入房间 ${roomId}`);
+        this.handleTeammateJoined();
+      } else {
+        console.log(`当前协作者状态: 未加入房间 ${roomId}`);
+      }
+    } catch (error) {
+      console.error('检查当前协作者状态失败:', error);
+    }
+  }
+
+  // 新增：启动轮询检查协作者状态（备选方案）
+  startPollingTeamworkerStatus(roomId) {
+    console.log(`启动房间 ${roomId} 的协作者状态轮询检查`);
+    
+    // 每5秒检查一次协作者状态
+    this.pollingInterval = setInterval(async () => {
+      try {
+        const isJoined = await this.eventHandler.databaseManager.checkTeamworkerJoined(roomId);
+        if (isJoined) {
+          console.log(`轮询检测到队友已加入房间 ${roomId}`);
+          this.handleTeammateJoined();
+          // 队友已加入，停止轮询
+          this.stopPollingTeamworkerStatus();
+        }
+      } catch (error) {
+        console.error('轮询检查协作者状态失败:', error);
+      }
+    }, 5000);
+  }
+
+  // 新增：停止轮询检查
+  stopPollingTeamworkerStatus() {
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
+      console.log('协作者状态轮询检查已停止');
+    }
+  }
+
+  // 新增：处理队友加入事件
+  handleTeammateJoined() {
+    console.log('队友已加入房间，更新UI状态');
+    
+    // 停止所有监听/轮询
+    this.stopAllTeamworkerWatches();
+    
+    // 更新房间状态，允许开始绘画
+    this.isTeammateJoined = true;
+    
+    // 显示提示信息
+    wx.showToast({
+      title: '队友已加入，可以开始绘画了！',
+      icon: 'success',
+      duration: 2000
+    });
+    
+    // 重新绘制界面，隐藏等待提示
+    this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
+  }
+
+  // 新增：停止所有协作者监听
+  async stopAllTeamworkerWatches() {
+    // 停止数据库监听
+    if (this.teamworkerWatch) {
+      await this.eventHandler.databaseManager.stopWatchingTeamworkerData(this.teamworkerWatch);
+      this.teamworkerWatch = null;
+    }
+    
+    // 停止轮询检查
+    this.stopPollingTeamworkerStatus();
   }
 
   // 处理共同绘画界面触摸
@@ -318,7 +444,18 @@ class TeamTouchHandler {
       return true;
     }
 
-    // 其他触摸事件交给主触摸处理器处理（绘画功能）
+    // 检查队友是否已加入，如果未加入则不允许绘画
+    if (!this.isTeammateJoined) {
+      console.log('队友未加入，不允许绘画');
+      wx.showToast({
+        title: '请等待队友加入后再开始绘画',
+        icon: 'none',
+        duration: 1500
+      });
+      return true;
+    }
+
+    // 队友已加入，其他触摸事件交给主触摸处理器处理（绘画功能）
     if (this.eventHandler.touchHandlers.main) {
       return this.eventHandler.touchHandlers.main.handleTouchStart(x, y);
     }
@@ -358,6 +495,14 @@ class TeamTouchHandler {
 
   // 退出共同绘画界面
   exitCollaborativePainting() {
+    console.log('退出共同绘画界面，停止所有监听');
+    
+    // 停止所有协作者监听
+    this.stopAllTeamworkerWatches();
+    
+    // 重置队友加入状态
+    this.isTeammateJoined = false;
+    
     this.currentTeamState = 'main';
     this.eventHandler.isCollaborativePaintingVisible = false;
     this.eventHandler.isTeamInterfaceVisible = false; // 直接返回到主界面，不显示组队界面
