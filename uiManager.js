@@ -1118,8 +1118,11 @@ drawMainTitle() {
     this.drawBackButton();
     this.drawRoomNumberHeader();
     
-    // 绘制等待伙伴进入的提示
-    this.drawWaitingPartnerMessage();
+    // 只在队友未加入时显示等待伙伴提示
+    const isTeammateJoined = this.eventHandler.touchHandlers.team?.isTeammateJoined || false;
+    if (!isTeammateJoined) {
+      this.drawWaitingPartnerMessage();
+    }
   }
 
   // 修改跳转区域绘制，只保留"让它游起来"按钮
@@ -1170,8 +1173,15 @@ drawMainTitle() {
   drawWaitingPartnerMessage() {
     const ctx = this.ctx;
     
-    // 获取房间数据初始化状态
+    // 获取房间数据初始化状态和队友加入状态
     const isInitialized = this.eventHandler.touchHandlers.team?.isRoomDataInitialized || false;
+    const isTeammateJoined = this.eventHandler.touchHandlers.team?.isTeammateJoined || false;
+    
+    // 如果队友已经加入，则不显示等待提示
+    if (isTeammateJoined) {
+      console.log('队友已加入，隐藏等待伙伴提示');
+      return;
+    }
     
     // 绘制半透明提示框
     const messageBoxWidth = 280;

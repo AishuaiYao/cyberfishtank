@@ -642,12 +642,13 @@ async getRandomFishesByUserFallback(openid, count = 20) {
         role: 'teamworker'
       }).watch({
         onChange: (snapshot) => {
-          console.log('监听到协作者数据变化:', snapshot);
+          console.log('监听到协作者数据变化:', snapshot, 'type:', snapshot.type);
           
           // 处理不同类型的变更
           if (snapshot.type === 'update' && snapshot.updated && snapshot.updated.length > 0) {
             // 检查uid字段是否从空变为非空（表示有队友加入）
             const updatedDoc = snapshot.updated[0];
+            console.log('更新文档检查:', updatedDoc);
             if (updatedDoc && updatedDoc.uid && updatedDoc.uid !== '') {
               console.log(`队友已加入房间 ${roomId}: ${updatedDoc.uid}`);
               callback(true, updatedDoc.uid);
@@ -656,6 +657,27 @@ async getRandomFishesByUserFallback(openid, count = 20) {
             // 初始化时检查当前状态
             console.log('监听初始化完成，检查当前协作者状态');
             this.checkCurrentTeamworkerStatus(roomId, callback);
+          } else if (!snapshot.type || snapshot.type === '') {
+            // 微信云开发可能type为空或undefined，检查docs中的最新数据
+            console.log('处理无类型变化，检查docs数据:', snapshot.docs);
+            if (snapshot.docs && snapshot.docs.length > 0) {
+              const latestDoc = snapshot.docs[0];
+              if (latestDoc.uid && latestDoc.uid !== '') {
+                console.log(`队友已加入房间 ${roomId}: ${latestDoc.uid}`);
+                callback(true, latestDoc.uid);
+              }
+            }
+          } else if (snapshot.docChanges && snapshot.docChanges.length > 0) {
+            // 处理文档变化事件（可能type为undefined的情况）
+            console.log('处理文档变化事件:', snapshot.docChanges);
+            const change = snapshot.docChanges[0];
+            if (change.dataType === 'update' && change.doc) {
+              const updatedDoc = change.doc;
+              if (updatedDoc.uid && updatedDoc.uid !== '') {
+                console.log(`队友已加入房间 ${roomId}: ${updatedDoc.uid}`);
+                callback(true, updatedDoc.uid);
+              }
+            }
           }
         },
         onError: (error) => {

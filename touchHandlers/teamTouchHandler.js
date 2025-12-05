@@ -360,7 +360,7 @@ class TeamTouchHandler {
   startPollingTeamworkerStatus(roomId) {
     console.log(`启动房间 ${roomId} 的协作者状态轮询检查`);
     
-    // 每5秒检查一次协作者状态
+    // 每3秒检查一次协作者状态（更频繁的检查）
     this.pollingInterval = setInterval(async () => {
       try {
         const isJoined = await this.eventHandler.databaseManager.checkTeamworkerJoined(roomId);
@@ -369,11 +369,13 @@ class TeamTouchHandler {
           this.handleTeammateJoined();
           // 队友已加入，停止轮询
           this.stopPollingTeamworkerStatus();
+        } else {
+          console.log(`轮询检查：房间 ${roomId} 协作者尚未加入`);
         }
       } catch (error) {
         console.error('轮询检查协作者状态失败:', error);
       }
-    }, 5000);
+    }, 3000); // 缩短为3秒检查一次
   }
 
   // 新增：停止轮询检查
@@ -387,6 +389,12 @@ class TeamTouchHandler {
 
   // 新增：处理队友加入事件
   handleTeammateJoined() {
+    // 防止重复处理队友加入事件
+    if (this.isTeammateJoined) {
+      console.log('队友已加入事件已处理过，跳过重复处理');
+      return;
+    }
+    
     console.log('队友已加入房间，更新UI状态');
     
     // 停止所有监听/轮询
@@ -403,7 +411,16 @@ class TeamTouchHandler {
     });
     
     // 重新绘制界面，隐藏等待提示
-    this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
+    // 确保使用正确的界面绘制方法
+    if (this.eventHandler.isCollaborativePaintingVisible) {
+      console.log('触发共同绘画界面重绘');
+      this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
+    } else {
+      console.warn('共同绘画界面不可见，无法触发重绘');
+    }
+    
+    // 记录日志以便调试
+    console.log('队友加入处理完成，isTeammateJoined:', this.isTeammateJoined);
   }
 
   // 新增：停止所有协作者监听
