@@ -489,6 +489,34 @@ class TeamTouchHandler {
     return false;
   }
 
+  // 处理触摸移动事件（在共同绘画界面中传递给主触摸处理器）
+  handleTouchMove(x, y) {
+    console.log('组队界面触摸移动:', x, y, '当前状态:', this.currentTeamState);
+
+    // 如果是共同绘画界面且队友已加入，将触摸移动事件传递给主触摸处理器
+    if (this.currentTeamState === 'collaborativePainting' && this.isTeammateJoined) {
+      if (this.eventHandler.touchHandlers.main) {
+        return this.eventHandler.touchHandlers.main.handleTouchMove(x, y);
+      }
+    }
+
+    return false;
+  }
+
+  // 处理触摸结束事件（在共同绘画界面中传递给主触摸处理器）
+  handleTouchEnd() {
+    console.log('组队界面触摸结束，当前状态:', this.currentTeamState);
+
+    // 如果是共同绘画界面且队友已加入，将触摸结束事件传递给主触摸处理器
+    if (this.currentTeamState === 'collaborativePainting' && this.isTeammateJoined) {
+      if (this.eventHandler.touchHandlers.main) {
+        return this.eventHandler.touchHandlers.main.handleTouchEnd();
+      }
+    }
+
+    return false;
+  }
+
   // 生成房间号（Unix时间戳后8位）
   generateRoomNumber() {
     const timestamp = Date.now().toString();

@@ -814,7 +814,8 @@ class EventHandler {
     } else if (this.isSwimInterfaceVisible) {
       // 游泳界面不需要处理移动
     } else if (this.isTeamInterfaceVisible || this.isCollaborativePaintingVisible) {
-      // 组队界面和共同绘画界面不需要处理移动
+      // 组队界面和共同绘画界面需要处理移动（传递给组队处理器）
+      this.touchHandlers.team.handleTouchMove(x, y);
     } else {
       // 主界面
       this.touchHandlers.main.handleTouchMove(x, y);
@@ -839,8 +840,15 @@ class EventHandler {
       }
 
       this.touchHandlers.ranking.handleTouchEnd();
-    } else if (this.isFishDetailVisible || this.isDialogVisible || this.isSwimInterfaceVisible || this.isTeamInterfaceVisible || this.isCollaborativePaintingVisible) {
-      // 这些界面不需要处理触摸结束
+    } else if (this.isFishDetailVisible) {
+      // 鱼详情界面不需要处理结束
+    } else if (this.isDialogVisible) {
+      // 对话框界面不需要处理结束
+    } else if (this.isSwimInterfaceVisible) {
+      // 游泳界面不需要处理结束
+    } else if (this.isTeamInterfaceVisible || this.isCollaborativePaintingVisible) {
+      // 组队界面和共同绘画界面需要处理结束（传递给组队处理器）
+      this.touchHandlers.team.handleTouchEnd();
     } else {
       // 主界面
       this.touchHandlers.main.handleTouchEnd();
