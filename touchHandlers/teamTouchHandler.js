@@ -28,7 +28,6 @@ class TeamTouchHandler {
     // 退出倒计时相关状态
     this.countdownValue = 0; // 倒计时值
     this.countdownTimer = null; // 倒计时定时器
-    this.exitCountdownModal = null; // 退出倒计时模态框
   }
 
   // 处理主界面触摸事件
@@ -636,33 +635,14 @@ class TeamTouchHandler {
   showExitCountdownDialog() {
     this.countdownValue = 3;
     
-    // 更新倒计时显示
-    this.updateCountdownDialog();
-    
-    // 显示模态对话框
-    this.exitCountdownModal = wx.showModal({
-      title: '房间已释放',
-      content: `返回主界面（${this.countdownValue}秒）`,
-      showCancel: false,
-      confirmText: '立即返回',
-      success: () => {
-        // 用户点击立即返回或倒计时结束
-        this.exitCollaborativePainting();
-      }
+    // 使用toast显示倒计时，不使用模态框
+    wx.showToast({
+      title: `房间已释放，${this.countdownValue}秒后返回主界面`,
+      icon: 'none',
+      duration: 1000
     });
-  }
-
-  // 新增：更新倒计时对话框内容
-  updateCountdownDialog() {
-    if (this.countdownValue > 0) {
-      // 由于微信小程序的showModal不支持动态更新内容，
-      // 我们使用wx.showToast来显示倒计时效果
-      wx.showToast({
-        title: `房间已释放，${this.countdownValue}秒后返回主界面`,
-        icon: 'none',
-        duration: 1000
-      });
-    }
+    
+    console.log(`开始倒计时: ${this.countdownValue}秒`);
   }
 
   // 新增：启动退出倒计时
@@ -675,18 +655,19 @@ class TeamTouchHandler {
         clearInterval(this.countdownTimer);
         this.countdownTimer = null;
         
-        // 关闭可能存在的模态框
-        if (this.exitCountdownModal) {
-          // 由于小程序API限制，无法直接关闭模态框
-          // 倒计时结束后直接退出
-          this.exitCountdownModal = null;
-        }
+        console.log('倒计时结束，自动退出共同绘画界面');
         
         // 退出共同绘画界面
         this.exitCollaborativePainting();
       } else {
         // 更新倒计时显示
-        this.updateCountdownDialog();
+        wx.showToast({
+          title: `房间已释放，${this.countdownValue}秒后返回主界面`,
+          icon: 'none',
+          duration: 1000
+        });
+        
+        console.log(`倒计时: ${this.countdownValue}秒`);
       }
     }, 1000);
   }
@@ -712,6 +693,7 @@ class TeamTouchHandler {
     const isRoomOwner = this.roomNumber === this.teamInput;
     if (!isRoomOwner) {
       // 伙伴退出：根据房间号删除数据库里所有相关数据
+      console.log('伙伴退出，删除房间数据');
       this.deleteRoomData();
     }
     
