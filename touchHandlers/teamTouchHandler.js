@@ -24,6 +24,11 @@ class TeamTouchHandler {
     this.isTeammateJoined = false; // 队友是否已加入
     this.teamworkerWatch = null; // 数据库监听实例
     this.pollingInterval = null; // 轮询定时器
+    
+    // 退出倒计时相关状态
+    this.countdownValue = 0; // 倒计时值
+    this.countdownTimer = null; // 倒计时定时器
+    this.exitCountdownModal = null; // 退出倒计时模态框
   }
 
   // 处理主界面触摸事件
@@ -453,8 +458,9 @@ class TeamTouchHandler {
     };
 
     if (this.isPointInRect(x, y, backButtonArea)) {
-      console.log('点击返回按钮，返回组队主界面');
-      this.exitCollaborativePainting();
+      console.log('点击返回按钮，处理退出流程');
+      // 新增：处理退出流程
+      this.handleExitCollaborativePainting();
       return true;
     }
 
@@ -552,9 +558,162 @@ class TeamTouchHandler {
     await this.eventHandler.handleMakeItSwim();
   }
 
+  // 新增：处理退出共同绘画界面流程
+  async handleExitCollaborativePainting() {
+    // 判断是否为房主
+    const isRoomOwner = this.roomNumber === this.teamInput;
+    
+    if (isRoomOwner) {
+      // 房主退出流程：弹出确认提示
+      this.showExitConfirmationDialog();
+    } else {
+      // 伙伴直接退出
+      this.exitCollaborativePainting();
+    }
+  }
+
+  // 新增：显示退出确认对话框（仅房主）
+  showExitConfirmationDialog() {
+    wx.showModal({
+      title: '退出确认',
+      content: '当前正在多人游戏，退出后房间将会释放',
+      confirmText: '确定退出',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) {
+          // 房主确认退出
+          this.homeownerExitRoom();
+        }
+        // 取消则不做任何操作
+      }
+    });
+  }
+
+  // 新增：房主退出房间
+  async homeownerExitRoom() {
+    console.log('房主退出房间，更新operationType为exit');
+    
+    try {
+      // 更新房主数据的operationType为exit
+      await this.eventHandler.databaseManager.updateDrawingData(
+        this.roomNumber, 
+        'homeowner', 
+        { operationType: 'exit' }
+      );
+      
+      // 返回主界面
+      this.exitCollaborativePainting();
+      
+      // 显示提示
+      wx.showToast({
+        title: '房间已释放',
+        icon: 'success',
+        duration: 2000
+      });
+      
+    } catch (error) {
+      console.error('更新房主退出状态失败:', error);
+      wx.showToast({
+        title: '退出失败，请重试',
+        icon: 'none',
+        duration: 2000
+      });
+    }
+  }
+
+  // 新增：伙伴检测房主退出并处理
+  async handleHomeownerExit() {
+    console.log('检测到房主退出，伙伴开始退出流程');
+    
+    // 显示提示并开始倒计时
+    this.showExitCountdownDialog();
+    
+    // 启动倒计时
+    this.startExitCountdown();
+  }
+
+  // 新增：显示退出倒计时对话框
+  showExitCountdownDialog() {
+    this.countdownValue = 3;
+    
+    // 更新倒计时显示
+    this.updateCountdownDialog();
+    
+    // 显示模态对话框
+    this.exitCountdownModal = wx.showModal({
+      title: '房间已释放',
+      content: `返回主界面（${this.countdownValue}秒）`,
+      showCancel: false,
+      confirmText: '立即返回',
+      success: () => {
+        // 用户点击立即返回或倒计时结束
+        this.exitCollaborativePainting();
+      }
+    });
+  }
+
+  // 新增：更新倒计时对话框内容
+  updateCountdownDialog() {
+    if (this.countdownValue > 0) {
+      // 由于微信小程序的showModal不支持动态更新内容，
+      // 我们使用wx.showToast来显示倒计时效果
+      wx.showToast({
+        title: `房间已释放，${this.countdownValue}秒后返回主界面`,
+        icon: 'none',
+        duration: 1000
+      });
+    }
+  }
+
+  // 新增：启动退出倒计时
+  startExitCountdown() {
+    this.countdownTimer = setInterval(() => {
+      this.countdownValue--;
+      
+      if (this.countdownValue <= 0) {
+        // 倒计时结束，自动退出
+        clearInterval(this.countdownTimer);
+        this.countdownTimer = null;
+        
+        // 关闭可能存在的模态框
+        if (this.exitCountdownModal) {
+          // 由于小程序API限制，无法直接关闭模态框
+          // 倒计时结束后直接退出
+          this.exitCountdownModal = null;
+        }
+        
+        // 退出共同绘画界面
+        this.exitCollaborativePainting();
+      } else {
+        // 更新倒计时显示
+        this.updateCountdownDialog();
+      }
+    }, 1000);
+  }
+
+  // 新增：停止退出倒计时
+  stopExitCountdown() {
+    if (this.countdownTimer) {
+      clearInterval(this.countdownTimer);
+      this.countdownTimer = null;
+    }
+    
+    this.countdownValue = 0;
+  }
+
   // 退出共同绘画界面
   exitCollaborativePainting() {
     console.log('退出共同绘画界面，停止所有监听');
+    
+    // 停止退出倒计时（如果有）
+    this.stopExitCountdown();
+    
+    // 判断是否为伙伴，如果是伙伴则删除房间数据
+    const isRoomOwner = this.roomNumber === this.teamInput;
+    if (!isRoomOwner) {
+      // 伙伴退出：根据房间号删除数据库里所有相关数据
+      this.deleteRoomData();
+    }
     
     // 停止所有协作者监听
     this.stopAllTeamworkerWatches();
@@ -571,6 +730,27 @@ class TeamTouchHandler {
     this.eventHandler.isCollaborativePaintingVisible = false;
     this.eventHandler.isTeamInterfaceVisible = false; // 直接返回到主界面，不显示组队界面
     this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
+  }
+
+  // 新增：删除房间数据
+  async deleteRoomData() {
+    if (!this.roomNumber) {
+      console.warn('房间号为空，无法删除房间数据');
+      return;
+    }
+    
+    try {
+      console.log(`删除房间 ${this.roomNumber} 的所有相关数据`);
+      const success = await this.eventHandler.databaseManager.deleteRoomData(this.roomNumber);
+      
+      if (success) {
+        console.log(`房间 ${this.roomNumber} 数据删除成功`);
+      } else {
+        console.warn(`房间 ${this.roomNumber} 数据删除失败`);
+      }
+    } catch (error) {
+      console.error('删除房间数据失败:', error);
+    }
   }
 
   // 显示团队界面输入对话框（模拟键盘输入）

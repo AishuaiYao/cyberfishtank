@@ -822,6 +822,40 @@ async getRandomFishesByUserFallback(openid, count = 20) {
       return null;
     }
   }
+
+  // 新增：删除房间所有相关数据
+  async deleteRoomData(roomId) {
+    if (!Utils.checkDatabaseInitialization(this, '删除房间数据')) return false;
+
+    try {
+      console.log(`开始删除房间 ${roomId} 的所有相关数据`);
+
+      // 查询所有与该房间相关的数据
+      const result = await this.cloudDb.collection('drawing')
+        .where({
+          roomId: roomId
+        })
+        .get();
+
+      if (result.data.length === 0) {
+        console.warn(`未找到房间 ${roomId} 的相关数据`);
+        return true; // 没有数据也算删除成功
+      }
+
+      // 删除所有相关数据
+      const deletePromises = result.data.map(async (doc) => {
+        return await this.cloudDb.collection('drawing').doc(doc._id).remove();
+      });
+
+      await Promise.all(deletePromises);
+
+      console.log(`成功删除房间 ${roomId} 的 ${result.data.length} 条相关数据`);
+      return true;
+    } catch (error) {
+      console.error('删除房间数据失败:', error);
+      return false;
+    }
+  }
 }
 
 module.exports = DatabaseManager;

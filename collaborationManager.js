@@ -578,6 +578,16 @@ class CollaborationManager {
       
       console.log(`收到房主操作更新，序列号: ${currentSequence}, 上次同步序列号: ${this.lastSyncedSequence}`);
       
+      // 首先检查operationType，特别是exit操作
+      if (homeownerData.operationType) {
+        this.handleOperationType(homeownerData);
+        
+        // 如果是exit操作，直接返回，不进行其他同步操作
+        if (homeownerData.operationType === 'exit') {
+          return;
+        }
+      }
+      
       // 处理绘画路径变化
       if (homeownerData.drawingPaths && Array.isArray(homeownerData.drawingPaths)) {
         const newPaths = homeownerData.drawingPaths;
@@ -641,11 +651,6 @@ class CollaborationManager {
         }
       }
       
-      // 处理其他操作类型（如清空）
-      if (homeownerData.operationType) {
-        this.handleOperationType(homeownerData);
-      }
-      
       // 处理颜色和画笔大小变化
       if (homeownerData.color || homeownerData.lineWidth) {
         this.handleDrawingSettingsChange(homeownerData);
@@ -702,6 +707,14 @@ class CollaborationManager {
         
       case 'undo':
         // 撤销操作已在绘画路径变化中处理
+        break;
+        
+      case 'exit':
+        // 房主退出操作 - 伙伴侧处理
+        console.log('检测到房主退出操作，触发伙伴退出流程');
+        if (this.eventHandler.touchHandlers && this.eventHandler.touchHandlers.team) {
+          this.eventHandler.touchHandlers.team.handleHomeownerExit();
+        }
         break;
         
       default:
