@@ -682,9 +682,9 @@ class TeamTouchHandler {
 
         wx.hideLoading();
         wx.showToast({
-          title: '成功进入房间',
+          title: '你已进入房间，可以开始绘画了！',
           icon: 'success',
-          duration: 1500
+          duration: 2000
         });
       } else {
         throw new Error('数据库更新失败');
