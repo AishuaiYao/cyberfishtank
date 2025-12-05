@@ -732,6 +732,14 @@ class TeamTouchHandler {
           if (this.eventHandler.touchHandlers.main) {
             this.eventHandler.touchHandlers.main.initializeCollaboration(this.roomNumber, 'teamworker');
           }
+          
+          // 确保协作管理器已正确初始化
+          if (this.eventHandler.touchHandlers.main && 
+              this.eventHandler.touchHandlers.main.collaborationManager) {
+            console.log('协作者角色初始化成功，可以开始同步操作到房主');
+          } else {
+            console.error('协作者角色初始化失败');
+          }
         }
 
         // 切换到共同绘画界面

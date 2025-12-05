@@ -75,6 +75,9 @@ class CollaborationManager {
         
         // 初始化时同步一次房主状态
         await this.syncHomeownerState();
+      } else if (this.userRole === 'homeowner') {
+        // 作为房主，监听协作者的操作
+        await this.startMonitoringTeamworkerOperations();
       }
       
       this.isInitialized = true;
@@ -169,6 +172,56 @@ class CollaborationManager {
     }
   }
 
+  // 协作者角色：记录操作并同步到数据库
+  async recordTeamworkerOperation(operationType, trace = null, color = null, lineWidth = null) {
+    if (!this.isInitialized || this.userRole !== 'teamworker') {
+      return false;
+    }
+    
+    try {
+      // 生成新的序列号
+      this.operationSequence += 1;
+      const sequence = this.operationSequence;
+      
+      // 应用网络延迟补偿
+      const networkCompensatedTimestamp = Date.now();
+      
+      // 构建操作对象
+      const operation = {
+        sequence: sequence,
+        timestamp: networkCompensatedTimestamp,
+        operationType: operationType,
+        trace: trace,
+        color: color,
+        lineWidth: lineWidth
+      };
+      
+      // 验证操作完整性
+      const validation = this.validateOperation(operation);
+      if (!validation.valid) {
+        console.error('协作者操作验证失败:', validation.reason);
+        return false;
+      }
+      
+      // 添加到待处理操作
+      this.pendingOperations.set(sequence, operation);
+      
+      console.log(`协作者记录操作 ${sequence}: ${operationType}`, {
+        traceLength: trace ? trace.length : 0,
+        color,
+        lineWidth
+      });
+      
+      // 使用智能批处理
+      this.smartBatchOperation(operation);
+      
+      return true;
+    } catch (error) {
+      console.error('协作者记录操作失败:', error);
+      return false;
+    }
+  }
+
   // 房主角色：记录操作并同步到数据库
   async recordOperation(operationType, trace = null, color = null, lineWidth = null) {
     if (!this.isInitialized || this.userRole !== 'homeowner') {
@@ -236,31 +289,34 @@ class CollaborationManager {
         this.batchTimer = null;
       }
       
+      // 根据用户角色确定要更新的记录
+      const role = this.userRole; // 'homeowner' 或 'teamworker'
+      
       // 获取当前数据库记录并检测冲突
       const result = await this.databaseManager.cloudDb
         .collection('drawing')
         .where({
           roomId: this.roomId,
-          role: 'homeowner'
+          role: role
         })
         .get();
       
       if (result.data.length === 0) {
-        console.error('未找到房主绘画记录');
+        console.error(`未找到${role}绘画记录`);
         // 出错时，将操作重新放回缓冲区
         this.operationBuffer.unshift(...operations);
         return;
       }
       
-      const homeownerRecord = result.data[0];
-      const dbSequence = homeownerRecord.sequence || 0;
+      const record = result.data[0];
+      const dbSequence = record.sequence || 0;
       
       // 检测序列号冲突
       const conflictDetected = this.detectSequenceConflict(operations, dbSequence);
       
       if (conflictDetected) {
         console.warn('检测到序列号冲突，执行冲突解决');
-        await this.resolveSequenceConflict(homeownerRecord, operations);
+        await this.resolveSequenceConflict(record, operations);
         return;
       }
       
@@ -284,7 +340,7 @@ class CollaborationManager {
       // 执行数据库更新
       const updateResult = await this.databaseManager.cloudDb
         .collection('drawing')
-        .doc(homeownerRecord._id)
+        .doc(record._id)
         .update({
           data: updateData
         });
@@ -297,7 +353,7 @@ class CollaborationManager {
           this.lastSyncedSequence = Math.max(this.lastSyncedSequence, op.sequence);
         });
         
-        console.log(`成功同步 ${operations.length} 个操作到数据库，序列号: ${latestOperation.sequence}`);
+        console.log(`成功同步 ${operations.length} 个${role}操作到数据库，序列号: ${latestOperation.sequence}`);
       } else {
         // 更新失败，将操作重新放回缓冲区
         console.warn('数据库更新失败，操作将重新排队');
@@ -527,15 +583,18 @@ class CollaborationManager {
         const newPaths = homeownerData.drawingPaths;
         const currentPaths = this.gameState.drawingPaths || [];
         
+        // 解决冲突：合并路径，优先保留最新的操作
+        const mergedPaths = this.resolvePathConflicts(currentPaths, newPaths, 'homeowner');
+        
         // 如果路径数量差异很大，执行完整重绘
         if (Math.abs(newPaths.length - currentPaths.length) > 5) {
           console.log(`路径数量差异较大，执行完整重绘: ${currentPaths.length} -> ${newPaths.length}`);
           
           // 更新本地绘画路径
-          this.gameState.drawingPaths = [...newPaths];
+          this.gameState.drawingPaths = [...mergedPaths];
           
           // 完整重绘画布
-          this.redrawEntireCanvas(newPaths);
+          this.redrawEntireCanvas(mergedPaths);
           
           // 触发重绘界面
           if (this.eventHandler.uiManager) {
@@ -568,7 +627,7 @@ class CollaborationManager {
           }
           
           // 更新本地绘画路径
-          this.gameState.drawingPaths = [...newPaths];
+          this.gameState.drawingPaths = [...mergedPaths];
           
           // 触发重绘界面
           if (this.eventHandler.uiManager) {
@@ -1020,6 +1079,307 @@ class CollaborationManager {
     });
   }
 
+  // 房主角色：开始监听协作者操作
+  async startMonitoringTeamworkerOperations() {
+    if (this.isMonitoring) {
+      return;
+    }
+    
+    try {
+      console.log(`开始监听房间 ${this.roomId} 的协作者操作`);
+      
+      this.teamworkerWatchInstance = await this.databaseManager.cloudDb
+        .collection('drawing')
+        .where({
+          roomId: this.roomId,
+          role: 'teamworker'
+        })
+        .watch({
+          onChange: (snapshot) => {
+            this.handleTeamworkerOperationChange(snapshot);
+          },
+          onError: (error) => {
+            console.error('监听协作者操作出错:', error);
+            
+            // 出错时，使用轮询作为备选方案
+            setTimeout(() => {
+              this.startPollingTeamworkerOperations();
+            }, 1000);
+          }
+        });
+      
+      this.isMonitoring = true;
+      console.log('协作者操作监听已启动');
+    } catch (error) {
+      console.error('启动协作者操作监听失败:', error);
+      
+      // 使用轮询作为备选方案
+      this.startPollingTeamworkerOperations();
+    }
+  }
+
+  // 备选方案：轮询协作者操作
+  startPollingTeamworkerOperations() {
+    if (this.isMonitoring) {
+      return;
+    }
+    
+    this.isMonitoring = true;
+    console.log('使用轮询方案监听协作者操作');
+    
+    // 每500ms检查一次
+    const teamworkerPollingInterval = setInterval(async () => {
+      try {
+        const result = await this.databaseManager.cloudDb
+          .collection('drawing')
+          .where({
+            roomId: this.roomId,
+            role: 'teamworker'
+          })
+          .get();
+        
+        if (result.data.length > 0) {
+          const teamworkerData = result.data[0];
+          const currentSequence = teamworkerData.sequence || 0;
+          
+          // 如果有新操作
+          if (currentSequence > this.lastSyncedSequence) {
+            this.handleTeamworkerData(teamworkerData);
+          }
+        }
+      } catch (error) {
+        console.error('轮询协作者操作出错:', error);
+      }
+    }, 500);
+    
+    // 保存轮询ID，以便停止
+    this.teamworkerPollingInterval = teamworkerPollingInterval;
+  }
+
+  // 处理协作者操作变化
+  handleTeamworkerOperationChange(snapshot) {
+    try {
+      if (snapshot.type === 'update' && snapshot.updated && snapshot.updated.length > 0) {
+        const teamworkerData = snapshot.updated[0];
+        this.handleTeamworkerData(teamworkerData);
+      } else if (snapshot.docs && snapshot.docs.length > 0) {
+        const teamworkerData = snapshot.docs[0];
+        this.handleTeamworkerData(teamworkerData);
+      }
+    } catch (error) {
+      console.error('处理协作者操作变化失败:', error);
+    }
+  }
+
+  // 处理协作者数据更新
+  handleTeamworkerData(teamworkerData) {
+    try {
+      const currentSequence = teamworkerData.sequence || 0;
+      
+      console.log(`收到协作者操作更新，序列号: ${currentSequence}, 上次同步序列号: ${this.lastSyncedSequence}`);
+      
+      // 处理绘画路径变化
+      if (teamworkerData.drawingPaths && Array.isArray(teamworkerData.drawingPaths)) {
+        const newPaths = teamworkerData.drawingPaths;
+        const currentPaths = this.gameState.drawingPaths || [];
+        
+        // 解决冲突：合并路径，优先保留最新的操作
+        const mergedPaths = this.resolvePathConflicts(currentPaths, newPaths, 'teamworker');
+        
+        // 如果路径数量差异很大，执行完整重绘
+        if (Math.abs(newPaths.length - currentPaths.length) > 5) {
+          console.log(`路径数量差异较大，执行完整重绘: ${currentPaths.length} -> ${newPaths.length}`);
+          
+          // 更新本地绘画路径
+          this.gameState.drawingPaths = [...mergedPaths];
+          
+          // 完整重绘画布
+          this.redrawEntireCanvas(mergedPaths);
+          
+          // 触发重绘界面
+          if (this.eventHandler.uiManager) {
+            this.eventHandler.uiManager.drawGameUI(this.gameState);
+          }
+          
+          // 回调通知
+          if (this.onTeammateOperationApplied) {
+            this.onTeammateOperationApplied(teamworkerData);
+          }
+        } 
+        // 增量更新
+        else if (newPaths.length !== currentPaths.length) {
+          console.log(`检测到绘画路径变化，执行增量更新: ${currentPaths.length} -> ${newPaths.length}`);
+          
+          // 找出新增的路径
+          let startIndex = currentPaths.length;
+          
+          // 如果新路径数量少于当前路径，可能是重置操作，需要完全替换
+          if (newPaths.length < currentPaths.length) {
+            startIndex = 0;
+          }
+          
+          // 应用新路径
+          for (let i = startIndex; i < newPaths.length; i++) {
+            const newPath = newPaths[i];
+            
+            // 模拟绘制新路径（重放协作者的操作）
+            this.simulateDrawingOperation(newPath);
+          }
+          
+          // 更新本地绘画路径
+          this.gameState.drawingPaths = [...mergedPaths];
+          
+          // 触发重绘界面
+          if (this.eventHandler.uiManager) {
+            this.eventHandler.uiManager.drawGameUI(this.gameState);
+          }
+          
+          // 回调通知
+          if (this.onTeammateOperationApplied) {
+            this.onTeammateOperationApplied(teamworkerData);
+          }
+        }
+      }
+      
+      // 处理其他操作类型（如清空）
+      if (teamworkerData.operationType) {
+        this.handleTeamworkerOperationType(teamworkerData);
+      }
+      
+      // 处理颜色和画笔大小变化
+      if (teamworkerData.color || teamworkerData.lineWidth) {
+        this.handleDrawingSettingsChange(teamworkerData);
+      }
+      
+      // 更新同步序列号
+      this.lastSyncedSequence = Math.max(this.lastSyncedSequence, currentSequence);
+      
+    } catch (error) {
+      console.error('处理协作者数据失败:', error);
+    }
+  }
+
+  // 解决路径冲突：合并房主和协作者的绘画路径
+  resolvePathConflicts(currentPaths, newPaths, sourceRole) {
+    try {
+      console.log(`解决路径冲突，源角色: ${sourceRole}`);
+      
+      // 如果当前没有路径，直接返回新路径
+      if (!currentPaths || currentPaths.length === 0) {
+        return [...newPaths];
+      }
+      
+      // 如果没有新路径，保持当前路径不变
+      if (!newPaths || newPaths.length === 0) {
+        return [...currentPaths];
+      }
+      
+      // 获取当前时间戳
+      const now = Date.now();
+      
+      // 创建路径映射，以便快速查找
+      const pathMap = new Map();
+      
+      // 添加当前路径到映射
+      currentPaths.forEach((path, index) => {
+        // 为每个路径创建唯一标识（基于颜色、大小和时间戳）
+        const pathId = this.generatePathId(path);
+        pathMap.set(pathId, {
+          path: path,
+          index: index,
+          source: 'current',
+          timestamp: path.timestamp || now
+        });
+      });
+      
+      // 检查新路径，添加或更新映射
+      newPaths.forEach((path, index) => {
+        const pathId = this.generatePathId(path);
+        const newPathTimestamp = path.timestamp || now;
+        
+        if (pathMap.has(pathId)) {
+          // 路径已存在，比较时间戳
+          const existingPath = pathMap.get(pathId);
+          
+          // 如果新路径的时间戳更新，则替换
+          if (newPathTimestamp > existingPath.timestamp) {
+            pathMap.set(pathId, {
+              path: path,
+              index: index,
+              source: sourceRole,
+              timestamp: newPathTimestamp
+            });
+          }
+        } else {
+          // 新路径，添加到映射
+          pathMap.set(pathId, {
+            path: path,
+            index: index,
+            source: sourceRole,
+            timestamp: newPathTimestamp
+          });
+        }
+      });
+      
+      // 将映射转换回路径数组，按时间戳排序
+      const mergedPaths = Array.from(pathMap.values())
+        .sort((a, b) => a.timestamp - b.timestamp)
+        .map(item => item.path);
+      
+      console.log(`路径冲突解决完成，合并了 ${mergedPaths.length} 条路径`);
+      
+      return mergedPaths;
+    } catch (error) {
+      console.error('解决路径冲突失败:', error);
+      // 出错时返回新路径，确保数据不丢失
+      return [...newPaths];
+    }
+  }
+
+  // 生成路径唯一标识
+  generatePathId(path) {
+    if (!path || !path.points || path.points.length === 0) {
+      return 'empty-path';
+    }
+    
+    // 使用路径的第一点坐标、颜色和大小生成唯一标识
+    const firstPoint = path.points[0];
+    const color = path.color || '#000000';
+    const size = path.size || 2;
+    
+    // 生成简单的哈希
+    return `${firstPoint.x}_${firstPoint.y}_${color}_${size}`;
+  }
+
+  // 处理协作者操作类型
+  handleTeamworkerOperationType(teamworkerData) {
+    const operationType = teamworkerData.operationType;
+    
+    console.log(`处理协作者操作类型: ${operationType}`);
+    
+    switch (operationType) {
+      case 'clear':
+        // 清空操作
+        if (this.gameState.drawingPaths.length > 0) {
+          this.gameState.clear();
+          
+          // 触发重绘界面
+          if (this.eventHandler.uiManager) {
+            this.eventHandler.uiManager.drawGameUI(this.gameState);
+          }
+        }
+        break;
+        
+      case 'undo':
+        // 撤销操作已在绘画路径变化中处理
+        break;
+        
+      default:
+        // 绘制操作已在绘画路径变化中处理
+        break;
+    }
+  }
+
   // 停止网络质量监测
   stopNetworkQualityMonitoring() {
     if (this.networkQualityTimer) {
@@ -1040,16 +1400,27 @@ class CollaborationManager {
       await this.flushOperationBatch();
     }
     
-    // 停止监听
+    // 停止房主操作监听
     if (this.watchInstance && this.watchInstance.close) {
       await this.watchInstance.close();
       this.watchInstance = null;
+    }
+    
+    // 停止协作者操作监听
+    if (this.teamworkerWatchInstance && this.teamworkerWatchInstance.close) {
+      await this.teamworkerWatchInstance.close();
+      this.teamworkerWatchInstance = null;
     }
     
     // 停止轮询
     if (this.pollingInterval) {
       clearInterval(this.pollingInterval);
       this.pollingInterval = null;
+    }
+    
+    if (this.teamworkerPollingInterval) {
+      clearInterval(this.teamworkerPollingInterval);
+      this.teamworkerPollingInterval = null;
     }
     
     // 清除批处理定时器

@@ -406,20 +406,19 @@ class MainTouchHandler {
     this.isCollaborativeMode = false;
   }
 
-  // 新增：记录协作操作（房主使用）
+  // 新增：记录协作操作（房主和协作者都可以使用）
   async recordCollaborativeOperation(operationType, trace = null) {
     if (!this.isCollaborativeMode || !this.collaborationManager) {
       return false;
     }
     
-    // 只有房主才能记录操作
+    // 判断用户角色
     const teamHandler = this.eventHandler.touchHandlers.team;
     const isRoomOwner = teamHandler && teamHandler.roomNumber === teamHandler.teamInput;
     
-    if (!isRoomOwner) {
-      console.log('非房主角色，不记录协作操作');
-      return false;
-    }
+    // 根据角色调用不同的记录方法
+    let success = false;
+    const gameState = this.eventHandler.gameState;
     
     // 优化路径数据
     let optimizedTrace = trace;
@@ -427,16 +426,33 @@ class MainTouchHandler {
       optimizedTrace = this.collaborationManager.optimizePathTransmission(trace);
     }
     
-    const gameState = this.eventHandler.gameState;
-    const success = await this.collaborationManager.recordOperation(
-      operationType,
-      optimizedTrace,
-      gameState.isEraser ? '#FFFFFF' : gameState.currentColor,
-      gameState.brushSize
-    );
+    if (isRoomOwner) {
+      // 房主使用recordOperation方法
+      success = await this.collaborationManager.recordOperation(
+        operationType,
+        optimizedTrace,
+        gameState.isEraser ? '#FFFFFF' : gameState.currentColor,
+        gameState.brushSize
+      );
+      
+      if (success) {
+        console.log(`房主协作操作已记录: ${operationType}`);
+      }
+    } else {
+      // 协作者使用recordTeamworkerOperation方法
+      success = await this.collaborationManager.recordTeamworkerOperation(
+        operationType,
+        optimizedTrace,
+        gameState.isEraser ? '#FFFFFF' : gameState.currentColor,
+        gameState.brushSize
+      );
+      
+      if (success) {
+        console.log(`协作者协作操作已记录: ${operationType}`);
+      }
+    }
     
     if (success) {
-      console.log(`协作操作已记录: ${operationType}`);
       this.lastOperationRecorded = Date.now();
     }
     
@@ -456,7 +472,7 @@ class MainTouchHandler {
     gameState.lastY = startY;
     gameState.startNewPath(startX, startY);
     
-    // 协作模式：记录绘制开始（只在房主模式下）
+    // 协作模式：记录绘制开始（房主和协作者都记录）
     if (this.isCollaborativeMode && gameState.currentPath) {
       this.recordCollaborativeOperation('draw_start', [gameState.currentPath.points[0]]);
     }
@@ -497,7 +513,7 @@ class MainTouchHandler {
     if (gameState.completePath()) {
       console.log('绘画完成，将在空闲时触发AI评分');
       
-      // 协作模式：记录绘制完成
+      // 协作模式：记录绘制完成（房主和协作者都记录）
       if (this.isCollaborativeMode && gameState.drawingPaths.length > 0) {
         const lastPath = gameState.drawingPaths[gameState.drawingPaths.length - 1];
         await this.recordCollaborativeOperation('draw_complete', lastPath.points);
