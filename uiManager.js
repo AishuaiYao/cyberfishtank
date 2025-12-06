@@ -109,6 +109,24 @@ class UIManager {
     // 绘制返回按钮
     Utils.drawModernButton(ctx, 20, 50, 50, 30, '返回', false, true);
 
+    // 绘制排序按钮：最佳榜、最丑榜、最新榜
+    const buttonWidth = 70;
+    const buttonHeight = 30;
+    const buttonSpacing = 15;
+    const startX = 20 + 50 + buttonSpacing; // 返回按钮右边开始
+
+    // 最佳榜按钮
+    const isBestRankActive = this.eventHandler.rankingSortType === 'best';
+    Utils.drawModernButton(ctx, startX, 50, buttonWidth, buttonHeight, '最佳榜', isBestRankActive, false);
+
+    // 最丑榜按钮
+    const isWorstRankActive = this.eventHandler.rankingSortType === 'worst';
+    Utils.drawModernButton(ctx, startX + buttonWidth + buttonSpacing, 50, buttonWidth, buttonHeight, '最丑榜', isWorstRankActive, false);
+
+    // 最新榜按钮
+    const isLatestRankActive = this.eventHandler.rankingSortType === 'latest';
+    Utils.drawModernButton(ctx, startX + (buttonWidth + buttonSpacing) * 2, 50, buttonWidth, buttonHeight, '最新榜', isLatestRankActive, false);
+
     // 检查加载状态
     if (this.eventHandler.isLoadingRanking) {
       this.drawLoadingMessage('等会儿哈，马上！');

@@ -80,6 +80,11 @@ class RankingTouchHandler {
       return;
     }
 
+    // 处理排序按钮点击
+    if (this.handleSortButtonsClick(x, y)) {
+      return;
+    }
+
     // 处理卡片点击和点赞点踩按钮
     if (this.handleCardButtonsClick(x, y)) {
       return;
@@ -87,6 +92,42 @@ class RankingTouchHandler {
 
     // 处理卡片主体点击（查看详情）
     this.handleCardClick(x, y);
+  }
+
+  // 处理排序按钮点击
+  handleSortButtonsClick(x, y) {
+    // 防止快速连续点击
+    if (!this.eventHandler.canPerformInteraction()) {
+      return false;
+    }
+
+    const buttonWidth = 70;
+    const buttonHeight = 30;
+    const buttonSpacing = 15;
+    const startX = 20 + 50 + buttonSpacing; // 返回按钮右边开始
+
+    // 检查最佳榜按钮点击
+    if (x >= startX && x <= startX + buttonWidth &&
+        y >= 50 && y <= 50 + buttonHeight) {
+      this.eventHandler.setRankingSortType('best');
+      return true;
+    }
+
+    // 检查最丑榜按钮点击
+    if (x >= startX + buttonWidth + buttonSpacing && x <= startX + buttonWidth + buttonSpacing + buttonWidth &&
+        y >= 50 && y <= 50 + buttonHeight) {
+      this.eventHandler.setRankingSortType('worst');
+      return true;
+    }
+
+    // 检查最新榜按钮点击
+    if (x >= startX + (buttonWidth + buttonSpacing) * 2 && x <= startX + (buttonWidth + buttonSpacing) * 2 + buttonWidth &&
+        y >= 50 && y <= 50 + buttonHeight) {
+      this.eventHandler.setRankingSortType('latest');
+      return true;
+    }
+
+    return false;
   }
 
   // 处理卡片上的点赞点踩按钮点击

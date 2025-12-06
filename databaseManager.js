@@ -221,19 +221,34 @@ class DatabaseManager {
     }
   }
 
-  async getRankingData(limit = 100) {
+  async getRankingData(limit = 100, sortType = 'latest') {
     if (!Utils.checkDatabaseInitialization(this, '获取排行榜数据')) return [];
 
     try {
-      console.log(`开始获取排行榜数据，目标: ${limit} 条`);
+      console.log(`开始获取排行榜数据，目标: ${limit} 条，排序类型: ${sortType}`);
 
       let allData = [];
       let skip = 0;
       const batchSize = 20; // 每次获取20条
 
       while (allData.length < limit) {
-        const result = await this.cloudDb.collection('fishes')
-          .orderBy('createTimestamp', 'desc')
+        let query = this.cloudDb.collection('fishes');
+        
+        // 根据排序类型设置不同的排序字段
+        switch (sortType) {
+          case 'best': // 点赞最多（最佳榜）
+            query = query.orderBy('star', 'desc').orderBy('createTimestamp', 'desc');
+            break;
+          case 'worst': // 点踩最多（最丑榜）
+            query = query.orderBy('unstar', 'desc').orderBy('createTimestamp', 'desc');
+            break;
+          case 'latest': // 创作时间最新（最新榜）
+          default:
+            query = query.orderBy('createTimestamp', 'desc');
+            break;
+        }
+
+        const result = await query
           .skip(skip)
           .limit(batchSize)
           .get();
@@ -250,7 +265,7 @@ class DatabaseManager {
       const finalData = allData.slice(0, limit);
       const validRankingData = finalData.filter(fish => fish.base64 && fish.base64.length > 0);
 
-      console.log(`最终获取 ${validRankingData.length} 条有效排行榜数据`);
+      console.log(`最终获取 ${validRankingData.length} 条有效排行榜数据，排序类型: ${sortType}`);
       return validRankingData;
     } catch (error) {
       return Utils.handleDatabaseError(error, '获取排行榜数据', []);

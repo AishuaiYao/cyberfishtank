@@ -103,6 +103,14 @@ class EventHandler {
       }
     };
 
+    // 新增：排行榜排序类型状态
+    this.rankingSortType = 'best'; // 默认显示最佳榜（点赞最多）
+    this.rankingSortTypes = {
+      best: 'best',    // 点赞最多
+      worst: 'worst',  // 点踩最多
+      latest: 'latest' // 创作时间最新
+    };
+
     // 新增：本地交互状态缓存 - 用于即时UI更新
     this.localInteractionCache = new Map(); // key: fishName, value: {action, timestamp, originalState}
 
@@ -1577,9 +1585,32 @@ async refreshFishTank() {
     console.log('排行榜界面已隐藏');
   }
 
-  // 获取排行榜数据（带图片）- 统一按数据库的score字段排序
+  // 设置排行榜排序类型
+  setRankingSortType(sortType) {
+    if (!this.rankingSortTypes[sortType]) {
+      console.warn('无效的排序类型:', sortType);
+      return;
+    }
+
+    if (this.rankingSortType === sortType) {
+      console.log('排序类型未改变:', sortType);
+      return;
+    }
+
+    this.rankingSortType = sortType;
+    console.log('排行榜排序类型已设置为:', sortType);
+
+    // 重新加载排行榜数据
+    if (this.isRankingInterfaceVisible) {
+      // 重置排行榜数据并重新加载界面
+      this.rankingData = null;
+      this.showRankingInterface();
+    }
+  }
+
+  // 获取排行榜数据（带图片）- 根据排序类型获取数据
   async getRankingDataWithImages() {
-    const rankingData = await this.databaseManager.getRankingData(100);
+    const rankingData = await this.databaseManager.getRankingData(100, this.rankingSortType);
     const rankingFishes = [];
 
     for (const fishData of rankingData) {
@@ -1594,8 +1625,22 @@ async refreshFishTank() {
       }
     }
 
-    // 移除前端重新排序逻辑，直接使用数据库按score字段排序的结果
-    console.log(`成功创建 ${rankingFishes.length} 条排行榜鱼的图像，已按数据库score字段降序排列`);
+    // 根据排序类型显示不同的日志信息
+    let sortTypeText = '';
+    switch (this.rankingSortType) {
+      case 'best':
+        sortTypeText = '点赞最多（最佳榜）';
+        break;
+      case 'worst':
+        sortTypeText = '点踩最多（最丑榜）';
+        break;
+      case 'latest':
+      default:
+        sortTypeText = '创作时间最新（最新榜）';
+        break;
+    }
+
+    console.log(`成功创建 ${rankingFishes.length} 条排行榜鱼的图像，排序类型: ${sortTypeText}`);
     return rankingFishes;
   }
 
