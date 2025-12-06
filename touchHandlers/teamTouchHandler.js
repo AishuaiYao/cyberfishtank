@@ -1008,92 +1008,51 @@ class TeamTouchHandler {
     });
 
     try {
-      console.log('开始查询数据库，房间号:', this.searchRoomInput, '用户openid:', userOpenid);
+      console.log('调用joinRoom云函数，房间号:', this.searchRoomInput, '用户openid:', userOpenid);
 
-      // 查询数据库，查找符合条件的数据
-      const result = await this.eventHandler.databaseManager.cloudDb
-        .collection('drawing')
-        .where({
+      // 调用云函数处理房间加入逻辑
+      const result = await wx.cloud.callFunction({
+        name: 'joinRoom',
+        data: {
           roomId: this.searchRoomInput,
-          role: 'teamworker'
-        })
-        .get();
+          userOpenid: userOpenid
+        }
+      });
 
-      console.log('数据库查询结果:', result);
+      console.log('云函数调用结果:', result);
 
-      if (result.data.length === 0) {
-        // 没有找到对应的房间数据
-        console.log('没有找到对应的房间数据');
-        wx.hideLoading();
-        wx.showToast({
-          title: '房间不存在',
-          icon: 'none',
-          duration: 2000
-        });
-        return;
-      }
-
-      // 找到数据，更新uid为当前用户的openid
-      const drawingData = result.data[0];
-      console.log('找到房间数据:', drawingData);
-
-      // 检查该记录是否已经被其他用户占用
-      if (drawingData.uid && drawingData.uid !== '') {
-        console.log('该房间已被其他用户占用');
-        wx.hideLoading();
-        wx.showToast({
-          title: '房间已被占用',
-          icon: 'none',
-          duration: 2000
-        });
-        return;
-      }
-
-      // 更新uid为当前用户的openid
-      const updateResult = await this.eventHandler.databaseManager.cloudDb
-        .collection('drawing')
-        .doc(drawingData._id)
-        .update({
-          data: {
-            uid: userOpenid,
-            updateTime: new Date()
-          }
-        });
-
-      console.log('数据库更新结果:', updateResult);
-
-      if (updateResult.stats.updated === 1) {
-        console.log('房间数据更新成功，进入房间:', this.searchRoomInput);
+      if (result.result.success) {
+        console.log('云函数调用成功，进入房间:', this.searchRoomInput);
         this.roomNumber = this.searchRoomInput;
 
-          // 伙伴侧：进入房间后立即设置自己为已加入状态
-          // 判断是否为伙伴侧（不是房主）
-          const isRoomOwner = this.roomNumber === this.teamInput;
-          console.log(`用户进入房间判断: 房间号=${this.roomNumber}, 输入=${this.teamInput}, 是否房主=${isRoomOwner}`);
-          
-          if (!isRoomOwner) {
-            console.log('伙伴侧进入房间，立即设置isTeammateJoined为true');
-            this.isTeammateJoined = true;
+        // 伙伴侧：进入房间后立即设置自己为已加入状态
+        // 判断是否为伙伴侧（不是房主）
+        const isRoomOwner = this.roomNumber === this.teamInput;
+        console.log(`用户进入房间判断: 房间号=${this.roomNumber}, 输入=${this.teamInput}, 是否房主=${isRoomOwner}`);
+        
+        if (!isRoomOwner) {
+          console.log('伙伴侧进入房间，立即设置isTeammateJoined为true');
+          this.isTeammateJoined = true;
 
-            // 初始化协作模式（协作者角色）
-            if (this.eventHandler.touchHandlers.main) {
-              this.eventHandler.touchHandlers.main.initializeCollaboration(this.roomNumber, 'teamworker');
-              console.log('协作者角色初始化，角色=teamworker');
-            }
-
-            // 确保协作管理器已正确初始化
-            if (this.eventHandler.touchHandlers.main &&
-                this.eventHandler.touchHandlers.main.collaborationManager) {
-              console.log('协作者角色初始化成功，可以开始同步操作到房主');
-              // 保存协作管理器引用
-              this.collaborationManager = this.eventHandler.touchHandlers.main.collaborationManager;
-            } else {
-              console.error('协作者角色初始化失败');
-            }
-          } else {
-            // 房主搜索自己的房间（理论上不应该发生，但处理以防万一）
-            console.log('房主搜索自己的房间，这是异常情况');
+          // 初始化协作模式（协作者角色）
+          if (this.eventHandler.touchHandlers.main) {
+            this.eventHandler.touchHandlers.main.initializeCollaboration(this.roomNumber, 'teamworker');
+            console.log('协作者角色初始化，角色=teamworker');
           }
+
+          // 确保协作管理器已正确初始化
+          if (this.eventHandler.touchHandlers.main &&
+              this.eventHandler.touchHandlers.main.collaborationManager) {
+            console.log('协作者角色初始化成功，可以开始同步操作到房主');
+            // 保存协作管理器引用
+            this.collaborationManager = this.eventHandler.touchHandlers.main.collaborationManager;
+          } else {
+            console.error('协作者角色初始化失败');
+          }
+        } else {
+          // 房主搜索自己的房间（理论上不应该发生，但处理以防万一）
+          console.log('房主搜索自己的房间，这是异常情况');
+        }
 
         // 切换到共同绘画界面
         this.currentTeamState = 'collaborativePainting';
@@ -1108,7 +1067,14 @@ class TeamTouchHandler {
           duration: 2000
         });
       } else {
-        throw new Error('数据库更新失败');
+        // 云函数返回错误
+        console.error('云函数返回错误:', result.result);
+        wx.hideLoading();
+        wx.showToast({
+          title: result.result.message || '加入房间失败',
+          icon: 'none',
+          duration: 2000
+        });
       }
 
     } catch (error) {
