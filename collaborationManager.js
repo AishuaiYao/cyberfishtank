@@ -423,6 +423,10 @@ class CollaborationManager {
         this.renderFlipOperation(role);
         console.log('房主翻转操作同步完成');
         break;
+      case 'clear':
+        this.renderClearOperation(role);
+        console.log('房主清空操作同步完成');
+        break;
       default:
         console.warn('未知的房主操作类型:', operationType);
     }
@@ -461,6 +465,10 @@ class CollaborationManager {
       case 'flip':
         this.renderFlipOperation(role);
         console.log('协作者翻转操作同步完成');
+        break;
+      case 'clear':
+        this.renderClearOperation(role);
+        console.log('协作者清空操作同步完成');
         break;
       default:
         console.warn('未知的协作者操作类型:', operationType);
@@ -630,6 +638,30 @@ class CollaborationManager {
       }
     } else {
       console.warn(`${sourceRole}翻转操作失败`);
+    }
+  }
+
+  // 新增：渲染清空操作
+  renderClearOperation(sourceRole) {
+    const gameState = this.eventHandler.gameState;
+    
+    console.log(`开始同步${sourceRole}的清空操作`);
+
+    // 执行清空操作
+    gameState.clear();
+
+    // 取消待处理的评分
+    if (this.eventHandler.touchHandlers && this.eventHandler.touchHandlers.main) {
+      this.eventHandler.touchHandlers.main.cancelPendingScoring();
+    }
+
+    console.log(`已同步${sourceRole}的清空操作`);
+
+    // 重新绘制整个界面（显示清空后的画布）
+    if (this.eventHandler.uiManager) {
+      this.eventHandler.uiManager.drawGameUI(gameState);
+    } else {
+      this.redrawCanvas();
     }
   }
 

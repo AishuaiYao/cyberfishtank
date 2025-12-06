@@ -187,6 +187,27 @@ class MainTouchHandler {
     }
   }
 
+  // 新增：处理清空操作 - 支持协作同步
+  async handleClearAction() {
+    const gameState = this.eventHandler.gameState;
+
+    // 执行清空操作
+    gameState.clear();
+    this.cancelPendingScoring();
+
+    // 协作模式：记录清空操作
+    if (this.isCollaborativeMode && this.collaborationManager) {
+      const role = this.getCurrentUserRole();
+      console.log(`${role} 执行清空操作，将同步到对方画布`);
+      
+      // 清空操作不需要轨迹，但需要记录操作类型
+      await this.recordCollaborativeOperation('clear');
+    }
+
+    // 重新绘制整个界面（显示清空后的画布）
+    this.eventHandler.uiManager.drawGameUI(gameState);
+  }
+
 
 
   // 跳转按钮点击 - 修复：调整触摸区域与UI一致
@@ -500,8 +521,7 @@ class MainTouchHandler {
         await this.handleUndoAction();
         break;
       case 2: // 清空 - 需要取消评分，因为内容完全变了
-        gameState.clear();
-        this.cancelPendingScoring();
+        await this.handleClearAction();
         break;
       case 3: // 翻转 - 实现翻转功能
         this.handleFlipAction();
