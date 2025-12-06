@@ -80,14 +80,6 @@ class RankingTouchHandler {
       return;
     }
 
-    // 排行榜切换按钮（现在在第二个位置）
-    const switchButtonWidth = 120;
-    const switchButtonX = 80;
-    if (x >= switchButtonX && x <= switchButtonX + switchButtonWidth && y >= 40 && y <= 70) {
-      this.eventHandler.switchRankingMode();
-      return;
-    }
-
     // 处理卡片点击和点赞点踩按钮
     if (this.handleCardButtonsClick(x, y)) {
       return;
@@ -299,18 +291,16 @@ class RankingTouchHandler {
   // 新增：检查是否需要加载更多数据
   checkLoadMore() {
     // 添加安全检查
-    if (!this.eventHandler || !this.eventHandler.currentRankingMode) {
+    if (!this.eventHandler) {
       return;
     }
 
-    const currentMode = this.eventHandler.currentRankingMode;
-
-    // 确保 rankingIncrementalData 和当前模式的数据存在
-    if (!this.eventHandler.rankingIncrementalData || !this.eventHandler.rankingIncrementalData[currentMode]) {
+    // 确保 rankingIncrementalData 和 cyber 数据存在
+    if (!this.eventHandler.rankingIncrementalData || !this.eventHandler.rankingIncrementalData.cyber) {
       return;
     }
 
-    const incrementalData = this.eventHandler.rankingIncrementalData[currentMode];
+    const incrementalData = this.eventHandler.rankingIncrementalData.cyber;
 
     if (!this.eventHandler.rankingData || incrementalData.isLoading) {
       return;

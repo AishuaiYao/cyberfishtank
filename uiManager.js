@@ -99,7 +99,7 @@ class UIManager {
     ctx.textAlign = 'left';
   }
 
-  // 修改：绘制排行榜界面 - 添加模式切换按钮
+  // 修改：绘制排行榜界面
   drawRankingInterface() {
     const ctx = this.ctx;
 
@@ -108,13 +108,6 @@ class UIManager {
 
     // 绘制返回按钮
     Utils.drawModernButton(ctx, 20, 40, 50, 30, '返回', false, true);
-
-    // 绘制排行榜切换按钮（现在在第二个位置）
-    const switchButtonWidth = 120;
-    const switchButtonX = 80; // 从中间位置移到第二个位置
-    const switchButtonText = this.eventHandler.getRankingSwitchButtonText();
-
-    Utils.drawModernButton(ctx, switchButtonX, 40, switchButtonWidth, 30, switchButtonText, false, false);
 
     // 检查加载状态
     if (this.eventHandler.isLoadingRanking) {
@@ -474,10 +467,9 @@ class UIManager {
     }
 
     // 检查是否正在加载更多数据
-    const currentMode = this.eventHandler.currentRankingMode;
     if (this.eventHandler.rankingIncrementalData &&
-        this.eventHandler.rankingIncrementalData[currentMode] &&
-        this.eventHandler.rankingIncrementalData[currentMode].isLoading) {
+        this.eventHandler.rankingIncrementalData.cyber &&
+        this.eventHandler.rankingIncrementalData.cyber.isLoading) {
 
       // 在底部绘制专业级加载动画
       const spinnerY = config.screenHeight - 50;
@@ -558,10 +550,9 @@ class UIManager {
     }
 
     // 检查是否正在加载更多数据
-    const currentMode = this.eventHandler.currentRankingMode;
     if (this.eventHandler.rankingIncrementalData &&
-        this.eventHandler.rankingIncrementalData[currentMode] &&
-        this.eventHandler.rankingIncrementalData[currentMode].isLoading) {
+        this.eventHandler.rankingIncrementalData.cyber &&
+        this.eventHandler.rankingIncrementalData.cyber.isLoading) {
 
       // 在底部绘制专业级加载动画
       const spinnerY = config.screenHeight - 50;

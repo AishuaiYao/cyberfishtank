@@ -90,19 +90,11 @@ class EventHandler {
     this.myFishTankList = []; // 用户自己的鱼列表
     this.currentTankMode = 'public'; // 'public' 或 'my'
 
-    // 新增：排行榜模式
-    this.currentRankingMode = 'cyber'; // 'cyber' 或 'weekly'
+
 
     // 新增：排行榜增量加载数据
     this.rankingIncrementalData = {
       cyber: {
-        isLoading: false,
-        hasMore: true,
-        currentPage: 0,
-        pageSize: 20,
-        cachedData: [] // 缓存已加载的数据
-      },
-      weekly: {
         isLoading: false,
         hasMore: true,
         currentPage: 0,
@@ -1038,12 +1030,6 @@ async loadMyFishes(randomMode = false) {
     if (modeType === 'tank') {
       this.currentTankMode = newMode;
       await this.enterFishTank(null, newMode);
-    } else if (modeType === 'ranking') {
-      this.currentRankingMode = newMode;
-      await this.showRankingInterface();
-
-      const modeName = newMode === 'cyber' ? '赛博排行榜' : '本周排行榜';
-      console.log(`切换到${modeName}`);
     }
   }
 
@@ -1053,11 +1039,7 @@ async loadMyFishes(randomMode = false) {
     await this.switchMode('tank', newMode);
   }
 
-  // 新增：切换排行榜模式
-  async switchRankingMode() {
-    const newMode = this.currentRankingMode === 'cyber' ? 'weekly' : 'cyber';
-    await this.switchMode('ranking', newMode);
-  }
+
 
   // 新增：获取切换按钮文本
   getSwitchButtonText() {
@@ -1073,10 +1055,7 @@ async loadMyFishes(randomMode = false) {
     }
   }
 
-  // 新增：获取排行榜切换按钮文本
-  getRankingSwitchButtonText() {
-    return this.currentRankingMode === 'cyber' ? '📅本周排行榜' : '🌐赛博排行榜';
-  }
+
 
   // 首次加载初始鱼数据
   async loadInitialFishes() {
@@ -1191,12 +1170,11 @@ async refreshFishTank() {
     this.touchHandlers.ranking.resetScroll();
 
     // 重置增量加载状态
-    const currentMode = this.currentRankingMode;
-    if (this.rankingIncrementalData && this.rankingIncrementalData[currentMode]) {
-      this.rankingIncrementalData[currentMode].isLoading = false;
-      this.rankingIncrementalData[currentMode].hasMore = true;
-      this.rankingIncrementalData[currentMode].currentPage = 0;
-      this.rankingIncrementalData[currentMode].cachedData = []; // 清空缓存数据
+    if (this.rankingIncrementalData && this.rankingIncrementalData.cyber) {
+      this.rankingIncrementalData.cyber.isLoading = false;
+      this.rankingIncrementalData.cyber.hasMore = true;
+      this.rankingIncrementalData.cyber.currentPage = 0;
+      this.rankingIncrementalData.cyber.cachedData = []; // 清空缓存数据
     }
 
     this.uiManager.drawGameUI(this.gameState);
@@ -1206,28 +1184,13 @@ async refreshFishTank() {
       let initialRankingFishes;
 
       // 初始只加载第一页数据
-      if (this.currentRankingMode === 'cyber') {
-        // 赛博排行榜：第一页数据
-        const result = await this.databaseManager.getRankingDataPage(0, this.rankingIncrementalData.cyber.pageSize);
-        initialRankingFishes = result.data;
-        this.rankingIncrementalData.cyber.hasMore = result.hasMore;
+      // 赛博排行榜：第一页数据
+      const result = await this.databaseManager.getRankingDataPage(0, this.rankingIncrementalData.cyber.pageSize);
+      initialRankingFishes = result.data;
+      this.rankingIncrementalData.cyber.hasMore = result.hasMore;
 
-        // 存入缓存
-        this.rankingIncrementalData.cyber.cachedData = [...initialRankingFishes];
-      } else {
-        // 本周排行榜：第一页数据
-        const startOfWeek = this.getStartOfWeek();
-        const result = await this.databaseManager.getWeeklyRankingDataPage(
-          0,
-          this.rankingIncrementalData.weekly.pageSize,
-          startOfWeek
-        );
-        initialRankingFishes = result.data;
-        this.rankingIncrementalData.weekly.hasMore = result.hasMore;
-
-        // 存入缓存
-        this.rankingIncrementalData.weekly.cachedData = [...initialRankingFishes];
-      }
+      // 存入缓存
+      this.rankingIncrementalData.cyber.cachedData = [...initialRankingFishes];
 
       // 为每条鱼创建图像对象
       const rankingFishesWithImages = [];
@@ -1252,14 +1215,14 @@ async refreshFishTank() {
       this.rankingData = {
         fishes: rankingFishesWithImages,
         lastUpdate: new Date(),
-        mode: this.currentRankingMode
+        mode: 'cyber'
       };
 
-      console.log(`排行榜初始数据加载完成，模式: ${this.currentRankingMode}, 共 ${rankingFishesWithImages.length} 条数据`);
+      console.log(`排行榜初始数据加载完成，模式: cyber, 共 ${rankingFishesWithImages.length} 条数据`);
 
     } catch (error) {
       Utils.handleError(error, '加载排行榜数据失败');
-      this.rankingData = { fishes: [], lastUpdate: new Date(), mode: this.currentRankingMode };
+      this.rankingData = { fishes: [], lastUpdate: new Date(), mode: 'cyber' };
     } finally {
       this.isLoadingRanking = false;
       this.uiManager.drawGameUI(this.gameState);
@@ -1375,43 +1338,30 @@ async refreshFishTank() {
 
   // 新增：加载下一页排行榜数据
   async loadNextRankingPage() {
-    const currentMode = this.currentRankingMode;
-
     // 安全检查
-    if (!this.rankingIncrementalData || !this.rankingIncrementalData[currentMode]) {
+    if (!this.rankingIncrementalData || !this.rankingIncrementalData.cyber) {
       console.error('增量数据未初始化，无法加载更多数据');
       return;
     }
 
-    const incrementalData = this.rankingIncrementalData[currentMode];
+    const incrementalData = this.rankingIncrementalData.cyber;
 
     if (incrementalData.isLoading || !incrementalData.hasMore) {
       console.log('正在加载或没有更多数据，跳过增量加载');
       return;
     }
 
-    console.log(`开始加载更多${currentMode}排行榜数据，当前页: ${incrementalData.currentPage + 1}`);
+    console.log(`开始加载更多排行榜数据，当前页: ${incrementalData.currentPage + 1}`);
 
     incrementalData.isLoading = true;
     incrementalData.currentPage++;
 
     try {
-      let nextPageResult;
-
       // 优化：加载后续20条小鱼数据
-      if (currentMode === 'cyber') {
-        nextPageResult = await this.databaseManager.getRankingDataPage(
-          incrementalData.currentPage,
-          20 // 固定加载20条小鱼
-        );
-      } else {
-        const startOfWeek = this.getStartOfWeek();
-        nextPageResult = await this.databaseManager.getWeeklyRankingDataPage(
-          incrementalData.currentPage,
-          20, // 固定加载20条小鱼
-          startOfWeek
-        );
-      }
+      const nextPageResult = await this.databaseManager.getRankingDataPage(
+        incrementalData.currentPage,
+        20 // 固定加载20条小鱼
+      );
 
       // 更新是否有更多数据的标志
       incrementalData.hasMore = nextPageResult.hasMore;
@@ -1472,7 +1422,7 @@ async refreshFishTank() {
       this.uiManager.drawGameUI(this.gameState);
 
     } catch (error) {
-      Utils.handleError(error, `加载更多${currentMode}排行榜数据失败`);
+      Utils.handleError(error, '加载更多排行榜数据失败');
     } finally {
       incrementalData.isLoading = false;
     }
@@ -1649,41 +1599,9 @@ async refreshFishTank() {
     return rankingFishes;
   }
 
-  // 新增：获取本周排行榜数据
-  async getWeeklyRankingDataWithImages() {
-    // 获取本周的起始时间（周一00:00:00）
-    const startOfWeek = this.getStartOfWeek();
-    console.log('本周起始时间:', startOfWeek);
 
-    const weeklyData = await this.databaseManager.getWeeklyRankingData(100, startOfWeek);
-    const weeklyFishes = [];
 
-    for (const fishData of weeklyData) {
-      try {
-        const fishImage = await this.fishManager.data.base64ToCanvas(fishData.base64);
-        weeklyFishes.push({
-          fishData: fishData,
-          fishImage: fishImage
-        });
-      } catch (error) {
-        console.warn('创建本周排行榜鱼图像失败:', error);
-      }
-    }
 
-    // 移除前端重新排序逻辑，直接使用数据库按score字段排序的结果
-    console.log(`成功创建 ${weeklyFishes.length} 条本周排行榜鱼的图像，已按数据库score字段降序排列`);
-    return weeklyFishes;
-  }
-
-  // 新增：获取本周起始时间（周一00:00:00）
-  getStartOfWeek() {
-    const now = new Date();
-    const day = now.getDay(); // 0是周日，1是周一，...，6是周六
-    const diff = now.getDate() - day + (day === 0 ? -6 : 1); // 调整到周一
-    const startOfWeek = new Date(now.setDate(diff));
-    startOfWeek.setHours(0, 0, 0, 0);
-    return startOfWeek;
-  }
 
   // 对话框功能
   showNameInputDialog(scaledImage) {
