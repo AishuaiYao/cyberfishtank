@@ -28,9 +28,6 @@ class TeamTouchHandler {
     // 退出倒计时相关状态
     this.countdownValue = 0; // 倒计时值
     this.countdownTimer = null; // 倒计时定时器
-    
-    // 退出相关状态
-    this.isHomeownerExited = false; // 房主是否已退出
   }
 
   // 处理主界面触摸事件
@@ -291,15 +288,15 @@ class TeamTouchHandler {
         console.log('房间绘画数据创建成功');
         // 标记房间数据已初始化
         this.isRoomDataInitialized = true;
-        
+
         // 初始化协作模式（房主角色）
         if (this.eventHandler.touchHandlers.main) {
           this.eventHandler.touchHandlers.main.initializeCollaboration(this.roomNumber, 'homeowner');
         }
-        
+
         // 启动协作者数据监听
         await this.startTeamworkerWatch(this.roomNumber);
-        
+
         // 数据插入完成后，重新绘制界面以显示等待状态更新
         this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
       } catch (error) {
@@ -317,7 +314,7 @@ class TeamTouchHandler {
   async startTeamworkerWatch(roomId) {
     try {
       console.log(`启动房间 ${roomId} 的协作者监听`);
-      
+
       // 启动数据库监听
       this.teamworkerWatch = await this.eventHandler.databaseManager.watchTeamworkerData(
         roomId,
@@ -333,7 +330,7 @@ class TeamTouchHandler {
           }
         }
       );
-      
+
       if (!this.teamworkerWatch) {
         console.warn('协作者监听启动失败，将使用轮询方案');
         // 监听启动失败，使用备选方案：定时检查
@@ -345,7 +342,7 @@ class TeamTouchHandler {
           this.checkCurrentTeamworkerStatus(roomId);
         }, 1000);
       }
-      
+
     } catch (error) {
       console.error('启动协作者监听失败:', error);
       // 启动失败，使用备选方案：定时检查
@@ -371,7 +368,7 @@ class TeamTouchHandler {
   // 新增：启动轮询检查协作者状态（备选方案）
   startPollingTeamworkerStatus(roomId) {
     console.log(`启动房间 ${roomId} 的协作者状态轮询检查`);
-    
+
     // 每3秒检查一次协作者状态（更频繁的检查）
     this.pollingInterval = setInterval(async () => {
       try {
@@ -406,22 +403,22 @@ class TeamTouchHandler {
       console.log('队友已加入事件已处理过，跳过重复处理');
       return;
     }
-    
+
     console.log('队友已加入房间，更新UI状态');
-    
+
     // 停止所有监听/轮询
     this.stopAllTeamworkerWatches();
-    
+
     // 更新房间状态，允许开始绘画
     this.isTeammateJoined = true;
-    
+
     // 显示提示信息
     wx.showToast({
       title: '队友已加入，可以开始绘画了！',
       icon: 'success',
       duration: 2000
     });
-    
+
     // 重新绘制界面，隐藏等待提示
     // 确保使用正确的界面绘制方法
     if (this.eventHandler.isCollaborativePaintingVisible) {
@@ -430,7 +427,7 @@ class TeamTouchHandler {
     } else {
       console.warn('共同绘画界面不可见，无法触发重绘');
     }
-    
+
     // 记录日志以便调试
     console.log('队友加入处理完成，isTeammateJoined:', this.isTeammateJoined);
   }
@@ -442,7 +439,7 @@ class TeamTouchHandler {
       await this.eventHandler.databaseManager.stopWatchingTeamworkerData(this.teamworkerWatch);
       this.teamworkerWatch = null;
     }
-    
+
     // 停止轮询检查
     this.stopPollingTeamworkerStatus();
   }
@@ -468,7 +465,7 @@ class TeamTouchHandler {
 
     // 判断是否为房主，只有房主才能使用"让它游起来"按钮
     const isRoomOwner = this.roomNumber === this.teamInput;
-    
+
     // 检查是否点击了"让它游起来"按钮区域（只有房主才响应）
     const buttonArea = this.getCollaborativePaintingButtonArea();
     if (this.isPointInRect(x, y, buttonArea)) {
@@ -564,13 +561,13 @@ class TeamTouchHandler {
   async handleExitCollaborativePainting() {
     // 判断是否为房主
     const isRoomOwner = this.roomNumber === this.teamInput;
-    
+
     if (isRoomOwner) {
       // 房主退出流程：弹出确认提示
       this.showExitConfirmationDialog();
     } else {
-      // 伙伴退出流程：弹出确认提示
-      this.showTeamworkerExitConfirmationDialog();
+      // 伙伴直接退出
+      this.exitCollaborativePainting();
     }
   }
 
@@ -585,23 +582,6 @@ class TeamTouchHandler {
         if (res.confirm) {
           // 房主确认退出
           this.homeownerExitRoom();
-        }
-        // 取消则不做任何操作
-      }
-    });
-  }
-
-  // 新增：显示伙伴退出确认对话框
-  showTeamworkerExitConfirmationDialog() {
-    wx.showModal({
-      title: '退出确认',
-      content: '确定退出房间吗？退出后将通知房主释放房间',
-      confirmText: '确定退出',
-      cancelText: '取消',
-      success: (res) => {
-        if (res.confirm) {
-          // 伙伴确认退出
-          this.teamworkerExitRoom();
         }
         // 取消则不做任何操作
       }
@@ -640,105 +620,15 @@ class TeamTouchHandler {
     }
   }
 
-  // 新增：伙伴退出房间
-  async teamworkerExitRoom() {
-    console.log('伙伴退出房间，更新operationType为exit');
-
-    try {
-      // 更新伙伴数据的operationType为exit
-      await this.eventHandler.databaseManager.updateDrawingData(
-        this.roomNumber,
-        'teamworker',
-        { operationType: 'exit' }
-      );
-
-      // 伙伴直接返回主界面
-      this.exitCollaborativePainting();
-
-      // 显示提示
-      wx.showToast({
-        title: '已通知房主退出房间',
-        icon: 'success',
-        duration: 2000
-      });
-
-    } catch (error) {
-      console.error('更新伙伴退出状态失败:', error);
-      wx.showToast({
-        title: '退出失败，请重试',
-        icon: 'none',
-        duration: 2000
-      });
-    }
-  }
-
   // 新增：伙伴检测房主退出并处理
   async handleHomeownerExit() {
     console.log('检测到房主退出，伙伴开始退出流程');
-    
-    // 设置房主已退出标志
-    this.isHomeownerExited = true;
 
     // 显示提示并开始倒计时
     this.showExitCountdownDialog();
 
     // 启动倒计时
     this.startExitCountdown();
-  }
-
-  // 新增：房主检测伙伴退出并处理
-  async handleTeamworkerExit() {
-    console.log('检测到伙伴退出，房主开始退出流程');
-
-    // 显示提示并开始倒计时
-    this.showTeamworkerExitCountdownDialog();
-
-    // 启动倒计时
-    this.startTeamworkerExitCountdown();
-  }
-
-  // 新增：显示伙伴退出倒计时对话框（房主侧）
-  showTeamworkerExitCountdownDialog() {
-    this.countdownValue = 3;
-
-    // 使用toast显示倒计时，不使用模态框
-    wx.showToast({
-      title: `伙伴已退出，${this.countdownValue}秒后返回主界面`,
-      icon: 'none',
-      duration: 1000
-    });
-
-    console.log(`开始倒计时: ${this.countdownValue}秒`);
-  }
-
-  // 新增：启动伙伴退出倒计时（房主侧）
-  startTeamworkerExitCountdown() {
-    this.countdownTimer = setInterval(() => {
-      this.countdownValue--;
-
-      if (this.countdownValue <= 0) {
-        // 倒计时结束，自动退出并删除数据
-        clearInterval(this.countdownTimer);
-        this.countdownTimer = null;
-
-        console.log('倒计时结束，房主退出并删除房间数据');
-
-        // 删除房间数据
-        this.deleteRoomData();
-
-        // 返回主界面
-        this.exitCollaborativePainting();
-      } else {
-        // 更新倒计时显示
-        wx.showToast({
-          title: `伙伴已退出，${this.countdownValue}秒后返回主界面`,
-          icon: 'none',
-          duration: 1000
-        });
-
-        console.log(`倒计时: ${this.countdownValue}秒`);
-      }
-    }, 1000);
   }
 
   // 新增：显示退出倒计时对话框
@@ -798,31 +688,26 @@ class TeamTouchHandler {
 
     // 停止退出倒计时（如果有）
     this.stopExitCountdown();
-    
-    // 判断是否为伙伴，以及是否为被动退出（房主已退出）
+
+    // 判断是否为伙伴，如果是伙伴则删除房间数据
     const isRoomOwner = this.roomNumber === this.teamInput;
     if (!isRoomOwner) {
-      // 只有被动退出的伙伴（房主已退出）才删除房间数据
-      if (this.isHomeownerExited) {
-        console.log('被动退出的伙伴，删除房间数据');
-        this.deleteRoomData();
-      } else {
-        // 主动退出的伙伴不删除数据，由房主负责
-        console.log('主动退出的伙伴，不删除房间数据（由房主负责）');
-      }
+      // 伙伴退出：根据房间号删除数据库里所有相关数据
+      console.log('伙伴退出，删除房间数据');
+      this.deleteRoomData();
     }
-    
+
     // 停止所有协作者监听
     this.stopAllTeamworkerWatches();
-    
+
     // 停止协作模式
     if (this.eventHandler.touchHandlers.main) {
       this.eventHandler.touchHandlers.main.stopCollaboration();
     }
-    
+
     // 重置队友加入状态
     this.isTeammateJoined = false;
-    
+
     this.currentTeamState = 'main';
     this.eventHandler.isCollaborativePaintingVisible = false;
     this.eventHandler.isTeamInterfaceVisible = false; // 直接返回到主界面，不显示组队界面
@@ -835,11 +720,11 @@ class TeamTouchHandler {
       console.warn('房间号为空，无法删除房间数据');
       return;
     }
-    
+
     try {
       console.log(`删除房间 ${this.roomNumber} 的所有相关数据`);
       const success = await this.eventHandler.databaseManager.deleteRoomData(this.roomNumber);
-      
+
       if (success) {
         console.log(`房间 ${this.roomNumber} 数据删除成功`);
       } else {
@@ -1004,14 +889,14 @@ class TeamTouchHandler {
         if (!isRoomOwner) {
           console.log('伙伴侧进入房间，立即设置isTeammateJoined为true');
           this.isTeammateJoined = true;
-          
+
           // 初始化协作模式（协作者角色）
           if (this.eventHandler.touchHandlers.main) {
             this.eventHandler.touchHandlers.main.initializeCollaboration(this.roomNumber, 'teamworker');
           }
-          
+
           // 确保协作管理器已正确初始化
-          if (this.eventHandler.touchHandlers.main && 
+          if (this.eventHandler.touchHandlers.main &&
               this.eventHandler.touchHandlers.main.collaborationManager) {
             console.log('协作者角色初始化成功，可以开始同步操作到房主');
           } else {

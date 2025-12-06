@@ -4,10 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="共同绘画-实现了基础的操作互传，不过还有些小bug">
+    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="共同绘画-实现了基础的操作互传，不过还有些小bug-返回操作">
+      <change afterPath="$PROJECT_DIR$/collaborationManager_backup.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/多人游戏退出机制说明.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/collaborationManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/collaborationManager.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/databaseManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/databaseManager.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/prompt.txt" beforeDir="false" afterPath="$PROJECT_DIR$/prompt.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/touchHandlers/teamTouchHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/teamTouchHandler.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -73,22 +75,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00088" summary="代码结构优化-排行榜回弹效果">
-      <option name="closed" value="true" />
-      <created>1764339647758</created>
-      <option name="number" value="00088" />
-      <option name="presentableId" value="LOCAL-00088" />
-      <option name="project" value="LOCAL" />
-      <updated>1764339647758</updated>
-    </task>
-    <task id="LOCAL-00089" summary="代码结构优化-排行榜惯性性能提升">
-      <option name="closed" value="true" />
-      <created>1764340602713</created>
-      <option name="number" value="00089" />
-      <option name="presentableId" value="LOCAL-00089" />
-      <option name="project" value="LOCAL" />
-      <updated>1764340602713</updated>
     </task>
     <task id="LOCAL-00090" summary="代码结构优化-排行榜惯性性能提升-恢复返回等button">
       <option name="closed" value="true" />
@@ -466,11 +452,26 @@
       <option name="project" value="LOCAL" />
       <updated>1764950524366</updated>
     </task>
-    <option name="localTasksCounter" value="137" />
+    <task id="LOCAL-00137" summary="共同绘画-实现了基础的操作互传，不过还有些小bug-返回操作">
+      <option name="closed" value="true" />
+      <created>1764951530080</created>
+      <option name="number" value="00137" />
+      <option name="presentableId" value="LOCAL-00137" />
+      <option name="project" value="LOCAL" />
+      <updated>1764951530080</updated>
+    </task>
+    <task id="LOCAL-00138" summary="共同绘画-实现了基础的操作互传，不过还有些小bug-返回操作">
+      <option name="closed" value="true" />
+      <created>1764951712863</created>
+      <option name="number" value="00138" />
+      <option name="presentableId" value="LOCAL-00138" />
+      <option name="project" value="LOCAL" />
+      <updated>1764951712863</updated>
+    </task>
+    <option name="localTasksCounter" value="139" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="代码结构优化-排行榜预加载等待符号优化" />
     <MESSAGE value="代码结构优化-点赞点踩数据更新优化-去掉插入fishes" />
     <MESSAGE value="代码结构优化-点赞点踩ui更新" />
     <MESSAGE value="代码结构优化-点赞点踩ui更新-取消弹出提示" />
@@ -495,6 +496,7 @@
     <MESSAGE value="共同绘画-双侧绘画正常" />
     <MESSAGE value="共同绘画-将房主的绘画同步到伙伴" />
     <MESSAGE value="共同绘画-实现了基础的操作互传，不过还有些小bug" />
-    <option name="LAST_COMMIT_MESSAGE" value="共同绘画-实现了基础的操作互传，不过还有些小bug" />
+    <MESSAGE value="共同绘画-实现了基础的操作互传，不过还有些小bug-返回操作" />
+    <option name="LAST_COMMIT_MESSAGE" value="共同绘画-实现了基础的操作互传，不过还有些小bug-返回操作" />
   </component>
 </project>
