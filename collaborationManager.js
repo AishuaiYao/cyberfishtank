@@ -584,8 +584,13 @@ class CollaborationManager {
     if (success) {
       console.log(`已同步${roleToUndo}的撤销操作`);
       
-      // 重绘画布
-      this.redrawCanvas();
+      // 修复：使用与主触摸处理器相同的重绘方法，确保一致性
+      if (this.eventHandler.touchHandlers && this.eventHandler.touchHandlers.main) {
+        this.eventHandler.touchHandlers.main.redrawCanvasAfterUndo();
+      } else {
+        // 备用方案：使用自己的重绘方法
+        this.redrawCanvas();
+      }
     } else {
       console.warn(`${roleToUndo}撤销操作失败`);
     }
