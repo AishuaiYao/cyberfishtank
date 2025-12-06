@@ -70,7 +70,7 @@ class RankingTouchHandler {
   handleTouch(x, y) {
     // 返回按钮 - 修复边界判断
     const backButtonX = 20;
-    const backButtonY = 40;
+    const backButtonY = 50;
     const backButtonWidth = 50;
     const backButtonHeight = 30;
 
@@ -314,7 +314,7 @@ class RankingTouchHandler {
     // 计算当前可见的最后一条鱼的排名
     const cardHeight = 200;
     const rowHeight = cardHeight + 15;
-    const startY = 100;
+    const startY = 110; // 下移10像素，与返回按钮位置保持一致
     const visibleHeight = config.screenHeight - startY;
     const visibleRows = Math.ceil(visibleHeight / rowHeight);
     const visibleFishCount = Math.ceil((this.currentScrollY + visibleHeight) / rowHeight) * 2; // 2列
@@ -427,7 +427,7 @@ class RankingTouchHandler {
 
     const cardWidth = (config.screenWidth - 60) / 2;
     const cardHeight = 200;
-    const startY = 100;
+    const startY = 110; // 下移10像素，与返回按钮位置保持一致
     const rowCount = Math.ceil(this.eventHandler.rankingData.fishes.length / 2);
     const totalContentHeight = startY + rowCount * (cardHeight + 15) + 20;
 

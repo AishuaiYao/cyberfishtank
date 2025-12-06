@@ -67,7 +67,7 @@ class UIManager {
 
     // 在 drawFishTankInterface() 方法中：
     // 绘制返回按钮
-    Utils.drawModernButton(ctx, 20, 40, 50, 30, '返回', false, true);
+    Utils.drawModernButton(ctx, 20, 50, 50, 30, '返回', false, true);
 
     // 绘制鱼缸切换按钮（现在在第二个位置）
     const switchButtonWidth = 120;
@@ -107,7 +107,7 @@ class UIManager {
     ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
 
     // 绘制返回按钮
-    Utils.drawModernButton(ctx, 20, 40, 50, 30, '返回', false, true);
+    Utils.drawModernButton(ctx, 20, 50, 50, 30, '返回', false, true);
 
     // 检查加载状态
     if (this.eventHandler.isLoadingRanking) {
@@ -426,12 +426,12 @@ class UIManager {
     const cardWidth = (config.screenWidth - 60) / 2;
     const cardHeight = 200;
     const rowHeight = cardHeight + 15;
-    const startY = 100 - scrollOffset;
+    const startY = 110 - scrollOffset; // 下移10像素，与返回按钮位置保持一致
 
     // 设置裁剪区域，防止卡片绘制到界面外
     ctx.save();
     ctx.beginPath();
-    ctx.rect(0, 100, config.screenWidth, config.screenHeight - 100);
+    ctx.rect(0, 110, config.screenWidth, config.screenHeight - 110);
     ctx.clip();
 
     // 虚拟滚动优化：只渲染可见区域的卡片
@@ -503,17 +503,17 @@ class UIManager {
     const cardWidth = (config.screenWidth - 60) / 2;
     const cardHeight = 200;
     const rowHeight = cardHeight + 15;
-    const startY = 100 - scrollOffset;
-    const visibleAreaHeight = config.screenHeight - 100;
+    const startY = 110 - scrollOffset; // 下移10像素，与返回按钮位置保持一致
+    const visibleAreaHeight = config.screenHeight - 110; // 调整可见区域高度，与下移的起始位置保持一致
 
     // 只清除卡片区域（避免重绘整个界面）
     ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 100, config.screenWidth, visibleAreaHeight);
+    ctx.fillRect(0, 110, config.screenWidth, visibleAreaHeight - 10);
 
     // 设置裁剪区域
     ctx.save();
     ctx.beginPath();
-    ctx.rect(0, 100, config.screenWidth, visibleAreaHeight);
+    ctx.rect(0, 110, config.screenWidth, visibleAreaHeight - 10);
     ctx.clip();
 
     // 虚拟滚动优化：只渲染可见区域的卡片
@@ -572,8 +572,8 @@ class UIManager {
 
     const indicatorWidth = 4;
     const indicatorRight = config.screenWidth - 10;
-    const indicatorTop = 100;
-    const indicatorHeight = config.screenHeight - 100 - 20;
+    const indicatorTop = 110; // 下移10像素，与卡片区域对齐
+    const indicatorHeight = config.screenHeight - 110 - 20; // 调整高度，与下移的起始位置保持一致
 
     // 计算滑块位置和大小
     const scrollRatio = scrollOffset / maxScrollY;
