@@ -422,7 +422,7 @@ class CollaborationManager {
   // 同步协作者操作到房主画布
   syncOperationFromTeamworker(teamworkerData) {
     console.log('开始同步协作者操作:', teamworkerData);
-    
+
     if (!this.eventHandler || !this.eventHandler.touchHandlers || !this.eventHandler.touchHandlers.main) {
       console.error('无法同步操作：缺少必要的事件处理器');
       return;
@@ -467,21 +467,21 @@ class CollaborationManager {
 
     // 保存当前绘图状态
     ctx.save();
-    
+
     // 开始绘制路径
     ctx.beginPath();
     ctx.moveTo(trace[0].x, trace[0].y);
-    
+
     for (let i = 1; i < trace.length; i++) {
       ctx.lineTo(trace[i].x, trace[i].y);
     }
-    
+
     ctx.strokeStyle = color;
     ctx.lineWidth = lineWidth;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.stroke();
-    
+
     // 恢复绘图状态
     ctx.restore();
 
@@ -510,21 +510,21 @@ class CollaborationManager {
 
     // 保存当前绘图状态
     ctx.save();
-    
+
     // 开始擦除路径
     ctx.beginPath();
     ctx.moveTo(trace[0].x, trace[0].y);
-    
+
     for (let i = 1; i < trace.length; i++) {
       ctx.lineTo(trace[i].x, trace[i].y);
     }
-    
+
     ctx.strokeStyle = '#FFFFFF'; // 擦除使用白色
     ctx.lineWidth = lineWidth * 2; // 擦除线宽稍大
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.stroke();
-    
+
     // 恢复绘图状态
     ctx.restore();
 
@@ -542,7 +542,7 @@ class CollaborationManager {
   // 渲染撤销操作
   renderUndoOperation() {
     const gameState = this.eventHandler.gameState;
-    
+
     if (gameState.drawingPaths.length === 0) {
       console.warn('没有可撤销的操作');
       return;
@@ -550,10 +550,10 @@ class CollaborationManager {
 
     // 移除最后一条路径
     gameState.drawingPaths.pop();
-    
+
     // 重绘画布
     this.redrawCanvas();
-    
+
     console.log('已执行撤销操作');
   }
 
@@ -561,29 +561,36 @@ class CollaborationManager {
   redrawCanvas() {
     const gameState = this.eventHandler.gameState;
     const ctx = this.eventHandler.canvas.getContext('2d');
-    const positions = require('./config.js').getAreaPositions();
-    const drawingAreaY = positions.drawingAreaY;
+    
+    // 通过UIManager重新绘制整个UI，确保背景和所有元素都正确显示
+    if (this.eventHandler.uiManager) {
+      this.eventHandler.uiManager.drawGameUI(gameState);
+    } else {
+      // 备用方案：直接重绘画布
+      const positions = require('./config.js').getAreaPositions();
+      const drawingAreaY = positions.drawingAreaY;
 
-    // 清除绘画区域
-    ctx.clearRect(12, drawingAreaY, require('./config.js').config.screenWidth - 24, require('./config.js').config.drawingAreaHeight);
+      // 清除绘画区域
+      ctx.clearRect(12, drawingAreaY, require('./config.js').config.screenWidth - 24, require('./config.js').config.drawingAreaHeight);
 
-    // 重新绘制所有路径
-    gameState.drawingPaths.forEach(path => {
-      if (path.points.length > 0) {
-        ctx.beginPath();
-        ctx.moveTo(path.points[0].x, path.points[0].y);
-        
-        for (let i = 1; i < path.points.length; i++) {
-          ctx.lineTo(path.points[i].x, path.points[i].y);
+      // 重新绘制所有路径
+      gameState.drawingPaths.forEach(path => {
+        if (path.points.length > 0) {
+          ctx.beginPath();
+          ctx.moveTo(path.points[0].x, path.points[0].y);
+
+          for (let i = 1; i < path.points.length; i++) {
+            ctx.lineTo(path.points[i].x, path.points[i].y);
+          }
+
+          ctx.strokeStyle = path.color;
+          ctx.lineWidth = path.size;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          ctx.stroke();
         }
-        
-        ctx.strokeStyle = path.color;
-        ctx.lineWidth = path.size;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.stroke();
-      }
-    });
+      });
+    }
   }
 
   // 初始化绘画数据，确保有默认值
