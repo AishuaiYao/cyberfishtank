@@ -4,11 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="共同绘画-基本比较流畅">
+    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="共同绘画-基本比较流畅-退出后清空画布">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/collaborationManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/collaborationManager.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/prompt.txt" beforeDir="false" afterPath="$PROJECT_DIR$/prompt.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/touchHandlers/teamTouchHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/teamTouchHandler.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/touchHandlers/mainTouchHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/mainTouchHandler.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -73,14 +71,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00098" summary="代码结构优化-点赞点踩数据更新优化-去掉插入fishes">
-      <option name="closed" value="true" />
-      <created>1764511291437</created>
-      <option name="number" value="00098" />
-      <option name="presentableId" value="LOCAL-00098" />
-      <option name="project" value="LOCAL" />
-      <updated>1764511291437</updated>
     </task>
     <task id="LOCAL-00099" summary="代码结构优化-点赞点踩ui更新">
       <option name="closed" value="true" />
@@ -466,11 +456,18 @@
       <option name="project" value="LOCAL" />
       <updated>1765014693129</updated>
     </task>
-    <option name="localTasksCounter" value="147" />
+    <task id="LOCAL-00147" summary="共同绘画-基本比较流畅-退出后清空画布">
+      <option name="closed" value="true" />
+      <created>1765016096340</created>
+      <option name="number" value="00147" />
+      <option name="presentableId" value="LOCAL-00147" />
+      <option name="project" value="LOCAL" />
+      <updated>1765016096340</updated>
+    </task>
+    <option name="localTasksCounter" value="148" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="组队模式" />
     <MESSAGE value="共同绘画-建立房间" />
     <MESSAGE value="共同绘画-建立房间-绘制房间" />
     <MESSAGE value="共同绘画-建立房间-绘制房间-返回键" />
@@ -495,6 +492,7 @@
     <MESSAGE value="共同绘画-基本比较流畅-有些时候撤销会撤销对面的操作" />
     <MESSAGE value="共同绘画-基本比较流畅-撤销会高亮下一步" />
     <MESSAGE value="共同绘画-基本比较流畅" />
-    <option name="LAST_COMMIT_MESSAGE" value="共同绘画-基本比较流畅" />
+    <MESSAGE value="共同绘画-基本比较流畅-退出后清空画布" />
+    <option name="LAST_COMMIT_MESSAGE" value="共同绘画-基本比较流畅-退出后清空画布" />
   </component>
 </project>

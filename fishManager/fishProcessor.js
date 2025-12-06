@@ -27,9 +27,8 @@ class FishProcessor {
 
       const subImage = await this.cropWithCorrectScaling(boundingBox);
 
-      // 新增：如果画布被翻转，处理翻转后的图像
-      const finalImage = this.eventHandler.gameState.isFlipped ?
-        await this.flipImage(subImage) : subImage;
+      // 修改：由于翻转是瞬时操作，路径坐标已经修改，直接使用裁剪的图像
+      const finalImage = subImage;
 
       const scaledImage = await this.scaleImageWithOriginalLogic(finalImage);
 

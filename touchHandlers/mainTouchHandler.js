@@ -159,72 +159,26 @@ class MainTouchHandler {
     return false;
   }
 
-  // 新增：处理翻转操作
+  // 修改：处理翻转操作 - 改为一次性操作
   handleFlipAction() {
     const gameState = this.eventHandler.gameState;
 
-      if (gameState.drawingPaths.length === 0) {
-        const Utils = require('../utils.js');
-        Utils.showError('请先画一些内容');
-        return;
-      }
-
-    // 执行翻转
-    const isFlipped = gameState.flipCanvas();
-
-    // 重新绘制所有路径（翻转后）
-    this.redrawAllPathsFlipped();
-
-  }
-
-  // 新增：重新绘制所有路径（翻转后）
-  redrawAllPathsFlipped() {
-    const gameState = this.eventHandler.gameState;
-    const ctx = this.eventHandler.canvas.getContext('2d');
-    const drawingAreaY = this.positions.drawingAreaY;
-
-    // 清除绘画区域
-    ctx.clearRect(12, drawingAreaY, config.screenWidth - 24, config.drawingAreaHeight);
-
-    // 如果处于翻转状态，应用翻转变换
-    if (gameState.isFlipped) {
-      ctx.save();
-      ctx.translate(config.screenWidth, 0);
-      ctx.scale(-1, 1);
+    if (gameState.drawingPaths.length === 0) {
+      const Utils = require('../utils.js');
+      Utils.showError('请先画一些内容');
+      return;
     }
 
-    // 重新绘制所有路径
-    gameState.drawingPaths.forEach(path => {
-      if (path.points.length > 0) {
-        ctx.beginPath();
+    // 执行一次性翻转
+    const success = gameState.flipCanvas();
 
-        // 应用翻转变换到坐标
-        const startPoint = gameState.isFlipped ?
-          { x: config.screenWidth - path.points[0].x, y: path.points[0].y } :
-          path.points[0];
-
-        ctx.moveTo(startPoint.x, startPoint.y);
-
-        for (let i = 1; i < path.points.length; i++) {
-          const point = gameState.isFlipped ?
-            { x: config.screenWidth - path.points[i].x, y: path.points[i].y } :
-            path.points[i];
-
-          ctx.lineTo(point.x, point.y);
-        }
-
-        ctx.strokeStyle = path.color;
-        ctx.lineWidth = path.size;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.stroke();
-      }
-    });
-
-    if (gameState.isFlipped) {
-      ctx.restore();
+    if (success) {
+      // 重新绘制整个界面（包括翻转后的路径）
+      this.eventHandler.uiManager.drawGameUI(gameState);
     }
   }
+
+
 
   // 跳转按钮点击 - 修复：调整触摸区域与UI一致
   handleJumpButtonClick(x, y) {
@@ -299,21 +253,18 @@ class MainTouchHandler {
     const gameState = this.eventHandler.gameState;
     gameState.isDrawing = true;
 
-    // 应用翻转变换到起始坐标
-    const startX = gameState.isFlipped ? config.screenWidth - x : x;
-    const startY = y;
-
-    gameState.lastX = startX;
-    gameState.lastY = startY;
-    gameState.startNewPath(startX, startY);
+    // 直接使用原始坐标（不再应用动态翻转）
+    gameState.lastX = x;
+    gameState.lastY = y;
+    gameState.startNewPath(x, y);
   }
 
   continueDrawing(x, y) {
     const ctx = this.eventHandler.canvas.getContext('2d');
     const gameState = this.eventHandler.gameState;
 
-    // 应用翻转变换到坐标
-    const currentX = gameState.isFlipped ? config.screenWidth - x : x;
+    // 直接使用原始坐标（不再应用动态翻转）
+    const currentX = x;
     const currentY = y;
 
     ctx.beginPath();
@@ -381,7 +332,7 @@ class MainTouchHandler {
 
     // 使用统一方法确定用户角色
     const role = this.getCurrentUserRole();
-    
+
     // 根据角色调用不同的记录方法
     let success = false;
     const gameState = this.eventHandler.gameState;
@@ -446,13 +397,10 @@ class MainTouchHandler {
     const gameState = this.eventHandler.gameState;
     gameState.isDrawing = true;
 
-    // 应用翻转变换到起始坐标
-    const startX = gameState.isFlipped ? config.screenWidth - x : x;
-    const startY = y;
-
-    gameState.lastX = startX;
-    gameState.lastY = startY;
-    gameState.startNewPath(startX, startY);
+    // 直接使用原始坐标（不再应用动态翻转）
+    gameState.lastX = x;
+    gameState.lastY = y;
+    gameState.startNewPath(x, y);
   }
 
   // 修改：continueDrawing 方法，移除协作操作记录
@@ -460,8 +408,8 @@ class MainTouchHandler {
     const ctx = this.eventHandler.canvas.getContext('2d');
     const gameState = this.eventHandler.gameState;
 
-    // 应用翻转变换到坐标
-    const currentX = gameState.isFlipped ? config.screenWidth - x : x;
+    // 直接使用原始坐标（不再应用动态翻转）
+    const currentX = x;
     const currentY = y;
 
     ctx.beginPath();
@@ -488,12 +436,12 @@ class MainTouchHandler {
       if (this.isCollaborativeMode && gameState.drawingPaths.length > 0) {
         const lastPath = gameState.drawingPaths[gameState.drawingPaths.length - 1];
         const operationType = gameState.isEraser ? 'erase' : 'draw';
-        
+
         // 确定当前用户角色（使用统一方法）
         const role = this.getCurrentUserRole();
-        
+
         console.log(`${role} 完成绘画操作，操作类型: ${operationType}`);
-        
+
         // 创建新的操作对象，包含所有必要信息
         const operation = {
           ...lastPath,
@@ -503,10 +451,10 @@ class MainTouchHandler {
           operationType: operationType,
           isEraser: gameState.isEraser || operationType === 'erase'
         };
-        
+
         // 更新绘图路径中的最后一项，确保包含角色信息
         gameState.drawingPaths[gameState.drawingPaths.length - 1] = operation;
-        
+
         // 添加到本地角色历史记录（确保操作被正确记录）
         const success = gameState.addOperationToRoleHistory(role, operation);
         if (success) {
@@ -514,7 +462,7 @@ class MainTouchHandler {
         } else {
           console.error(`${role} 绘画操作添加失败`);
         }
-        
+
         // 记录协作操作
         await this.recordCollaborativeOperation(operationType, lastPath.points);
       }
@@ -692,9 +640,9 @@ class MainTouchHandler {
     const ctx = this.eventHandler.canvas.getContext('2d');
     const config = require('../config.js').config;
     const positions = require('../config.js').getAreaPositions();
-    
+
     console.log(`撤销后重绘画布，当前路径数: ${gameState.drawingPaths.length}`);
-    
+
     // 修复：统一使用UIManager重绘整个UI，确保背景和所有元素都正确显示
     // 这样可以避免直接操作画布导致的显示不一致问题
     if (this.eventHandler.uiManager) {
@@ -702,7 +650,7 @@ class MainTouchHandler {
       console.log('使用UIManager重绘画布完成');
       return;
     }
-    
+
     // 备用方案：直接重绘画布（仅在UIManager不可用时使用）
     console.warn('UIManager不可用，使用备用重绘方案');
     const drawingAreaY = positions.drawingAreaY;
@@ -724,8 +672,8 @@ class MainTouchHandler {
         ctx.beginPath();
 
         // 应用翻转变换到坐标
-        const startPoint = gameState.isFlipped ? 
-          { x: config.screenWidth - path.points[0].x, y: path.points[0].y } : 
+        const startPoint = gameState.isFlipped ?
+          { x: config.screenWidth - path.points[0].x, y: path.points[0].y } :
           path.points[0];
 
         ctx.moveTo(startPoint.x, startPoint.y);

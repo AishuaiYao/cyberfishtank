@@ -16,8 +16,7 @@ class GameState {
     this.drawingPaths = [];
     this.currentPath = null;
 
-    // 新增：翻转状态
-    this.isFlipped = false;
+
 
     // 优化：分离评分状态
     this.scoringState = {
@@ -77,10 +76,24 @@ class GameState {
     return this.isEraser;
   }
 
-  // 新增：翻转画布
+  // 修改：翻转画布 - 改为一次性操作，翻转所有路径坐标
   flipCanvas() {
-    this.isFlipped = !this.isFlipped;
-    return this.isFlipped;
+    if (this.drawingPaths.length === 0) {
+      return false;
+    }
+    
+    // 一次性翻转所有路径的x坐标
+    this.drawingPaths.forEach(path => {
+      if (path.points && path.points.length > 0) {
+        path.points.forEach(point => {
+          // 水平翻转：x = 屏幕宽度 - x
+          point.x = config.screenWidth - point.x;
+        });
+      }
+    });
+    
+    console.log(`画布已翻转，共翻转了${this.drawingPaths.length}条路径`);
+    return true;
   }
 
   setColor(color) {
