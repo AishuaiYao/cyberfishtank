@@ -298,6 +298,7 @@ class TeamTouchHandler {
         // 初始化协作模式（房主角色）
         if (this.eventHandler.touchHandlers.main) {
           this.eventHandler.touchHandlers.main.initializeCollaboration(this.roomNumber, 'homeowner');
+          console.log('房主角色初始化，角色=homeowner');
           
           // 保存协作管理器引用
           this.collaborationManager = this.eventHandler.touchHandlers.main.collaborationManager;
@@ -474,6 +475,7 @@ class TeamTouchHandler {
 
     // 判断是否为房主，只有房主才能使用"让它游起来"按钮
     const isRoomOwner = this.roomNumber === this.teamInput;
+    console.log(`用户角色判断: 房间号=${this.roomNumber}, 输入=${this.teamInput}, 是否房主=${isRoomOwner}`);
     
     // 检查是否点击了"让它游起来"按钮区域（只有房主才响应）
     const buttonArea = this.getCollaborativePaintingButtonArea();
@@ -1007,28 +1009,34 @@ class TeamTouchHandler {
         console.log('房间数据更新成功，进入房间:', this.searchRoomInput);
         this.roomNumber = this.searchRoomInput;
 
-        // 伙伴侧：进入房间后立即设置自己为已加入状态
-        // 判断是否为伙伴侧（不是房主）
-        const isRoomOwner = this.roomNumber === this.teamInput;
-        if (!isRoomOwner) {
-          console.log('伙伴侧进入房间，立即设置isTeammateJoined为true');
-          this.isTeammateJoined = true;
+          // 伙伴侧：进入房间后立即设置自己为已加入状态
+          // 判断是否为伙伴侧（不是房主）
+          const isRoomOwner = this.roomNumber === this.teamInput;
+          console.log(`用户进入房间判断: 房间号=${this.roomNumber}, 输入=${this.teamInput}, 是否房主=${isRoomOwner}`);
+          
+          if (!isRoomOwner) {
+            console.log('伙伴侧进入房间，立即设置isTeammateJoined为true');
+            this.isTeammateJoined = true;
 
-          // 初始化协作模式（协作者角色）
-          if (this.eventHandler.touchHandlers.main) {
-            this.eventHandler.touchHandlers.main.initializeCollaboration(this.roomNumber, 'teamworker');
-          }
+            // 初始化协作模式（协作者角色）
+            if (this.eventHandler.touchHandlers.main) {
+              this.eventHandler.touchHandlers.main.initializeCollaboration(this.roomNumber, 'teamworker');
+              console.log('协作者角色初始化，角色=teamworker');
+            }
 
-          // 确保协作管理器已正确初始化
-          if (this.eventHandler.touchHandlers.main &&
-              this.eventHandler.touchHandlers.main.collaborationManager) {
-            console.log('协作者角色初始化成功，可以开始同步操作到房主');
-            // 保存协作管理器引用
-            this.collaborationManager = this.eventHandler.touchHandlers.main.collaborationManager;
+            // 确保协作管理器已正确初始化
+            if (this.eventHandler.touchHandlers.main &&
+                this.eventHandler.touchHandlers.main.collaborationManager) {
+              console.log('协作者角色初始化成功，可以开始同步操作到房主');
+              // 保存协作管理器引用
+              this.collaborationManager = this.eventHandler.touchHandlers.main.collaborationManager;
+            } else {
+              console.error('协作者角色初始化失败');
+            }
           } else {
-            console.error('协作者角色初始化失败');
+            // 房主搜索自己的房间（理论上不应该发生，但处理以防万一）
+            console.log('房主搜索自己的房间，这是异常情况');
           }
-        }
 
         // 切换到共同绘画界面
         this.currentTeamState = 'collaborativePainting';

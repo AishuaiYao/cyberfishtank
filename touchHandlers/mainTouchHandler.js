@@ -159,28 +159,6 @@ class MainTouchHandler {
     return false;
   }
 
-  // 工具操作 - 修改：实现翻转功能
-  handleToolAction(toolIndex) {
-    const gameState = this.eventHandler.gameState;
-
-    switch (toolIndex) {
-      case 0: // 橡皮 - 不取消评分
-        gameState.toggleEraser();
-        break;
-      case 1: // 撤销 - 不取消评分
-        gameState.undo();
-        break;
-      case 2: // 清空 - 需要取消评分，因为内容完全变了
-        gameState.clear();
-        this.cancelPendingScoring();
-        break;
-      case 3: // 翻转 - 实现翻转功能
-        this.handleFlipAction();
-        break;
-    }
-    this.eventHandler.uiManager.drawGameUI(gameState);
-  }
-
   // 新增：处理翻转操作
   handleFlipAction() {
     const gameState = this.eventHandler.gameState;
@@ -352,17 +330,6 @@ class MainTouchHandler {
     gameState.lastY = currentY;
   }
 
-  async finishDrawing() {
-    const gameState = this.eventHandler.gameState;
-    if (gameState.completePath()) {
-      console.log('绘画完成，将在空闲时触发AI评分');
-    }
-    gameState.isDrawing = false;
-
-    // 立即更新UI
-    this.eventHandler.uiManager.drawGameUI(gameState);
-  }
-
   // 新增：初始化协作模式
   initializeCollaboration(roomId, userRole) {
     console.log(`初始化协作模式，房间ID: ${roomId}, 角色: ${userRole}`);
@@ -412,10 +379,9 @@ class MainTouchHandler {
       return false;
     }
 
-    // 判断用户角色
-    const teamHandler = this.eventHandler.touchHandlers.team;
-    const isRoomOwner = teamHandler && teamHandler.roomNumber === teamHandler.teamInput;
-
+    // 使用统一方法确定用户角色
+    const role = this.getCurrentUserRole();
+    
     // 根据角色调用不同的记录方法
     let success = false;
     const gameState = this.eventHandler.gameState;
@@ -437,7 +403,7 @@ class MainTouchHandler {
       optimizedTrace = this.collaborationManager.optimizePathTransmission(trace);
     }
 
-    if (isRoomOwner) {
+    if (role === 'homeowner') {
       // 房主使用recordOperation方法
       success = await this.collaborationManager.recordOperation(
         actualOperationType,
@@ -449,7 +415,7 @@ class MainTouchHandler {
       if (success) {
         console.log(`房主协作操作已记录: ${actualOperationType}, 颜色: ${color}, 线宽: ${lineWidth}`);
       }
-    } else {
+    } else if (role === 'teamworker') {
       // 协作者使用recordTeamworkerOperation方法
       success = await this.collaborationManager.recordTeamworkerOperation(
         actualOperationType,
@@ -507,7 +473,7 @@ class MainTouchHandler {
     gameState.lastY = currentY;
   }
 
-  // 修改：finishDrawing 方法，添加协作操作记录
+  // 修改：finishDrawing 方法，修复版：确保操作正确记录到角色历史
   async finishDrawing() {
     const gameState = this.eventHandler.gameState;
     if (gameState.completePath()) {
@@ -516,8 +482,35 @@ class MainTouchHandler {
       // 协作模式：记录绘制完成（房主和协作者都记录）
       if (this.isCollaborativeMode && gameState.drawingPaths.length > 0) {
         const lastPath = gameState.drawingPaths[gameState.drawingPaths.length - 1];
-        // 使用正确的操作类型：draw 或 erase
         const operationType = gameState.isEraser ? 'erase' : 'draw';
+        
+        // 确定当前用户角色（使用统一方法）
+        const role = this.getCurrentUserRole();
+        
+        console.log(`${role} 完成绘画操作，操作类型: ${operationType}`);
+        
+        // 创建新的操作对象，包含所有必要信息
+        const operation = {
+          ...lastPath,
+          id: Date.now() + Math.random(), // 添加唯一ID
+          timestamp: Date.now(),
+          role: role,
+          operationType: operationType,
+          isEraser: gameState.isEraser || operationType === 'erase'
+        };
+        
+        // 更新绘图路径中的最后一项，确保包含角色信息
+        gameState.drawingPaths[gameState.drawingPaths.length - 1] = operation;
+        
+        // 添加到本地角色历史记录（确保操作被正确记录）
+        const success = gameState.addOperationToRoleHistory(role, operation);
+        if (success) {
+          console.log(`${role} 绘画操作已添加到本地历史，当前操作数: ${gameState.getOperationCountByRole(role)}`);
+        } else {
+          console.error(`${role} 绘画操作添加失败`);
+        }
+        
+        // 记录协作操作
         await this.recordCollaborativeOperation(operationType, lastPath.points);
       }
     }
@@ -527,8 +520,8 @@ class MainTouchHandler {
     this.eventHandler.uiManager.drawGameUI(gameState);
   }
 
-  // 修改：工具操作 - 修改：实现翻转功能，添加协作操作记录
-  handleToolAction(toolIndex) {
+  // 修改：工具操作 - 改进版：支持基于角色的准确撤销
+  async handleToolAction(toolIndex) {
     const gameState = this.eventHandler.gameState;
 
     switch (toolIndex) {
@@ -536,11 +529,7 @@ class MainTouchHandler {
         gameState.toggleEraser();
         break;
       case 1: // 撤销 - 不取消评分
-        gameState.undo();
-        // 协作模式：记录撤销操作
-        if (this.isCollaborativeMode) {
-          this.recordCollaborativeOperation('undo', null);
-        }
+        await this.handleUndoAction();
         break;
       case 2: // 清空 - 需要取消评分，因为内容完全变了
         gameState.clear();
@@ -551,6 +540,211 @@ class MainTouchHandler {
         break;
     }
     this.eventHandler.uiManager.drawGameUI(gameState);
+  }
+
+  // 新增：获取当前用户角色（统一方法）
+  getCurrentUserRole() {
+    if (!this.isCollaborativeMode) {
+      return null; // 非协作模式无角色
+    }
+    
+    // 获取当前用户角色
+    const teamHandler = this.eventHandler.touchHandlers.team;
+    if (teamHandler && teamHandler.roomNumber) {
+      // 判断是否为房主
+      const isRoomOwner = teamHandler.roomNumber === teamHandler.teamInput;
+      return isRoomOwner ? 'homeowner' : 'teamworker';
+    }
+    
+    console.warn('无法确定用户角色，默认为teamworker');
+    return 'teamworker'; // 默认值
+  }
+
+  // 新增：处理撤销操作（支持基于角色的准确撤销）
+  async handleUndoAction() {
+    const gameState = this.eventHandler.gameState;
+    
+    if (this.isCollaborativeMode) {
+      // 协作模式：基于角色进行准确撤销
+      const role = this.getCurrentUserRole();
+      
+      console.log(`${role} 执行撤销操作，当前绘图路径数: ${gameState.drawingPaths.length}`);
+      
+      // 执行基于角色的撤销
+      const success = gameState.undoByRole(role);
+      
+    if (success) {
+      console.log(`撤销后绘图路径数: ${gameState.drawingPaths.length}`);
+      
+      // 先执行本地擦除操作
+      this.eraseOperationAfterUndo(role);
+      
+      // 记录协作撤销操作（传递角色信息）
+      await this.recordCollaborativeOperation('undo', null);
+      
+      // 确保UI更新
+      if (this.eventHandler.uiManager) {
+        this.eventHandler.uiManager.drawGameUI(gameState);
+      }
+      
+      console.log(`${role} 撤销操作成功，UI已更新`);
+    } else {
+      console.warn(`${role} 撤销操作失败：没有可撤销的操作`);
+      
+      // 提示用户没有可撤销的操作
+      const Utils = require('../utils.js');
+      Utils.showError(`${role === 'homeowner' ? '房主' : '协作者'}没有可撤销的操作`);
+    }
+    } else {
+      // 单机模式：使用标准撤销
+      const success = gameState.undo();
+      if (success) {
+        // 重绘画布
+        this.redrawCanvasAfterUndo();
+      }
+    }
+  }
+
+  // 新增：撤销操作后直接擦除操作（不重绘整个画布）
+  eraseOperationAfterUndo(role) {
+    const gameState = this.eventHandler.gameState;
+    
+    // 获取要撤销的操作（角色的最后一个操作）
+    let operationToUndo = null;
+    if (role === 'homeowner' && gameState.homeownerHistory.length > 0) {
+      operationToUndo = gameState.homeownerHistory[gameState.homeownerHistory.length - 1];
+    } else if (role === 'teamworker' && gameState.teamworkerHistory.length > 0) {
+      operationToUndo = gameState.teamworkerHistory[gameState.teamworkerHistory.length - 1];
+    }
+    
+    if (!operationToUndo) {
+      console.warn(`${role}没有可撤销的操作`);
+      return;
+    }
+    
+    const ctx = this.eventHandler.canvas.getContext('2d');
+    const config = require('../config.js').config;
+    
+    console.log(`直接在画布上擦除${role}的操作: ID=${operationToUndo.id || '无ID'}, 颜色=${operationToUndo.color}`);
+    
+    // 保存当前绘图状态
+    ctx.save();
+    
+    // 如果处于翻转状态，应用翻转变换
+    if (gameState.isFlipped) {
+      ctx.save();
+      ctx.translate(config.screenWidth, 0);
+      ctx.scale(-1, 1);
+    }
+    
+    // 设置擦除参数
+    ctx.globalCompositeOperation = 'destination-out'; // 设置合成模式为擦除
+    ctx.lineWidth = operationToUndo.size * 2; // 稍微增大线宽确保完全覆盖
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    
+    // 如果操作是橡皮擦，使用白色擦除
+    if (operationToUndo.isEraser || operationToUndo.color === '#FFFFFF') {
+      ctx.globalCompositeOperation = 'destination-over'; // 在下方绘制
+      ctx.strokeStyle = '#FFFFFF';
+    }
+    
+    // 开始擦除路径
+    ctx.beginPath();
+    
+    // 应用翻转变换到坐标
+    const startPoint = gameState.isFlipped ? 
+      { x: config.screenWidth - operationToUndo.points[0].x, y: operationToUndo.points[0].y } : 
+      operationToUndo.points[0];
+    
+    ctx.moveTo(startPoint.x, startPoint.y);
+    
+    for (let i = 1; i < operationToUndo.points.length; i++) {
+      const point = gameState.isFlipped ?
+        { x: config.screenWidth - operationToUndo.points[i].x, y: operationToUndo.points[i].y } :
+        operationToUndo.points[i];
+      
+      ctx.lineTo(point.x, point.y);
+    }
+    
+    ctx.stroke();
+    
+    // 恢复翻转状态
+    if (gameState.isFlipped) {
+      ctx.restore();
+    }
+    
+    // 恢复绘图状态
+    ctx.restore();
+    
+    console.log(`已完成在画布上擦除${role}的操作`);
+  }
+
+  // 新增：撤销操作后重绘画布（备用方案）
+  redrawCanvasAfterUndo() {
+    const gameState = this.eventHandler.gameState;
+    const ctx = this.eventHandler.canvas.getContext('2d');
+    const config = require('../config.js').config;
+    const positions = require('../config.js').getAreaPositions();
+    
+    console.log(`撤销后重绘画布，当前路径数: ${gameState.drawingPaths.length}`);
+    
+    // 通过UIManager重新绘制整个UI，确保背景和所有元素都正确显示
+    if (this.eventHandler.uiManager) {
+      this.eventHandler.uiManager.drawGameUI(gameState);
+    } else {
+      // 备用方案：直接重绘画布
+      const drawingAreaY = positions.drawingAreaY;
+
+      // 清除绘画区域
+      ctx.clearRect(12, drawingAreaY, config.screenWidth - 24, config.drawingAreaHeight);
+
+      // 如果处于翻转状态，应用翻转变换
+      if (gameState.isFlipped) {
+        ctx.save();
+        ctx.translate(config.screenWidth, 0);
+        ctx.scale(-1, 1);
+      }
+
+      // 重新绘制所有路径
+      gameState.drawingPaths.forEach(path => {
+        if (path.points && path.points.length > 0) {
+          ctx.beginPath();
+
+          // 应用翻转变换到坐标
+          const startPoint = gameState.isFlipped ? 
+            { x: config.screenWidth - path.points[0].x, y: path.points[0].y } : 
+            path.points[0];
+
+          ctx.moveTo(startPoint.x, startPoint.y);
+
+          for (let i = 1; i < path.points.length; i++) {
+            const point = gameState.isFlipped ?
+              { x: config.screenWidth - path.points[i].x, y: path.points[i].y } :
+              path.points[i];
+
+            ctx.lineTo(point.x, point.y);
+          }
+
+          ctx.strokeStyle = path.color;
+          ctx.lineWidth = path.size;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          ctx.stroke();
+          
+          // 调试输出：显示绘制的路径信息
+          if (path.role) {
+            console.log(`重绘${path.role}的路径，颜色: ${path.color}, 点数: ${path.points.length}, 操作ID: ${path.id || '无ID'}`);
+          }
+        }
+      });
+
+      if (gameState.isFlipped) {
+        ctx.restore();
+      }
+    }
+    
+    console.log('撤销操作后画布已重绘');
   }
 
   // 修改：颜色按钮点击 - 修改：不取消评分，添加协作操作记录

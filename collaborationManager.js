@@ -32,25 +32,25 @@ class CollaborationManager {
   async initialize(roomId, userRole) {
     try {
       console.log(`初始化协作管理器，房间: ${roomId}, 角色: ${userRole}`);
-      
+
       this.roomId = roomId;
       this.userRole = userRole;
-      
+
       // 根据角色设置不同的监听
       if (userRole === 'homeowner') {
         // 房主监听协作者数据变化
         await this.setupTeamworkerWatcher();
-        
+
         // 初始化房主数据字段，确保有默认值
         await this.initializeDrawingData('homeowner');
       } else {
         // 协作者监听房主数据变化
         await this.setupHomeownerWatcher();
-        
+
         // 初始化协作者数据字段，确保有默认值
         await this.initializeDrawingData('teamworker');
       }
-      
+
       this.isInitialized = true;
       console.log(`协作管理器初始化成功，角色: ${userRole}`);
       return true;
@@ -64,7 +64,7 @@ class CollaborationManager {
   async setupHomeownerWatcher() {
     try {
       console.log('设置房主数据监听');
-      
+
       this.homeownerWatch = await this.databaseManager.cloudDb
         .collection('drawing')
         .where({
@@ -74,7 +74,7 @@ class CollaborationManager {
         .watch({
           onChange: (snapshot) => {
             console.log('监听到房主数据变化:', snapshot);
-            
+
             if (snapshot.type === 'init' && snapshot.docs && snapshot.docs.length > 0) {
               // 初始化时检查房主数据
               this.handleHomeownerData(snapshot.docs[0]);
@@ -154,7 +154,7 @@ class CollaborationManager {
         this.handleHomeownerOperationType('exit');
         return;
       }
-      
+
       // 处理绘画操作同步
       this.syncOperationFromHomeowner(homeownerData);
     } else {
@@ -179,7 +179,7 @@ class CollaborationManager {
         this.handleTeamworkerOperationType('exit');
         return;
       }
-      
+
       // 处理绘画操作同步
       this.syncOperationFromTeamworker(teamworkerData);
     } else {
@@ -315,7 +315,7 @@ class CollaborationManager {
         lineWidth,
         roomId: this.roomId
       });
-      
+
       const success = await this.databaseManager.updateDrawingData(
         this.roomId,
         'homeowner',
@@ -324,7 +324,9 @@ class CollaborationManager {
           trace: trace || [],
           color: color || '#000000',
           lineWidth: lineWidth || 2,
-          lastUpdated: new Date()
+          lastUpdated: new Date(),
+          role: 'homeowner', // 添加角色标识
+          userRole: this.userRole // 添加当前用户角色
         }
       );
 
@@ -359,7 +361,7 @@ class CollaborationManager {
         lineWidth,
         roomId: this.roomId
       });
-      
+
       const success = await this.databaseManager.updateDrawingData(
         this.roomId,
         'teamworker',
@@ -368,7 +370,9 @@ class CollaborationManager {
           trace: trace || [],
           color: color || '#000000',
           lineWidth: lineWidth || 2,
-          lastUpdated: new Date()
+          lastUpdated: new Date(),
+          role: 'teamworker', // 添加角色标识
+          userRole: this.userRole // 添加当前用户角色
         }
       );
 
@@ -388,7 +392,7 @@ class CollaborationManager {
   // 同步房主操作到协作者画布
   syncOperationFromHomeowner(homeownerData) {
     console.log('开始同步房主操作:', homeownerData);
-    
+
     if (!this.eventHandler || !this.eventHandler.touchHandlers || !this.eventHandler.touchHandlers.main) {
       console.error('无法同步操作：缺少必要的事件处理器');
       return;
@@ -398,20 +402,21 @@ class CollaborationManager {
     const trace = homeownerData.trace || [];
     const color = homeownerData.color || '#000000';
     const lineWidth = homeownerData.lineWidth || 2;
+    const role = homeownerData.role || 'homeowner'; // 从数据中获取角色，默认为homeowner
 
-    console.log(`准备同步房主操作: ${operationType}, 轨迹点数: ${trace.length}, 颜色: ${color}, 线宽: ${lineWidth}`);
+    console.log(`准备同步房主操作: ${operationType}, 轨迹点数: ${trace.length}, 颜色: ${color}, 线宽: ${lineWidth}, 角色: ${role}`);
 
     switch (operationType) {
       case 'draw':
-        this.renderDrawOperation(trace, color, lineWidth);
+        this.renderDrawOperation(trace, color, lineWidth, role);
         console.log('房主绘制操作同步完成');
         break;
       case 'erase':
-        this.renderEraseOperation(trace, lineWidth);
+        this.renderEraseOperation(trace, lineWidth, role);
         console.log('房主擦除操作同步完成');
         break;
       case 'undo':
-        this.renderUndoOperation();
+        this.renderUndoOperation(role);
         console.log('房主撤销操作同步完成');
         break;
       default:
@@ -432,20 +437,21 @@ class CollaborationManager {
     const trace = teamworkerData.trace || [];
     const color = teamworkerData.color || '#000000';
     const lineWidth = teamworkerData.lineWidth || 2;
+    const role = teamworkerData.role || 'teamworker'; // 从数据中获取角色，默认为teamworker
 
-    console.log(`准备同步协作者操作: ${operationType}, 轨迹点数: ${trace.length}, 颜色: ${color}, 线宽: ${lineWidth}`);
+    console.log(`准备同步协作者操作: ${operationType}, 轨迹点数: ${trace.length}, 颜色: ${color}, 线宽: ${lineWidth}, 角色: ${role}`);
 
     switch (operationType) {
       case 'draw':
-        this.renderDrawOperation(trace, color, lineWidth);
+        this.renderDrawOperation(trace, color, lineWidth, role);
         console.log('协作者绘制操作同步完成');
         break;
       case 'erase':
-        this.renderEraseOperation(trace, lineWidth);
+        this.renderEraseOperation(trace, lineWidth, role);
         console.log('协作者擦除操作同步完成');
         break;
       case 'undo':
-        this.renderUndoOperation();
+        this.renderUndoOperation(role);
         console.log('协作者撤销操作同步完成');
         break;
       default:
@@ -454,7 +460,7 @@ class CollaborationManager {
   }
 
   // 渲染绘制操作
-  renderDrawOperation(trace, color, lineWidth) {
+  renderDrawOperation(trace, color, lineWidth, role) {
     if (!trace || trace.length < 2) {
       console.warn('无效的绘制轨迹数据');
       return;
@@ -485,19 +491,29 @@ class CollaborationManager {
     // 恢复绘图状态
     ctx.restore();
 
-    // 将路径添加到游戏状态中（用于撤销等操作）
-    gameState.drawingPaths.push({
+    // 创建包含角色信息的路径对象
+    const pathObject = {
       points: [...trace],
       color: color,
       size: lineWidth,
-      isEraser: false
-    });
+      isEraser: false,
+      id: Date.now() + Math.random(), // 添加唯一ID
+      timestamp: Date.now(),
+      role: role, // 添加角色信息
+      operationType: 'draw'
+    };
 
-    console.log(`已渲染绘制操作，${trace.length}个点`);
+    // 将路径添加到游戏状态中（用于撤销等操作）
+    gameState.drawingPaths.push(pathObject);
+    
+    // 同时添加到对应角色的历史栈
+    gameState.addOperationToRoleHistory(role, pathObject);
+
+    console.log(`已渲染${role}绘制操作，${trace.length}个点`);
   }
 
   // 渲染擦除操作
-  renderEraseOperation(trace, lineWidth) {
+  renderEraseOperation(trace, lineWidth, role) {
     if (!trace || trace.length < 2) {
       console.warn('无效的擦除轨迹数据');
       return;
@@ -528,40 +544,58 @@ class CollaborationManager {
     // 恢复绘图状态
     ctx.restore();
 
-    // 将擦除路径添加到游戏状态中
-    gameState.drawingPaths.push({
+    // 创建包含角色信息的路径对象
+    const pathObject = {
       points: [...trace],
       color: '#FFFFFF',
       size: lineWidth * 2,
-      isEraser: true
-    });
+      isEraser: true,
+      id: Date.now() + Math.random(), // 添加唯一ID
+      timestamp: Date.now(),
+      role: role, // 添加角色信息
+      operationType: 'erase'
+    };
 
-    console.log(`已渲染擦除操作，${trace.length}个点`);
+    // 将擦除路径添加到游戏状态中
+    gameState.drawingPaths.push(pathObject);
+    
+    // 同时添加到对应角色的历史栈
+    gameState.addOperationToRoleHistory(role, pathObject);
+
+    console.log(`已渲染${role}擦除操作，${trace.length}个点`);
   }
 
   // 渲染撤销操作
-  renderUndoOperation() {
+  renderUndoOperation(sourceRole) {
     const gameState = this.eventHandler.gameState;
 
-    if (gameState.drawingPaths.length === 0) {
-      console.warn('没有可撤销的操作');
+    // 如果没有明确指定来源角色，则使用对方角色（因为这是接收对方的撤销操作）
+    const roleToUndo = sourceRole || (this.userRole === 'homeowner' ? 'teamworker' : 'homeowner');
+    
+    // 确认指定角色是否有操作可撤销
+    if (gameState.getOperationCountByRole(roleToUndo) === 0) {
+      console.warn(`${roleToUndo}没有可撤销的操作`);
       return;
     }
 
-    // 移除最后一条路径
-    gameState.drawingPaths.pop();
-
-    // 重绘画布
-    this.redrawCanvas();
-
-    console.log('已执行撤销操作');
+    // 执行基于角色的撤销
+    const success = gameState.undoByRole(roleToUndo);
+    
+    if (success) {
+      console.log(`已同步${roleToUndo}的撤销操作`);
+      
+      // 重绘画布
+      this.redrawCanvas();
+    } else {
+      console.warn(`${roleToUndo}撤销操作失败`);
+    }
   }
 
   // 重绘画布
   redrawCanvas() {
     const gameState = this.eventHandler.gameState;
     const ctx = this.eventHandler.canvas.getContext('2d');
-    
+
     // 通过UIManager重新绘制整个UI，确保背景和所有元素都正确显示
     if (this.eventHandler.uiManager) {
       this.eventHandler.uiManager.drawGameUI(gameState);
@@ -575,7 +609,7 @@ class CollaborationManager {
 
       // 重新绘制所有路径
       gameState.drawingPaths.forEach(path => {
-        if (path.points.length > 0) {
+        if (path.points && path.points.length > 0) {
           ctx.beginPath();
           ctx.moveTo(path.points[0].x, path.points[0].y);
 
@@ -588,6 +622,11 @@ class CollaborationManager {
           ctx.lineCap = 'round';
           ctx.lineJoin = 'round';
           ctx.stroke();
+          
+          // 调试输出：显示绘制的路径信息
+          if (path.role) {
+            console.log(`重绘${path.role}的路径，颜色: ${path.color}, 点数: ${path.points.length}, 操作ID: ${path.id || '无ID'}`);
+          }
         }
       });
     }
@@ -597,7 +636,7 @@ class CollaborationManager {
   async initializeDrawingData(role) {
     try {
       console.log(`初始化 ${role} 绘画数据`);
-      
+
       // 检查记录是否存在
       const result = await this.databaseManager.cloudDb
         .collection('drawing')
