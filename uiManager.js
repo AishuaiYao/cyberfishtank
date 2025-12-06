@@ -700,13 +700,8 @@ class UIManager {
     ctx.fillStyle = config.primaryColor;
     ctx.font = 'bold 14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
 
-    // 兼容新旧数据结构：优先使用旧数据结构，否则使用临时字段
-    let finalScore = 0;
-    if ('score' in fishData) {
-      finalScore = fishData.score || 0;
-    } else if ('tempScore' in fishData) {
-      finalScore = fishData.tempScore || 0;
-    }
+    // 统一使用临时字段
+    let finalScore = fishData.tempScore || 0;
 
     ctx.fillText(`评分: ${finalScore}`, Math.round(x + width / 2), textStartY + 40);
 
@@ -864,13 +859,8 @@ class UIManager {
     ctx.fillStyle = config.primaryColor;
     ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
 
-    // 兼容新旧数据结构：优先使用旧数据结构，否则使用临时字段
-    let score = 0;
-    if ('score' in fishData) {
-      score = fishData.score || 0;
-    } else if ('tempScore' in fishData) {
-      score = fishData.tempScore || 0;
-    }
+    // 统一使用临时字段
+    let score = fishData.tempScore || 0;
 
     ctx.fillText(`评分: ${score}`, detailX + detailWidth / 2, textStartY + 50);
 

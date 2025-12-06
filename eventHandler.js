@@ -590,24 +590,13 @@ class EventHandler {
     const isStar = action === 'star';
     const change = operation === 'increment' ? 1 : -1;
 
-    // 兼容新旧数据结构
-    if ('star' in fishData && 'unstar' in fishData) {
-      // 旧数据结构：有评分字段
-      if (isStar) {
-        fishData.star = Math.max(0, (fishData.star || 0) + change);
-      } else {
-        fishData.unstar = Math.max(0, (fishData.unstar || 0) + change);
-      }
-      fishData.score = (fishData.star || 0) - (fishData.unstar || 0);
+    // 统一使用临时字段
+    if (isStar) {
+      fishData.tempStar = Math.max(0, (fishData.tempStar || 0) + change);
     } else {
-      // 新数据结构：使用临时字段
-      if (isStar) {
-        fishData.tempStar = Math.max(0, (fishData.tempStar || 0) + change);
-      } else {
-        fishData.tempUnstar = Math.max(0, (fishData.tempUnstar || 0) + change);
-      }
-      fishData.tempScore = (fishData.tempStar || 0) - (fishData.tempUnstar || 0);
+      fishData.tempUnstar = Math.max(0, (fishData.tempUnstar || 0) + change);
     }
+    fishData.tempScore = (fishData.tempStar || 0) - (fishData.tempUnstar || 0);
   }
 
   // 新增：更新交互状态
@@ -667,24 +656,13 @@ class EventHandler {
     const isStar = action === 'star';
     const change = operation === 'increment' ? 1 : -1;
 
-    // 兼容新旧数据结构
-    if ('star' in fishData && 'unstar' in fishData) {
-      // 旧数据结构：有评分字段
-      if (isStar) {
-        fishData.star = Math.max(0, (fishData.star || 0) + change);
-      } else {
-        fishData.unstar = Math.max(0, (fishData.unstar || 0) + change);
-      }
-      fishData.score = (fishData.star || 0) - (fishData.unstar || 0);
+    // 统一使用临时字段
+    if (isStar) {
+      fishData.tempStar = Math.max(0, (fishData.tempStar || 0) + change);
     } else {
-      // 新数据结构：使用临时字段
-      if (isStar) {
-        fishData.tempStar = Math.max(0, (fishData.tempStar || 0) + change);
-      } else {
-        fishData.tempUnstar = Math.max(0, (fishData.tempUnstar || 0) + change);
-      }
-      fishData.tempScore = (fishData.tempStar || 0) - (fishData.tempUnstar || 0);
+      fishData.tempUnstar = Math.max(0, (fishData.tempUnstar || 0) + change);
     }
+    fishData.tempScore = (fishData.tempStar || 0) - (fishData.tempUnstar || 0);
   }
 
   // 新增：更新交互状态
@@ -1293,17 +1271,10 @@ async refreshFishTank() {
       const scoreData = await this.databaseManager.calculateFishScore(fishData.fishName);
       const { score, starCount, unstarCount } = scoreData;
 
-      // 兼容新旧数据结构：如果鱼数据有评分字段则更新，否则使用临时字段
-      if ('score' in fishData) {
-        fishData.score = score;
-        fishData.star = starCount;
-        fishData.unstar = unstarCount;
-      } else {
-        // 使用临时字段存储评分数据
-        fishData.tempScore = score;
-        fishData.tempStar = starCount;
-        fishData.tempUnstar = unstarCount;
-      }
+      // 统一使用临时字段存储评分数据
+      fishData.tempScore = score;
+      fishData.tempStar = starCount;
+      fishData.tempUnstar = unstarCount;
 
       console.log(`鱼 ${fishData.fishName} 评分更新: ${score} (star: ${starCount}, unstar: ${unstarCount})`);
     } catch (error) {
@@ -1460,18 +1431,10 @@ async refreshFishTank() {
         userInteraction: userInteraction ? {...userInteraction} : null
       };
 
-      // 兼容新旧数据结构
-      if ('star' in fishData && 'unstar' in fishData) {
-        // 旧数据结构：有评分字段
-        originalState.starCount = fishData.star || 0;
-        originalState.unstarCount = fishData.unstar || 0;
-        originalState.score = fishData.score || 0;
-      } else {
-        // 新数据结构：没有评分字段，使用临时字段
-        originalState.tempStarCount = fishData.tempStar || 0;
-        originalState.tempUnstarCount = fishData.tempUnstar || 0;
-        originalState.tempScore = fishData.tempScore || 0;
-      }
+      // 统一使用临时字段
+      originalState.tempStarCount = fishData.tempStar || 0;
+      originalState.tempUnstarCount = fishData.tempUnstar || 0;
+      originalState.tempScore = fishData.tempScore || 0;
 
       // 统一处理逻辑
       if (currentAction === action) {
@@ -1540,18 +1503,10 @@ async refreshFishTank() {
   rollbackRankingState(fishItem, originalState) {
     const fishData = fishItem.fishData;
 
-    // 回滚数据状态 - 兼容新旧数据结构
-    if ('star' in fishData && 'unstar' in fishData) {
-      // 旧数据结构：有评分字段
-      fishData.star = originalState.starCount;
-      fishData.unstar = originalState.unstarCount;
-      fishData.score = originalState.score;
-    } else {
-      // 新数据结构：使用临时字段
-      fishData.tempStar = originalState.tempStarCount || 0;
-      fishData.tempUnstar = originalState.tempUnstarCount || 0;
-      fishData.tempScore = originalState.tempScore || 0;
-    }
+    // 统一使用临时字段
+    fishData.tempStar = originalState.tempStarCount || 0;
+    fishData.tempUnstar = originalState.tempUnstarCount || 0;
+    fishData.tempScore = originalState.tempScore || 0;
 
     fishItem.userInteraction = originalState.userInteraction;
 
@@ -1969,18 +1924,10 @@ async refreshFishTank() {
         userInteraction: userInteraction ? {...userInteraction} : null
       };
       
-      // 兼容新旧数据结构
-      if ('star' in fishData && 'unstar' in fishData) {
-        // 旧数据结构：有评分字段
-        originalState.starCount = fishData.star || 0;
-        originalState.unstarCount = fishData.unstar || 0;
-        originalState.score = fishData.score || 0;
-      } else {
-        // 新数据结构：没有评分字段，使用临时字段
-        originalState.tempStarCount = fishData.tempStar || 0;
-        originalState.tempUnstarCount = fishData.tempUnstar || 0;
-        originalState.tempScore = fishData.tempScore || 0;
-      }
+      // 统一使用临时字段
+      originalState.tempStarCount = fishData.tempStar || 0;
+      originalState.tempUnstarCount = fishData.tempUnstar || 0;
+      originalState.tempScore = fishData.tempScore || 0;
 
       const oppositeAction = actionType === 'star' ? 'unstar' : 'star';
 
@@ -2052,18 +1999,10 @@ async refreshFishTank() {
 
     const fishData = this.selectedFishData.fishData;
 
-    // 回滚数据状态 - 兼容新旧数据结构
-    if ('star' in fishData && 'unstar' in fishData) {
-      // 旧数据结构：有评分字段
-      fishData.star = originalState.starCount;
-      fishData.unstar = originalState.unstarCount;
-      fishData.score = originalState.score;
-    } else {
-      // 新数据结构：使用临时字段
-      fishData.tempStar = originalState.tempStarCount || 0;
-      fishData.tempUnstar = originalState.tempUnstarCount || 0;
-      fishData.tempScore = originalState.tempScore || 0;
-    }
+    // 统一使用临时字段
+    fishData.tempStar = originalState.tempStarCount || 0;
+    fishData.tempUnstar = originalState.tempUnstarCount || 0;
+    fishData.tempScore = originalState.tempScore || 0;
     
     this.selectedFishData.userInteraction = originalState.userInteraction;
 
