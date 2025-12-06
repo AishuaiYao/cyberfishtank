@@ -40,9 +40,15 @@ class CollaborationManager {
       if (userRole === 'homeowner') {
         // 房主监听协作者数据变化
         await this.setupTeamworkerWatcher();
+        
+        // 初始化房主数据字段，确保有默认值
+        await this.initializeDrawingData('homeowner');
       } else {
         // 协作者监听房主数据变化
         await this.setupHomeownerWatcher();
+        
+        // 初始化协作者数据字段，确保有默认值
+        await this.initializeDrawingData('teamworker');
       }
       
       this.isInitialized = true;
@@ -86,7 +92,7 @@ class CollaborationManager {
             this.startHomeownerPolling();
           }
         });
-      
+
       this.isWatching = true;
       console.log('房主数据监听设置成功');
     } catch (error) {
@@ -100,7 +106,7 @@ class CollaborationManager {
   async setupTeamworkerWatcher() {
     try {
       console.log('设置协作者数据监听');
-      
+
       this.teamworkerWatch = await this.databaseManager.cloudDb
         .collection('drawing')
         .where({
@@ -110,7 +116,7 @@ class CollaborationManager {
         .watch({
           onChange: (snapshot) => {
             console.log('监听到协作者数据变化:', snapshot);
-            
+
             if (snapshot.type === 'init' && snapshot.docs && snapshot.docs.length > 0) {
               // 初始化时检查协作者数据
               this.handleTeamworkerData(snapshot.docs[0]);
@@ -128,7 +134,7 @@ class CollaborationManager {
             this.startTeamworkerPolling();
           }
         });
-      
+
       this.isWatching = true;
       console.log('协作者数据监听设置成功');
     } catch (error) {
@@ -141,37 +147,61 @@ class CollaborationManager {
   // 处理房主数据变化（协作者侧）
   handleHomeownerData(homeownerData) {
     console.log('处理房主数据:', homeownerData);
-    
+
     // 优先检查operationType，特别是exit操作
     if (homeownerData.operationType) {
-      this.handleHomeownerOperationType(homeownerData.operationType);
-      return;
+      if (homeownerData.operationType === 'exit' && !this.isHomeownerExited) {
+        this.handleHomeownerOperationType('exit');
+        return;
+      }
+      
+      // 处理绘画操作同步
+      this.syncOperationFromHomeowner(homeownerData);
+    } else {
+      // 如果没有operationType但有其他字段变化，可能是因为初始化或字段更新
+      // 检查是否有trace、color或lineWidth字段，如果有，可能是绘画操作
+      if (homeownerData.trace || homeownerData.color || homeownerData.lineWidth) {
+        console.log('检测到房主绘画数据变化，但缺少operationType，默认为draw操作');
+        // 设置默认操作类型
+        homeownerData.operationType = homeownerData.color === '#FFFFFF' ? 'erase' : 'draw';
+        this.syncOperationFromHomeowner(homeownerData);
+      }
     }
-    
-    // 处理其他操作...
   }
 
   // 处理协作者数据变化（房主侧）
   handleTeamworkerData(teamworkerData) {
     console.log('处理协作者数据:', teamworkerData);
-    
+
     // 优先检查operationType，特别是exit操作
     if (teamworkerData.operationType) {
-      this.handleTeamworkerOperationType(teamworkerData.operationType);
-      return;
+      if (teamworkerData.operationType === 'exit' && !this.isTeamworkerExited) {
+        this.handleTeamworkerOperationType('exit');
+        return;
+      }
+      
+      // 处理绘画操作同步
+      this.syncOperationFromTeamworker(teamworkerData);
+    } else {
+      // 如果没有operationType但有其他字段变化，可能是因为初始化或字段更新
+      // 检查是否有trace、color或lineWidth字段，如果有，可能是绘画操作
+      if (teamworkerData.trace || teamworkerData.color || teamworkerData.lineWidth) {
+        console.log('检测到协作者绘画数据变化，但缺少operationType，默认为draw操作');
+        // 设置默认操作类型
+        teamworkerData.operationType = teamworkerData.color === '#FFFFFF' ? 'erase' : 'draw';
+        this.syncOperationFromTeamworker(teamworkerData);
+      }
     }
-    
-    // 处理其他操作...
   }
 
   // 处理房主操作类型（协作者侧）
   handleHomeownerOperationType(operationType) {
     console.log(`房主操作类型: ${operationType}`);
-    
+
     if (operationType === 'exit' && !this.isHomeownerExited) {
       console.log('检测到房主退出');
       this.isHomeownerExited = true;
-      
+
       // 通知协作者处理房主退出
       if (this.eventHandler && this.eventHandler.touchHandlers && this.eventHandler.touchHandlers.team) {
         this.eventHandler.touchHandlers.team.handleHomeownerExit();
@@ -182,11 +212,11 @@ class CollaborationManager {
   // 处理协作者操作类型（房主侧）
   handleTeamworkerOperationType(operationType) {
     console.log(`协作者操作类型: ${operationType}`);
-    
+
     if (operationType === 'exit' && !this.isTeamworkerExited) {
       console.log('检测到协作者退出');
       this.isTeamworkerExited = true;
-      
+
       // 房主处理协作者退出
       if (this.eventHandler && this.eventHandler.touchHandlers && this.eventHandler.touchHandlers.team) {
         this.eventHandler.touchHandlers.team.handleTeamworkerExit();
@@ -197,7 +227,7 @@ class CollaborationManager {
   // 启动房主数据轮询（协作者使用）
   startHomeownerPolling() {
     console.log('启动房主数据轮询');
-    
+
     this.pollingInterval = setInterval(async () => {
       try {
         const result = await this.databaseManager.cloudDb
@@ -207,20 +237,21 @@ class CollaborationManager {
             role: 'homeowner'
           })
           .get();
-        
+
         if (result.data && result.data.length > 0) {
+          console.log('轮询获取到房主数据:', result.data[0]);
           this.handleHomeownerData(result.data[0]);
         }
       } catch (error) {
         console.error('轮询房主数据失败:', error);
       }
-    }, 3000);
+    }, 2000); // 缩短轮询间隔
   }
 
   // 启动协作者数据轮询（房主使用）
   startTeamworkerPolling() {
     console.log('启动协作者数据轮询');
-    
+
     this.pollingInterval = setInterval(async () => {
       try {
         const result = await this.databaseManager.cloudDb
@@ -230,57 +261,79 @@ class CollaborationManager {
             role: 'teamworker'
           })
           .get();
-        
+
         if (result.data && result.data.length > 0) {
+          console.log('轮询获取到协作者数据:', result.data[0]);
           this.handleTeamworkerData(result.data[0]);
         }
       } catch (error) {
         console.error('轮询协作者数据失败:', error);
       }
-    }, 3000);
+    }, 2000); // 缩短轮询间隔
   }
 
   // 停止所有监听
   stop() {
     console.log('停止协作管理器');
-    
+
     // 停止数据库监听
     if (this.homeownerWatch) {
       this.homeownerWatch.close();
       this.homeownerWatch = null;
     }
-    
+
     if (this.teamworkerWatch) {
       this.teamworkerWatch.close();
       this.teamworkerWatch = null;
     }
-    
+
     // 停止轮询
     if (this.pollingInterval) {
       clearInterval(this.pollingInterval);
       this.pollingInterval = null;
     }
-    
+
     this.isWatching = false;
     console.log('协作管理器已停止');
   }
 
   // 记录操作（房主使用）
-  async recordOperation(trace) {
+  async recordOperation(operationType, trace, color, lineWidth) {
     if (!this.isInitialized || this.userRole !== 'homeowner') {
+      console.warn('房主记录操作失败：未初始化或角色不匹配', {
+        isInitialized: this.isInitialized,
+        userRole: this.userRole
+      });
       return false;
     }
-    
+
     try {
+      console.log('房主记录操作:', {
+        operationType,
+        traceLength: trace ? trace.length : 0,
+        color,
+        lineWidth,
+        roomId: this.roomId
+      });
+      
       const success = await this.databaseManager.updateDrawingData(
         this.roomId,
         'homeowner',
         {
-          trace: trace,
+          operationType: operationType,
+          trace: trace || [],
+          color: color || '#000000',
+          lineWidth: lineWidth || 2,
           lastUpdated: new Date()
         }
       );
-      
+
+      if (success) {
+        console.log('房主操作记录成功');
+      } else {
+        console.error('房主操作记录失败');
+      }
+
       return success;
     } catch (error) {
       console.error('记录房主操作失败:', error);
@@ -289,24 +342,288 @@ class CollaborationManager {
   }
 
   // 记录操作（协作者使用）
-  async recordTeamworkerOperation(trace) {
+  async recordTeamworkerOperation(operationType, trace, color, lineWidth) {
     if (!this.isInitialized || this.userRole !== 'teamworker') {
+      console.warn('协作者记录操作失败：未初始化或角色不匹配', {
+        isInitialized: this.isInitialized,
+        userRole: this.userRole
+      });
       return false;
     }
-    
+
     try {
+      console.log('协作者记录操作:', {
+        operationType,
+        traceLength: trace ? trace.length : 0,
+        color,
+        lineWidth,
+        roomId: this.roomId
+      });
+      
       const success = await this.databaseManager.updateDrawingData(
         this.roomId,
         'teamworker',
         {
-          trace: trace,
+          operationType: operationType,
+          trace: trace || [],
+          color: color || '#000000',
+          lineWidth: lineWidth || 2,
           lastUpdated: new Date()
         }
       );
-      
+
+      if (success) {
+        console.log('协作者操作记录成功');
+      } else {
+        console.error('协作者操作记录失败');
+      }
+
       return success;
     } catch (error) {
       console.error('记录协作者操作失败:', error);
+      return false;
+    }
+  }
+
+  // 同步房主操作到协作者画布
+  syncOperationFromHomeowner(homeownerData) {
+    console.log('开始同步房主操作:', homeownerData);
+    
+    if (!this.eventHandler || !this.eventHandler.touchHandlers || !this.eventHandler.touchHandlers.main) {
+      console.error('无法同步操作：缺少必要的事件处理器');
+      return;
+    }
+
+    const operationType = homeownerData.operationType;
+    const trace = homeownerData.trace || [];
+    const color = homeownerData.color || '#000000';
+    const lineWidth = homeownerData.lineWidth || 2;
+
+    console.log(`准备同步房主操作: ${operationType}, 轨迹点数: ${trace.length}, 颜色: ${color}, 线宽: ${lineWidth}`);
+
+    switch (operationType) {
+      case 'draw':
+        this.renderDrawOperation(trace, color, lineWidth);
+        console.log('房主绘制操作同步完成');
+        break;
+      case 'erase':
+        this.renderEraseOperation(trace, lineWidth);
+        console.log('房主擦除操作同步完成');
+        break;
+      case 'undo':
+        this.renderUndoOperation();
+        console.log('房主撤销操作同步完成');
+        break;
+      default:
+        console.warn('未知的房主操作类型:', operationType);
+    }
+  }
+
+  // 同步协作者操作到房主画布
+  syncOperationFromTeamworker(teamworkerData) {
+    console.log('开始同步协作者操作:', teamworkerData);
+    
+    if (!this.eventHandler || !this.eventHandler.touchHandlers || !this.eventHandler.touchHandlers.main) {
+      console.error('无法同步操作：缺少必要的事件处理器');
+      return;
+    }
+
+    const operationType = teamworkerData.operationType;
+    const trace = teamworkerData.trace || [];
+    const color = teamworkerData.color || '#000000';
+    const lineWidth = teamworkerData.lineWidth || 2;
+
+    console.log(`准备同步协作者操作: ${operationType}, 轨迹点数: ${trace.length}, 颜色: ${color}, 线宽: ${lineWidth}`);
+
+    switch (operationType) {
+      case 'draw':
+        this.renderDrawOperation(trace, color, lineWidth);
+        console.log('协作者绘制操作同步完成');
+        break;
+      case 'erase':
+        this.renderEraseOperation(trace, lineWidth);
+        console.log('协作者擦除操作同步完成');
+        break;
+      case 'undo':
+        this.renderUndoOperation();
+        console.log('协作者撤销操作同步完成');
+        break;
+      default:
+        console.warn('未知的协作者操作类型:', operationType);
+    }
+  }
+
+  // 渲染绘制操作
+  renderDrawOperation(trace, color, lineWidth) {
+    if (!trace || trace.length < 2) {
+      console.warn('无效的绘制轨迹数据');
+      return;
+    }
+
+    const gameState = this.eventHandler.gameState;
+    const ctx = this.eventHandler.canvas.getContext('2d');
+    const positions = require('./config.js').getAreaPositions();
+    const drawingAreaY = positions.drawingAreaY;
+
+    // 保存当前绘图状态
+    ctx.save();
+    
+    // 开始绘制路径
+    ctx.beginPath();
+    ctx.moveTo(trace[0].x, trace[0].y);
+    
+    for (let i = 1; i < trace.length; i++) {
+      ctx.lineTo(trace[i].x, trace[i].y);
+    }
+    
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineWidth;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+    
+    // 恢复绘图状态
+    ctx.restore();
+
+    // 将路径添加到游戏状态中（用于撤销等操作）
+    gameState.drawingPaths.push({
+      points: [...trace],
+      color: color,
+      size: lineWidth,
+      isEraser: false
+    });
+
+    console.log(`已渲染绘制操作，${trace.length}个点`);
+  }
+
+  // 渲染擦除操作
+  renderEraseOperation(trace, lineWidth) {
+    if (!trace || trace.length < 2) {
+      console.warn('无效的擦除轨迹数据');
+      return;
+    }
+
+    const gameState = this.eventHandler.gameState;
+    const ctx = this.eventHandler.canvas.getContext('2d');
+    const positions = require('./config.js').getAreaPositions();
+    const drawingAreaY = positions.drawingAreaY;
+
+    // 保存当前绘图状态
+    ctx.save();
+    
+    // 开始擦除路径
+    ctx.beginPath();
+    ctx.moveTo(trace[0].x, trace[0].y);
+    
+    for (let i = 1; i < trace.length; i++) {
+      ctx.lineTo(trace[i].x, trace[i].y);
+    }
+    
+    ctx.strokeStyle = '#FFFFFF'; // 擦除使用白色
+    ctx.lineWidth = lineWidth * 2; // 擦除线宽稍大
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+    
+    // 恢复绘图状态
+    ctx.restore();
+
+    // 将擦除路径添加到游戏状态中
+    gameState.drawingPaths.push({
+      points: [...trace],
+      color: '#FFFFFF',
+      size: lineWidth * 2,
+      isEraser: true
+    });
+
+    console.log(`已渲染擦除操作，${trace.length}个点`);
+  }
+
+  // 渲染撤销操作
+  renderUndoOperation() {
+    const gameState = this.eventHandler.gameState;
+    
+    if (gameState.drawingPaths.length === 0) {
+      console.warn('没有可撤销的操作');
+      return;
+    }
+
+    // 移除最后一条路径
+    gameState.drawingPaths.pop();
+    
+    // 重绘画布
+    this.redrawCanvas();
+    
+    console.log('已执行撤销操作');
+  }
+
+  // 重绘画布
+  redrawCanvas() {
+    const gameState = this.eventHandler.gameState;
+    const ctx = this.eventHandler.canvas.getContext('2d');
+    const positions = require('./config.js').getAreaPositions();
+    const drawingAreaY = positions.drawingAreaY;
+
+    // 清除绘画区域
+    ctx.clearRect(12, drawingAreaY, require('./config.js').config.screenWidth - 24, require('./config.js').config.drawingAreaHeight);
+
+    // 重新绘制所有路径
+    gameState.drawingPaths.forEach(path => {
+      if (path.points.length > 0) {
+        ctx.beginPath();
+        ctx.moveTo(path.points[0].x, path.points[0].y);
+        
+        for (let i = 1; i < path.points.length; i++) {
+          ctx.lineTo(path.points[i].x, path.points[i].y);
+        }
+        
+        ctx.strokeStyle = path.color;
+        ctx.lineWidth = path.size;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+      }
+    });
+  }
+
+  // 初始化绘画数据，确保有默认值
+  async initializeDrawingData(role) {
+    try {
+      console.log(`初始化 ${role} 绘画数据`);
+      
+      // 检查记录是否存在
+      const result = await this.databaseManager.cloudDb
+        .collection('drawing')
+        .where({
+          roomId: this.roomId,
+          role: role
+        })
+        .get();
+
+      if (result.data.length === 0) {
+        console.warn(`未找到房间 ${this.roomId} 角色 ${role} 的数据`);
+        return false;
+      }
+
+      // 初始化字段，确保有默认值
+      const docId = result.data[0]._id;
+      await this.databaseManager.cloudDb
+        .collection('drawing')
+        .doc(docId)
+        .update({
+          data: {
+            operationType: 'draw', // 默认操作类型
+            trace: [], // 默认空轨迹
+            color: '#000000', // 默认黑色
+            lineWidth: 2, // 默认线宽
+            lastUpdated: new Date()
+          }
+        });
+
+      console.log(`${role} 绘画数据初始化成功`);
+      return true;
+    } catch (error) {
+      console.error(`初始化 ${role} 绘画数据失败:`, error);
       return false;
     }
   }
@@ -317,10 +634,10 @@ class CollaborationManager {
     if (!trace || trace.length < 3) {
       return trace;
     }
-    
+
     // 这里可以添加更复杂的路径优化算法
     // 例如：Douglas-Peucker算法等
-    
+
     return trace;
   }
 }

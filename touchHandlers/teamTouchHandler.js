@@ -31,6 +31,9 @@ class TeamTouchHandler {
     
     // 退出相关状态
     this.isHomeownerExited = false; // 房主是否已退出
+    
+    // 协作管理器
+    this.collaborationManager = null;
   }
 
   // 处理主界面触摸事件
@@ -295,8 +298,11 @@ class TeamTouchHandler {
         // 初始化协作模式（房主角色）
         if (this.eventHandler.touchHandlers.main) {
           this.eventHandler.touchHandlers.main.initializeCollaboration(this.roomNumber, 'homeowner');
+          
+          // 保存协作管理器引用
+          this.collaborationManager = this.eventHandler.touchHandlers.main.collaborationManager;
         }
-        
+
         // 启动协作者数据监听
         await this.startTeamworkerWatch(this.roomNumber);
         
@@ -820,6 +826,9 @@ class TeamTouchHandler {
       this.eventHandler.touchHandlers.main.stopCollaboration();
     }
     
+    // 清除协作管理器引用
+    this.collaborationManager = null;
+    
     // 重置队友加入状态
     this.isTeammateJoined = false;
     
@@ -1004,16 +1013,18 @@ class TeamTouchHandler {
         if (!isRoomOwner) {
           console.log('伙伴侧进入房间，立即设置isTeammateJoined为true');
           this.isTeammateJoined = true;
-          
+
           // 初始化协作模式（协作者角色）
           if (this.eventHandler.touchHandlers.main) {
             this.eventHandler.touchHandlers.main.initializeCollaboration(this.roomNumber, 'teamworker');
           }
-          
+
           // 确保协作管理器已正确初始化
-          if (this.eventHandler.touchHandlers.main && 
+          if (this.eventHandler.touchHandlers.main &&
               this.eventHandler.touchHandlers.main.collaborationManager) {
             console.log('协作者角色初始化成功，可以开始同步操作到房主');
+            // 保存协作管理器引用
+            this.collaborationManager = this.eventHandler.touchHandlers.main.collaborationManager;
           } else {
             console.error('协作者角色初始化失败');
           }

@@ -289,24 +289,24 @@ class MainTouchHandler {
     const buttonSize = config.team.buttonSize;
     const buttonMargin = config.team.buttonMargin;
     const buttonY = functionAreaY - buttonSize - buttonMargin;
-    
+
     // 组队按钮位置（左上角）
     const buttonX = buttonMargin;
-    
+
     // 检查是否点击了组队按钮
     if (x >= buttonX && x <= buttonX + buttonSize &&
         y >= buttonY && y <= buttonY + buttonSize) {
-      
+
       console.log('组队按钮被点击');
-      
+
       // 显示组队界面
       if (this.eventHandler.handleTeam) {
         this.eventHandler.handleTeam();
       }
-      
+
       return true;
     }
-    
+
     return false;
   }
 
@@ -366,24 +366,24 @@ class MainTouchHandler {
   // 新增：初始化协作模式
   initializeCollaboration(roomId, userRole) {
     console.log(`初始化协作模式，房间ID: ${roomId}, 角色: ${userRole}`);
-    
+
     this.isCollaborativeMode = true;
-    
+
     // 创建协作管理器实例
     const CollaborationManager = require('../collaborationManager.js');
     this.collaborationManager = new CollaborationManager(this.eventHandler);
-    
+
     // 初始化协作会话
     this.collaborationManager.initialize(roomId, userRole)
       .then(success => {
         if (success) {
           console.log(`协作模式初始化成功，角色: ${userRole}`);
-          
+
           // 设置操作回调
           this.collaborationManager.onDrawingOperationReceived = (path) => {
             console.log('收到房主绘画操作，模拟绘制');
           };
-          
+
           this.collaborationManager.onTeammateOperationApplied = (data) => {
             console.log('协作者操作已应用到画布');
           };
@@ -420,35 +420,46 @@ class MainTouchHandler {
     let success = false;
     const gameState = this.eventHandler.gameState;
     
+    // 确定实际操作类型、颜色和线宽
+    let actualOperationType = operationType;
+    let color = gameState.currentColor;
+    let lineWidth = gameState.brushSize;
+    
+    // 如果是橡皮擦操作，设置相应参数
+    if (gameState.isEraser || operationType === 'erase') {
+      actualOperationType = 'erase';
+      color = '#FFFFFF';
+    }
+    
     // 优化路径数据
     let optimizedTrace = trace;
-    if (trace && Array.isArray(trace) && operationType.includes('draw')) {
+    if (trace && Array.isArray(trace)) {
       optimizedTrace = this.collaborationManager.optimizePathTransmission(trace);
     }
     
     if (isRoomOwner) {
       // 房主使用recordOperation方法
       success = await this.collaborationManager.recordOperation(
-        operationType,
+        actualOperationType,
         optimizedTrace,
-        gameState.isEraser ? '#FFFFFF' : gameState.currentColor,
-        gameState.brushSize
+        color,
+        lineWidth
       );
       
       if (success) {
-        console.log(`房主协作操作已记录: ${operationType}`);
+        console.log(`房主协作操作已记录: ${actualOperationType}, 颜色: ${color}, 线宽: ${lineWidth}`);
       }
     } else {
       // 协作者使用recordTeamworkerOperation方法
       success = await this.collaborationManager.recordTeamworkerOperation(
-        operationType,
+        actualOperationType,
         optimizedTrace,
-        gameState.isEraser ? '#FFFFFF' : gameState.currentColor,
-        gameState.brushSize
+        color,
+        lineWidth
       );
       
       if (success) {
-        console.log(`协作者协作操作已记录: ${operationType}`);
+        console.log(`协作者协作操作已记录: ${actualOperationType}, 颜色: ${color}, 线宽: ${lineWidth}`);
       }
     }
     
@@ -459,7 +470,7 @@ class MainTouchHandler {
     return success;
   }
 
-  // 修改：startDrawing 方法，添加协作操作记录
+  // 修改：startDrawing 方法，移除协作操作记录
   startDrawing(x, y) {
     const gameState = this.eventHandler.gameState;
     gameState.isDrawing = true;
@@ -471,14 +482,9 @@ class MainTouchHandler {
     gameState.lastX = startX;
     gameState.lastY = startY;
     gameState.startNewPath(startX, startY);
-    
-    // 协作模式：记录绘制开始（房主和协作者都记录）
-    if (this.isCollaborativeMode && gameState.currentPath) {
-      this.recordCollaborativeOperation('draw_start', [gameState.currentPath.points[0]]);
-    }
   }
 
-  // 修改：continueDrawing 方法，添加协作操作记录
+  // 修改：continueDrawing 方法，移除协作操作记录
   continueDrawing(x, y) {
     const ctx = this.eventHandler.canvas.getContext('2d');
     const gameState = this.eventHandler.gameState;
@@ -499,12 +505,6 @@ class MainTouchHandler {
     gameState.addPointToPath(currentX, currentY);
     gameState.lastX = currentX;
     gameState.lastY = currentY;
-    
-    // 协作模式：记录绘制移动（节流，避免记录过多点）
-    if (this.isCollaborativeMode && gameState.currentPath && 
-        Date.now() - this.lastOperationRecorded > 100) {
-      this.recordCollaborativeOperation('draw_move', gameState.currentPath.points);
-    }
   }
 
   // 修改：finishDrawing 方法，添加协作操作记录
@@ -516,7 +516,9 @@ class MainTouchHandler {
       // 协作模式：记录绘制完成（房主和协作者都记录）
       if (this.isCollaborativeMode && gameState.drawingPaths.length > 0) {
         const lastPath = gameState.drawingPaths[gameState.drawingPaths.length - 1];
-        await this.recordCollaborativeOperation('draw_complete', lastPath.points);
+        // 使用正确的操作类型：draw 或 erase
+        const operationType = gameState.isEraser ? 'erase' : 'draw';
+        await this.recordCollaborativeOperation(operationType, lastPath.points);
       }
     }
     gameState.isDrawing = false;
@@ -532,32 +534,20 @@ class MainTouchHandler {
     switch (toolIndex) {
       case 0: // 橡皮 - 不取消评分
         gameState.toggleEraser();
-        // 协作模式：记录橡皮切换
-        if (this.isCollaborativeMode) {
-          this.recordCollaborativeOperation('eraser_toggle');
-        }
         break;
       case 1: // 撤销 - 不取消评分
         gameState.undo();
         // 协作模式：记录撤销操作
         if (this.isCollaborativeMode) {
-          this.recordCollaborativeOperation('undo');
+          this.recordCollaborativeOperation('undo', null);
         }
         break;
       case 2: // 清空 - 需要取消评分，因为内容完全变了
         gameState.clear();
         this.cancelPendingScoring();
-        // 协作模式：记录清空操作
-        if (this.isCollaborativeMode) {
-          this.recordCollaborativeOperation('clear');
-        }
         break;
       case 3: // 翻转 - 实现翻转功能
         this.handleFlipAction();
-        // 协作模式：记录翻转操作
-        if (this.isCollaborativeMode) {
-          this.recordCollaborativeOperation('flip');
-        }
         break;
     }
     this.eventHandler.uiManager.drawGameUI(gameState);
@@ -580,11 +570,6 @@ class MainTouchHandler {
         const previousColor = this.eventHandler.gameState.currentColor;
         this.eventHandler.gameState.setColor(config.colors[i]);
         
-        // 协作模式：记录颜色变更
-        if (this.isCollaborativeMode && previousColor !== config.colors[i]) {
-          this.recordCollaborativeOperation('color_change');
-        }
-        
         this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
         return true;
       }
@@ -606,14 +591,8 @@ class MainTouchHandler {
 
       const progress = Math.max(0, Math.min(1, (x - sliderX) / sliderWidth));
       const newSize = Math.round(progress * 19) + 1; // 1-20范围
-      const previousSize = this.eventHandler.gameState.brushSize;
       
       this.eventHandler.gameState.setBrushSize(newSize);
-      
-      // 协作模式：记录画笔大小变更
-      if (this.isCollaborativeMode && previousSize !== newSize) {
-        this.recordCollaborativeOperation('brush_size_change');
-      }
       
       this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
       return true;
