@@ -419,6 +419,10 @@ class CollaborationManager {
         this.renderUndoOperation(role);
         console.log('房主撤销操作同步完成');
         break;
+      case 'flip':
+        this.renderFlipOperation(role);
+        console.log('房主翻转操作同步完成');
+        break;
       default:
         console.warn('未知的房主操作类型:', operationType);
     }
@@ -453,6 +457,10 @@ class CollaborationManager {
       case 'undo':
         this.renderUndoOperation(role);
         console.log('协作者撤销操作同步完成');
+        break;
+      case 'flip':
+        this.renderFlipOperation(role);
+        console.log('协作者翻转操作同步完成');
         break;
       default:
         console.warn('未知的协作者操作类型:', operationType);
@@ -593,6 +601,35 @@ class CollaborationManager {
       }
     } else {
       console.warn(`${roleToUndo}撤销操作失败`);
+    }
+  }
+
+  // 新增：渲染翻转操作
+  renderFlipOperation(sourceRole) {
+    const gameState = this.eventHandler.gameState;
+    
+    console.log(`开始同步${sourceRole}的翻转操作`);
+
+    // 检查是否有可翻转的路径
+    if (gameState.drawingPaths.length === 0) {
+      console.warn(`${sourceRole}尝试翻转，但画布为空`);
+      return;
+    }
+
+    // 执行翻转操作
+    const success = gameState.flipCanvas();
+
+    if (success) {
+      console.log(`已同步${sourceRole}的翻转操作`);
+
+      // 重新绘制整个界面（包括翻转后的路径）
+      if (this.eventHandler.uiManager) {
+        this.eventHandler.uiManager.drawGameUI(gameState);
+      } else {
+        this.redrawCanvas();
+      }
+    } else {
+      console.warn(`${sourceRole}翻转操作失败`);
     }
   }
 

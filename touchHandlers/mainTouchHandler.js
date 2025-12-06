@@ -159,8 +159,8 @@ class MainTouchHandler {
     return false;
   }
 
-  // 修改：处理翻转操作 - 改为一次性操作
-  handleFlipAction() {
+  // 修改：处理翻转操作 - 改为一次性操作，支持协作同步
+  async handleFlipAction() {
     const gameState = this.eventHandler.gameState;
 
     if (gameState.drawingPaths.length === 0) {
@@ -173,6 +173,15 @@ class MainTouchHandler {
     const success = gameState.flipCanvas();
 
     if (success) {
+      // 协作模式：记录翻转操作
+      if (this.isCollaborativeMode && this.collaborationManager) {
+        const role = this.getCurrentUserRole();
+        console.log(`${role} 执行翻转操作，将同步到对方画布`);
+        
+        // 翻转操作不需要轨迹，但需要记录操作类型
+        await this.recordCollaborativeOperation('flip');
+      }
+
       // 重新绘制整个界面（包括翻转后的路径）
       this.eventHandler.uiManager.drawGameUI(gameState);
     }
