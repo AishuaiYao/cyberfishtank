@@ -343,7 +343,7 @@ class CollaborationManager {
     }
   }
 
-  // 记录操作（协作者使用）
+  // 记录操作（协作者使用）- 使用云函数更新
   async recordTeamworkerOperation(operationType, trace, color, lineWidth) {
     if (!this.isInitialized || this.userRole !== 'teamworker') {
       console.warn('协作者记录操作失败：未初始化或角色不匹配', {

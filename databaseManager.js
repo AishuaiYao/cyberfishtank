@@ -757,40 +757,67 @@ async getRandomFishesByUserFallback(openid, count = 20) {
     }
   }
 
-  // 新增：更新房间绘画数据（用于实时同步）
+  // 新增：更新房间绘画数据（用于实时同步）- 使用云函数
   async updateDrawingData(roomId, role, updateData) {
     if (!Utils.checkDatabaseInitialization(this, '更新房间绘画数据')) return false;
 
     try {
-      // 先查询对应的记录
-      const result = await this.cloudDb.collection('drawing')
-        .where({
-          roomId: roomId,
-          role: role
-        })
-        .get();
+      // 先尝试直接更新（对于房主操作）
+      if (role === 'homeowner') {
+        // 先查询对应的记录
+        const result = await this.cloudDb.collection('drawing')
+          .where({
+            roomId: roomId,
+            role: role
+          })
+          .get();
 
-      if (result.data.length === 0) {
-        console.warn(`未找到房间 ${roomId} 角色 ${role} 的绘画数据`);
-        return false;
-      }
+        if (result.data.length === 0) {
+          console.warn(`未找到房间 ${roomId} 角色 ${role} 的绘画数据`);
+          return false;
+        }
 
-      // 更新记录
-      const updateResult = await this.cloudDb.collection('drawing')
-        .doc(result.data[0]._id)
-        .update({
+        // 更新记录
+        const updateResult = await this.cloudDb.collection('drawing')
+          .doc(result.data[0]._id)
+          .update({
+            data: {
+              ...updateData,
+              lastUpdated: new Date()
+            }
+          });
+
+        if (updateResult.stats.updated > 0) {
+          console.log(`房间 ${roomId} 角色 ${role} 绘画数据更新成功`);
+          return true;
+        } else {
+          console.warn(`房间 ${roomId} 角色 ${role} 绘画数据更新失败`);
+          return false;
+        }
+      } else {
+        // 对于协作者操作，使用云函数更新
+        console.log(`使用云函数更新协作者数据: 房间${roomId}, 角色${role}`);
+        
+        // 调用云函数更新绘画数据
+        const cloudFunctionResult = await wx.cloud.callFunction({
+          name: 'updateDrawingData',
           data: {
-            ...updateData,
-            lastUpdated: new Date()
+            roomId: roomId,
+            role: role,
+            operationType: updateData.operationType || 'draw',
+            trace: updateData.trace,
+            color: updateData.color,
+            lineWidth: updateData.lineWidth
           }
         });
-
-      if (updateResult.stats.updated > 0) {
-        console.log(`房间 ${roomId} 角色 ${role} 绘画数据更新成功`);
-        return true;
-      } else {
-        console.warn(`房间 ${roomId} 角色 ${role} 绘画数据更新失败`);
-        return false;
+        
+        if (cloudFunctionResult.result && cloudFunctionResult.result.success) {
+          console.log(`云函数更新绘画数据成功`);
+          return true;
+        } else {
+          console.error(`云函数更新绘画数据失败:`, cloudFunctionResult.result);
+          return false;
+        }
       }
     } catch (error) {
       console.error('更新房间绘画数据失败:', error);
