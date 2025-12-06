@@ -806,7 +806,10 @@ class TeamTouchHandler {
 
     // 停止退出倒计时（如果有）
     this.stopExitCountdown();
-    
+
+    // 新增：退出时清空画布
+    this.clearCanvas();
+
     // 判断是否为伙伴，以及是否为被动退出（房主已退出）
     const isRoomOwner = this.roomNumber === this.teamInput;
     if (!isRoomOwner) {
@@ -819,21 +822,21 @@ class TeamTouchHandler {
         console.log('主动退出的伙伴，不删除房间数据（由房主负责）');
       }
     }
-    
+
     // 停止所有协作者监听
     this.stopAllTeamworkerWatches();
-    
+
     // 停止协作模式
     if (this.eventHandler.touchHandlers.main) {
       this.eventHandler.touchHandlers.main.stopCollaboration();
     }
-    
+
     // 清除协作管理器引用
     this.collaborationManager = null;
-    
+
     // 重置队友加入状态
     this.isTeammateJoined = false;
-    
+
     this.currentTeamState = 'main';
     this.eventHandler.isCollaborativePaintingVisible = false;
     this.eventHandler.isTeamInterfaceVisible = false; // 直接返回到主界面，不显示组队界面
@@ -858,6 +861,60 @@ class TeamTouchHandler {
       }
     } catch (error) {
       console.error('删除房间数据失败:', error);
+    }
+  }
+
+  // 新增：清空画布方法
+  clearCanvas() {
+    console.log('清空画布');
+    
+    const ctx = this.eventHandler.canvas.getContext('2d');
+    const positions = require('../config.js').getAreaPositions();
+    const { config } = require('../config.js');
+    const drawingAreaY = positions.drawingAreaY;
+
+    // 清除绘画区域
+    ctx.clearRect(12, drawingAreaY, config.screenWidth - 24, config.drawingAreaHeight);
+
+    // 清空游戏状态中的绘画路径
+    if (this.eventHandler.gameState) {
+      this.eventHandler.gameState.drawingPaths = [];
+      this.eventHandler.gameState.homeownerHistory = [];
+      this.eventHandler.gameState.teamworkerHistory = [];
+      this.eventHandler.gameState.score = 0;
+      console.log('游戏状态已重置');
+    }
+
+    // 重新绘制UI以显示清空后的状态
+    if (this.eventHandler.uiManager) {
+      this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
+    }
+  }
+
+  // 新增：清空画布方法
+  clearCanvas() {
+    console.log('清空画布');
+    
+    const ctx = this.eventHandler.canvas.getContext('2d');
+    const positions = require('../config.js').getAreaPositions();
+    const { config } = require('../config.js');
+    const drawingAreaY = positions.drawingAreaY;
+
+    // 清除绘画区域
+    ctx.clearRect(12, drawingAreaY, config.screenWidth - 24, config.drawingAreaHeight);
+
+    // 清空游戏状态中的绘画路径
+    if (this.eventHandler.gameState) {
+      this.eventHandler.gameState.drawingPaths = [];
+      this.eventHandler.gameState.homeownerHistory = [];
+      this.eventHandler.gameState.teamworkerHistory = [];
+      this.eventHandler.gameState.score = 0;
+      console.log('游戏状态已重置');
+    }
+
+    // 重新绘制UI以显示清空后的状态
+    if (this.eventHandler.uiManager) {
+      this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
     }
   }
 

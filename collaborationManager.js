@@ -505,7 +505,7 @@ class CollaborationManager {
 
     // 将路径添加到游戏状态中（用于撤销等操作）
     gameState.drawingPaths.push(pathObject);
-    
+
     // 同时添加到对应角色的历史栈
     gameState.addOperationToRoleHistory(role, pathObject);
 
@@ -558,7 +558,7 @@ class CollaborationManager {
 
     // 将擦除路径添加到游戏状态中
     gameState.drawingPaths.push(pathObject);
-    
+
     // 同时添加到对应角色的历史栈
     gameState.addOperationToRoleHistory(role, pathObject);
 
@@ -571,7 +571,7 @@ class CollaborationManager {
 
     // 如果没有明确指定来源角色，则使用对方角色（因为这是接收对方的撤销操作）
     const roleToUndo = sourceRole || (this.userRole === 'homeowner' ? 'teamworker' : 'homeowner');
-    
+
     // 确认指定角色是否有操作可撤销
     if (gameState.getOperationCountByRole(roleToUndo) === 0) {
       console.warn(`${roleToUndo}没有可撤销的操作`);
@@ -580,10 +580,10 @@ class CollaborationManager {
 
     // 执行基于角色的撤销
     const success = gameState.undoByRole(roleToUndo);
-    
+
     if (success) {
       console.log(`已同步${roleToUndo}的撤销操作`);
-      
+
       // 修复：使用与主触摸处理器相同的重绘方法，确保一致性
       if (this.eventHandler.touchHandlers && this.eventHandler.touchHandlers.main) {
         this.eventHandler.touchHandlers.main.redrawCanvasAfterUndo();
