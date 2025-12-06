@@ -1,0 +1,14 @@
+{
+  "name": "updateDrawingData",
+  "version": "1.0.0",
+  "description": "云函数：处理协作者绘画数据更新",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}
