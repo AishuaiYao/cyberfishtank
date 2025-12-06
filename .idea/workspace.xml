@@ -4,12 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="共同绘画-进入房间的权限问题">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.vscode/settings.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/collaborationManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/collaborationManager.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/databaseManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/databaseManager.js" afterDir="false" />
-    </list>
+    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="共同绘画-进入房间的权限问题" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -73,14 +68,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00105" summary="组队模式">
-      <option name="closed" value="true" />
-      <created>1764686026835</created>
-      <option name="number" value="00105" />
-      <option name="presentableId" value="LOCAL-00105" />
-      <option name="project" value="LOCAL" />
-      <updated>1764686026835</updated>
     </task>
     <task id="LOCAL-00106" summary="组队模式">
       <option name="closed" value="true" />
@@ -466,7 +453,15 @@
       <option name="project" value="LOCAL" />
       <updated>1765027182220</updated>
     </task>
-    <option name="localTasksCounter" value="154" />
+    <task id="LOCAL-00154" summary="共同绘画-进入房间的权限问题">
+      <option name="closed" value="true" />
+      <created>1765029184021</created>
+      <option name="number" value="00154" />
+      <option name="presentableId" value="LOCAL-00154" />
+      <option name="project" value="LOCAL" />
+      <updated>1765029184021</updated>
+    </task>
+    <option name="localTasksCounter" value="155" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
