@@ -4,10 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="细微优化-下移返回">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/databaseManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/databaseManager.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/eventHandler.js" afterDir="false" />
+    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="细微优化-三个button">
       <change beforePath="$PROJECT_DIR$/touchHandlers/rankingTouchHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/rankingTouchHandler.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/uiManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/uiManager.js" afterDir="false" />
     </list>
@@ -74,14 +71,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00110" summary="共同绘画-建立房间-绘制房间">
-      <option name="closed" value="true" />
-      <created>1764768136597</created>
-      <option name="number" value="00110" />
-      <option name="presentableId" value="LOCAL-00110" />
-      <option name="project" value="LOCAL" />
-      <updated>1764768136598</updated>
     </task>
     <task id="LOCAL-00111" summary="共同绘画-建立房间-绘制房间-返回键">
       <option name="closed" value="true" />
@@ -467,11 +456,18 @@
       <option name="project" value="LOCAL" />
       <updated>1765031726435</updated>
     </task>
-    <option name="localTasksCounter" value="159" />
+    <task id="LOCAL-00159" summary="细微优化-三个button">
+      <option name="closed" value="true" />
+      <created>1765032651142</created>
+      <option name="number" value="00159" />
+      <option name="presentableId" value="LOCAL-00159" />
+      <option name="project" value="LOCAL" />
+      <updated>1765032651142</updated>
+    </task>
+    <option name="localTasksCounter" value="160" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="共同绘画-绘制房间-显示房间号输入框" />
     <MESSAGE value="共同绘画-绘制房间-对齐button" />
     <MESSAGE value="共同绘画-绘制房间-弹出等待提示" />
     <MESSAGE value="共同绘画-绘制房间-插入数据" />
@@ -496,6 +492,7 @@
     <MESSAGE value="主要功能基本完成" />
     <MESSAGE value="细微优化-排行榜删除button" />
     <MESSAGE value="细微优化-下移返回" />
-    <option name="LAST_COMMIT_MESSAGE" value="细微优化-下移返回" />
+    <MESSAGE value="细微优化-三个button" />
+    <option name="LAST_COMMIT_MESSAGE" value="细微优化-三个button" />
   </component>
 </project>

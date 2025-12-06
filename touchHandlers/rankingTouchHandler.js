@@ -101,27 +101,28 @@ class RankingTouchHandler {
       return false;
     }
 
-    const buttonWidth = 70;
+    const buttonSpacing = 5; // 统一使用5像素间距
     const buttonHeight = 30;
-    const buttonSpacing = 15;
-    const startX = 20 + 50 + buttonSpacing; // 返回按钮右边开始
-
-    // 检查最佳榜按钮点击
-    if (x >= startX && x <= startX + buttonWidth &&
+    
+    // 最佳榜按钮坐标（宽度65）
+    const bestButtonX = 20 + 50 + buttonSpacing;
+    if (x >= bestButtonX && x <= bestButtonX + 65 &&
         y >= 50 && y <= 50 + buttonHeight) {
       this.eventHandler.setRankingSortType('best');
       return true;
     }
 
-    // 检查最丑榜按钮点击
-    if (x >= startX + buttonWidth + buttonSpacing && x <= startX + buttonWidth + buttonSpacing + buttonWidth &&
+    // 最丑榜按钮坐标（宽度65）
+    const worstButtonX = bestButtonX + 65 + buttonSpacing;
+    if (x >= worstButtonX && x <= worstButtonX + 65 &&
         y >= 50 && y <= 50 + buttonHeight) {
       this.eventHandler.setRankingSortType('worst');
       return true;
     }
 
-    // 检查最新榜按钮点击
-    if (x >= startX + (buttonWidth + buttonSpacing) * 2 && x <= startX + (buttonWidth + buttonSpacing) * 2 + buttonWidth &&
+    // 最新榜按钮坐标（宽度65）
+    const latestButtonX = worstButtonX + 65 + buttonSpacing;
+    if (x >= latestButtonX && x <= latestButtonX + 65 &&
         y >= 50 && y <= 50 + buttonHeight) {
       this.eventHandler.setRankingSortType('latest');
       return true;
