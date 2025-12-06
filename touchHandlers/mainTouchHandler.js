@@ -391,8 +391,13 @@ class MainTouchHandler {
     let color = gameState.currentColor;
     let lineWidth = gameState.brushSize;
 
+    // 修复：撤销操作优先级最高，不受橡皮状态影响
+    if (operationType === 'undo') {
+      actualOperationType = 'undo';
+      // 撤销操作不需要颜色和线宽
+    }
     // 如果是橡皮擦操作，设置相应参数
-    if (gameState.isEraser || operationType === 'erase') {
+    else if (gameState.isEraser || operationType === 'erase') {
       actualOperationType = 'erase';
       color = '#FFFFFF';
     }
@@ -520,15 +525,21 @@ class MainTouchHandler {
     this.eventHandler.uiManager.drawGameUI(gameState);
   }
 
-  // 修改：工具操作 - 改进版：支持基于角色的准确撤销
+  // 修改：工具操作 - 改进版：支持基于角色的准确撤销，橡皮和撤销互斥
   async handleToolAction(toolIndex) {
     const gameState = this.eventHandler.gameState;
 
     switch (toolIndex) {
-      case 0: // 橡皮 - 不取消评分
+      case 0: // 橡皮 - 不取消评分，与撤销互斥
+        // 如果之前是撤销状态，不需要特殊处理，因为撤销是瞬时操作
         gameState.toggleEraser();
         break;
-      case 1: // 撤销 - 不取消评分
+      case 1: // 撤销 - 不取消评分，与橡皮互斥
+        // 如果橡皮处于激活状态，先取消橡皮状态
+        if (gameState.isEraser) {
+          gameState.isEraser = false;
+          console.log('撤销操作前取消橡皮状态');
+        }
         await this.handleUndoAction();
         break;
       case 2: // 清空 - 需要取消评分，因为内容完全变了

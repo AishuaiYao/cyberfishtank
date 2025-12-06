@@ -212,7 +212,7 @@ drawBrushSizeControl(startY, gameState) {
   ctx.textBaseline = originalTextBaseline;
 }
 
-  // 绘制工具按钮 - 修改：翻转按钮显示状态
+  // 绘制工具按钮 - 修改：翻转按钮显示状态，撤销和橡皮互斥
   drawToolButtons(startY, gameState) {
     const toolButtons = [
       { name: '橡皮', icon: '◻' },
@@ -228,12 +228,14 @@ drawBrushSizeControl(startY, gameState) {
 
       // 设置激活状态
       if (i === 0 && gameState.isEraser) {
+        // 橡皮按钮可以处于激活状态
         isActive = true;
       } else if (i === 3 && gameState.isFlipped) {
-        // 新增：翻转按钮激活状态
+        // 翻转按钮激活状态
         isActive = true;
       }
-
+      // 注意：撤销和清空按钮不设置激活状态，因为它们是瞬时操作
+      
       Utils.drawModernButton(this.ctx, x, startY, toolWidth - 10, config.buttonHeight,
                             `${toolButtons[i].icon} ${toolButtons[i].name}`,
                             isActive, false);
