@@ -23,7 +23,13 @@ class GameState {
       isScoring: false,
       isRequesting: false, // 新增：标记是否正在请求AI
       lastScoreTime: 0,    // 新增：上次评分时间
-      scoreQueue: []       // 新增：评分队列，用于防抖
+      scoreQueue: [],      // 新增：评分队列，用于防抖
+      
+      // 协同模式特有状态
+      collaborativeMode: false, // 是否处于协同模式
+      collaborationCheckTime: 0, // 协同操作检查时间
+      pendingCollaborationOps: 0, // 待处理的协同操作数量
+      collaborationScoreLock: false // 协同评分锁定（防止同时评分）
     };
 
     this.scaledFishImage = null; // 新增：存储缩放后的鱼图像
@@ -238,6 +244,110 @@ class GameState {
       return this.teamworkerHistory[this.teamworkerHistory.length - 1];
     }
     return null;
+  }
+
+  // 新增：协同模式评分状态管理
+
+  // 设置协同模式
+  setCollaborativeMode(enabled) {
+    this.scoringState.collaborativeMode = enabled;
+    if (enabled) {
+      console.log('进入协同模式，评分状态已调整');
+      // 重置协同相关状态
+      this.scoringState.collaborationCheckTime = Date.now();
+      this.scoringState.pendingCollaborationOps = 0;
+      this.scoringState.collaborationScoreLock = false;
+    } else {
+      console.log('退出协同模式');
+    }
+  }
+
+  // 检查协同模式评分条件
+  canStartCollaborativeScoring() {
+    if (!this.scoringState.collaborativeMode) {
+      return this.canStartScoring(); // 非协同模式使用标准检查
+    }
+
+    const now = Date.now();
+    
+    // 检查协同评分锁定
+    if (this.scoringState.collaborationScoreLock) {
+      console.log('协同评分被锁定，等待解锁');
+      return false;
+    }
+
+    // 检查是否有待处理的协同操作
+    if (this.scoringState.pendingCollaborationOps > 0) {
+      console.log(`有${this.scoringState.pendingCollaborationOps}个协同操作待处理，延迟评分`);
+      return false;
+    }
+
+    // 检查协同操作时间间隔
+    const timeSinceLastCheck = now - this.scoringState.collaborationCheckTime;
+    if (timeSinceLastCheck < 1500) { // 1.5秒协同操作间隔
+      console.log('协同操作间隔太短，延迟评分');
+      return false;
+    }
+
+    // 检查标准评分条件
+    return this.canStartScoring();
+  }
+
+  // 记录协同操作开始
+  recordCollaborationOperationStart() {
+    if (this.scoringState.collaborativeMode) {
+      this.scoringState.pendingCollaborationOps++;
+      this.scoringState.collaborationCheckTime = Date.now();
+      console.log(`协同操作开始，待处理操作数: ${this.scoringState.pendingCollaborationOps}`);
+    }
+  }
+
+  // 记录协同操作完成
+  recordCollaborationOperationComplete() {
+    if (this.scoringState.collaborativeMode && this.scoringState.pendingCollaborationOps > 0) {
+      this.scoringState.pendingCollaborationOps--;
+      console.log(`协同操作完成，待处理操作数: ${this.scoringState.pendingCollaborationOps}`);
+    }
+  }
+
+  // 锁定协同评分
+  lockCollaborationScoring() {
+    if (this.scoringState.collaborativeMode) {
+      this.scoringState.collaborationScoreLock = true;
+      console.log('协同评分已锁定');
+    }
+  }
+
+  // 解锁协同评分
+  unlockCollaborationScoring() {
+    if (this.scoringState.collaborativeMode) {
+      this.scoringState.collaborationScoreLock = false;
+      console.log('协同评分已解锁');
+    }
+  }
+
+  // 协同模式下的评分开始
+  startCollaborativeScoring() {
+    if (this.scoringState.collaborativeMode) {
+      this.lockCollaborationScoring();
+    }
+    this.startScoring();
+  }
+
+  // 协同模式下的评分完成
+  finishCollaborativeScoring(score) {
+    this.finishScoring(score);
+    if (this.scoringState.collaborativeMode) {
+      this.unlockCollaborationScoring();
+    }
+  }
+
+  // 协同模式下的评分取消
+  cancelCollaborativeScoring() {
+    this.cancelScoring();
+    if (this.scoringState.collaborativeMode) {
+      this.unlockCollaborationScoring();
+    }
   }
 }
 

@@ -12,9 +12,9 @@ class AIService {
       return;
     }
 
-    // 优化：添加防抖检查
-    if (!gameState.canStartScoring()) {
-      console.log('评分请求过于频繁，跳过');
+    // 优化：使用协同模式评分条件检查
+    if (!gameState.canStartCollaborativeScoring()) {
+      console.log('评分请求过于频繁或协同操作未完成，跳过');
       return;
     }
 
@@ -24,8 +24,31 @@ class AIService {
       return;
     }
 
+    // 协同模式：确保所有协同操作已完成同步
+    const mainHandler = canvas._touchHandler || null;
+    if (mainHandler && mainHandler.isCollaborativeMode) {
+      console.log('协同模式：检查协同操作同步状态');
+      
+      // 记录协同操作开始
+      gameState.recordCollaborationOperationStart();
+      
+      // 等待一小段时间，确保协同操作完成同步
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // 检查是否有正在进行的协同操作
+      const now = Date.now();
+      if (mainHandler.lastOperationRecorded && (now - mainHandler.lastOperationRecorded) < 1000) {
+        console.log('协同操作正在进行中，延迟评分');
+        // 记录协同操作完成（因为这次没有进行评分）
+        gameState.recordCollaborationOperationComplete();
+        setTimeout(() => this.getAIScore(canvas, gameState, updateUI), 1000);
+        return;
+      }
+    }
+
     try {
-      gameState.startScoring();
+      // 使用协同模式评分开始方法
+      gameState.startCollaborativeScoring();
       updateUI();
 
       const base64Data = canvas.toDataURL().split(',')[1];
@@ -36,10 +59,13 @@ class AIService {
       // 优化：检查是否在评分过程中用户继续绘画了
       if (!gameState.scoringState.isRequesting) {
         console.log('评分已被取消，忽略结果');
+        // 记录协同操作完成
+        gameState.recordCollaborationOperationComplete();
         return;
       }
 
-      gameState.finishScoring(score);
+      // 使用协同模式评分完成方法
+      gameState.finishCollaborativeScoring(score);
       
     } catch (error) {
       console.error('AI评分失败:', error);
@@ -47,9 +73,12 @@ class AIService {
       // 优化：只在确实失败时设置随机分数
       if (gameState.scoringState.isRequesting) {
         const randomScore = Math.floor(Math.random() * 100);
-        gameState.finishScoring(randomScore);
+        // 使用协同模式评分完成方法
+        gameState.finishCollaborativeScoring(randomScore);
       }
     } finally {
+      // 记录协同操作完成
+      gameState.recordCollaborationOperationComplete();
       // 确保UI更新
       updateUI();
     }
@@ -137,13 +166,25 @@ class AIService {
     }
   }
 
-  // 新增：智能评分触发（在合适的时机调用）
+  // 新增：智能评分触发（协同模式优化）
   async triggerSmartScoring(canvas, gameState, updateUI) {
     // 如果用户正在绘画，取消之前的请求
     if (gameState.isDrawing) {
       this.cancelCurrentRequest();
       gameState.cancelScoring();
       return;
+    }
+
+    // 协同模式：检查是否有正在进行的协同操作
+    const mainHandler = canvas._touchHandler || null;
+    if (mainHandler && mainHandler.isCollaborativeMode) {
+      // 检查最近是否有协同操作（避免在协同操作频繁时评分）
+      const now = Date.now();
+      if (mainHandler.lastOperationRecorded && (now - mainHandler.lastOperationRecorded) < 2000) {
+        console.log('协同操作频繁，延迟评分');
+        setTimeout(() => this.triggerSmartScoring(canvas, gameState, updateUI), 1000);
+        return;
+      }
     }
 
     // 检查是否有足够的绘画内容
@@ -153,13 +194,15 @@ class AIService {
       return;
     }
 
-    // 延迟触发评分，给用户继续绘画的时间
+    // 协同模式：延长延迟时间
+    const delay = (mainHandler && mainHandler.isCollaborativeMode) ? 1000 : 400;
+
     setTimeout(async () => {
       // 再次检查用户是否在延迟期间开始了新的绘画
       if (!gameState.isDrawing && gameState.canStartScoring()) {
         await this.getAIScore(canvas, gameState, updateUI);
       }
-    }, 400); // 1.5秒延迟
+    }, delay);
   }
 }
 

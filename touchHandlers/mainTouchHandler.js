@@ -58,13 +58,16 @@ class MainTouchHandler {
     this.eventHandler.aiService.cancelCurrentRequest();
   }
 
-  // 优化：安排智能评分
+  // 优化：安排智能评分（协同模式优化）
   scheduleSmartScoring() {
     this.cancelPendingScoring();
 
+    // 协同模式：延长延迟时间，避免频繁取消
+    const delay = this.isCollaborativeMode ? 1000 : 400;
+
     this.scoringTimer = setTimeout(() => {
       this.triggerAIScoring();
-    }, 400); // 400ms后触发评分
+    }, delay);
   }
 
   // 优化：触发AI评分
@@ -177,7 +180,7 @@ class MainTouchHandler {
       if (this.isCollaborativeMode && this.collaborationManager) {
         const role = this.getCurrentUserRole();
         console.log(`${role} 执行翻转操作，将同步到对方画布`);
-        
+
         // 翻转操作不需要轨迹，但需要记录操作类型
         await this.recordCollaborativeOperation('flip');
       }
@@ -199,7 +202,7 @@ class MainTouchHandler {
     if (this.isCollaborativeMode && this.collaborationManager) {
       const role = this.getCurrentUserRole();
       console.log(`${role} 执行清空操作，将同步到对方画布`);
-      
+
       // 清空操作不需要轨迹，但需要记录操作类型
       await this.recordCollaborativeOperation('clear');
     }
@@ -317,6 +320,9 @@ class MainTouchHandler {
 
     this.isCollaborativeMode = true;
 
+    // 设置游戏状态的协同模式
+    this.eventHandler.gameState.setCollaborativeMode(true);
+
     // 创建协作管理器实例
     const CollaborationManager = require('../collaborationManager.js');
     this.collaborationManager = new CollaborationManager(this.eventHandler);
@@ -338,6 +344,7 @@ class MainTouchHandler {
         } else {
           console.error('协作模式初始化失败');
           this.isCollaborativeMode = false;
+          this.eventHandler.gameState.setCollaborativeMode(false);
         }
       });
   }
