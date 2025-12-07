@@ -1020,6 +1020,7 @@ async getRandomFishesByUserFallback(openid, count = 20) {
           // 创建统一的小鱼卡片数据结构
           const fishCardData = {
             // === 基础信息 ===
+            _id: fishData._id, // 添加_id字段
             fishName: fishData.fishName,
             base64: fishData.base64,
             createdAt: fishData.createdAt,
@@ -1027,6 +1028,7 @@ async getRandomFishesByUserFallback(openid, count = 20) {
             
             // === 评分信息（来自comment集合）===
             score: fishData.score || 0,
+            scoreChanged: 0, // 0表示score无变化，1表示score有变化，需要更新到数据库
             
             // === 用户交互状态 ===
             userInteraction: this.getUserInteractionFromCache(fishData.fishName, userInteractionCache),

@@ -134,6 +134,8 @@ class EventHandler {
     
     // 新增：缓存版本控制
     this.cacheVersion = 1;
+    
+    // 移除临时score对象，直接使用fishCardData.score
 
     this.bindEvents();
     this.initUserOpenid(); // 新增：初始化时获取用户openid
@@ -418,6 +420,7 @@ class EventHandler {
   async performInteractionAction(fishData, action, originalState, isRanking = false) {
     const fishName = fishData.fishName;
     const isStar = action === 'star';
+    const sortType = isRanking ? this.rankingSortType : null;
 
     // 1. 验证用户信息
     if (!this.userOpenid) {
@@ -441,10 +444,12 @@ class EventHandler {
     // 设置本地缓存状态
     this.setLocalInteractionState(fishName, action, originalState);
 
-    // 4. 立即更新UI
+    // 4. score已在updateLocalFishData中更新，不需要额外操作
+
+    // 5. 立即更新UI
     this.immediatelyUpdateUI();
 
-    // 5. 异步执行数据库操作
+    // 6. 异步执行数据库操作
     try {
       // 插入新的交互记录
       const interactionSuccess = await this.databaseManager.insertUserInteraction(
@@ -456,14 +461,19 @@ class EventHandler {
         
         // 更新交互状态
         await this.updateInteractionState(fishName, action, isRanking);
+        
+        // 异步更新comment集合的score
+        this.updateCommentScoreAsync(fishName, action, sortType);
       } else {
         // 插入失败，回滚状态
         this.rollbackInteractionState(fishData, originalState, isRanking, fishName);
+        // score已在updateLocalFishData中回滚，不需要额外操作
         Utils.showError('操作失败，请重试', 1500);
       }
     } catch (error) {
       console.error('数据库操作失败:', error);
       this.rollbackInteractionState(fishData, originalState, isRanking, fishName);
+      // score已在updateLocalFishData中回滚，不需要额外操作
       Utils.showError('网络错误，操作失败');
     } finally {
       this.clearLocalInteractionState(fishName);
@@ -474,6 +484,7 @@ class EventHandler {
   async cancelInteractionAction(fishData, userInteraction, originalState, isRanking = false) {
     const fishName = fishData.fishName;
     const isStar = userInteraction && userInteraction.action === 'star';
+    const sortType = isRanking ? this.rankingSortType : null;
 
     // 1. 验证交互记录
     if (!userInteraction) {
@@ -499,13 +510,15 @@ class EventHandler {
     // 3. 立即更新本地状态
     this.updateLocalFishData(fishData, userInteraction.action, 'decrement');
     
+    // 4. score已在updateLocalFishData中回滚，不需要额外操作
+    
     // 设置本地缓存状态为取消状态
     this.setLocalInteractionState(fishName, null, originalState);
 
-    // 4. 立即更新UI
+    // 5. 立即更新UI
     this.immediatelyUpdateUI();
 
-    // 5. 异步执行数据库操作
+    // 6. 异步执行数据库操作
     try {
       // 删除交互记录
       const interactionSuccess = await this.databaseManager.deleteUserInteraction(interactionToDelete._id);
@@ -515,14 +528,19 @@ class EventHandler {
         
         // 清除交互状态
         this.clearInteractionState(fishName, isRanking);
+        
+        // 异步更新comment集合的score
+        this.updateCommentScoreAsync(fishName, userInteraction.action, sortType);
       } else {
         // 删除失败，回滚状态
         this.rollbackInteractionState(fishData, originalState, isRanking, fishName);
+        // score已在updateLocalFishData中回滚，不需要额外操作
         Utils.showError('操作失败', 1000);
       }
     } catch (error) {
       console.error('数据库操作失败:', error);
       this.rollbackInteractionState(fishData, originalState, isRanking, fishName);
+      this.updateFishScore(fishName, userInteraction.action, sortType, 'increment');
       Utils.showError('网络错误，操作失败');
     } finally {
       this.clearLocalInteractionState(fishName);
@@ -625,18 +643,35 @@ class EventHandler {
     this.localInteractionCache.delete(fishName);
   }
 
-  // 新增：更新本地鱼数据状态
+  // 更新本地鱼数据状态
   updateLocalFishData(fishData, action, operation) {
     const isStar = action === 'star';
     const change = operation === 'increment' ? 1 : -1;
 
-    // 统一使用临时字段
-    if (isStar) {
-      fishData.tempStar = Math.max(0, (fishData.tempStar || 0) + change);
-    } else {
-      fishData.tempUnstar = Math.max(0, (fishData.tempUnstar || 0) + change);
+    // 直接更新score
+    const currentScore = fishData.score || 0;
+    const newScore = isStar ? currentScore + change : currentScore - change;
+    fishData.score = newScore;
+    
+    // 保存原始score（如果还没有保存）
+    if (fishData.originalScore === undefined) {
+      fishData.originalScore = currentScore;
     }
-    fishData.tempScore = (fishData.tempStar || 0) - (fishData.tempUnstar || 0);
+    
+    // 标记为已修改
+    fishData.scoreChanged = 1;
+    
+    // 如果是排行榜中的鱼，同时更新缓存中的fishCardData
+    const cache = this.rankingCache[this.rankingSortType];
+    if (cache && cache.has(fishData.fishName)) {
+      const fishCardData = cache.get(fishData.fishName);
+      fishCardData.score = newScore;
+      fishCardData.scoreChanged = 1;
+      if (fishCardData.originalScore === undefined) {
+        fishCardData.originalScore = currentScore;
+      }
+      cache.set(fishData.fishName, fishCardData);
+    }
   }
 
   // 新增：更新交互状态 - 兼容新旧数据结构
@@ -728,18 +763,35 @@ class EventHandler {
     }
   }
 
-  // 新增：更新本地鱼数据状态
+  // 更新本地鱼数据状态
   updateLocalFishData(fishData, action, operation) {
     const isStar = action === 'star';
     const change = operation === 'increment' ? 1 : -1;
 
-    // 统一使用临时字段
-    if (isStar) {
-      fishData.tempStar = Math.max(0, (fishData.tempStar || 0) + change);
-    } else {
-      fishData.tempUnstar = Math.max(0, (fishData.tempUnstar || 0) + change);
+    // 直接更新score
+    const currentScore = fishData.score || 0;
+    const newScore = isStar ? currentScore + change : currentScore - change;
+    fishData.score = newScore;
+    
+    // 保存原始score（如果还没有保存）
+    if (fishData.originalScore === undefined) {
+      fishData.originalScore = currentScore;
     }
-    fishData.tempScore = (fishData.tempStar || 0) - (fishData.tempUnstar || 0);
+    
+    // 标记为已修改
+    fishData.scoreChanged = 1;
+    
+    // 如果是排行榜中的鱼，同时更新缓存中的fishCardData
+    const cache = this.rankingCache[this.rankingSortType];
+    if (cache && cache.has(fishData.fishName)) {
+      const fishCardData = cache.get(fishData.fishName);
+      fishCardData.score = newScore;
+      fishCardData.scoreChanged = 1;
+      if (fishCardData.originalScore === undefined) {
+        fishCardData.originalScore = currentScore;
+      }
+      cache.set(fishData.fishName, fishCardData);
+    }
   }
 
   // 新增：更新交互状态 - 兼容新旧数据结构
@@ -873,12 +925,18 @@ class EventHandler {
     }
   }
 
-  // 新增：从本地缓存设置排行榜小鱼的交互状态
-  setRankingFishesInteractionsFromCache(rankingFishes) {
+  // 新增：从本地缓存设置排行榜小鱼的交互状态和临时score
+  setRankingFishesInteractionsFromCache(rankingFishes, sortType) {
+    if (!sortType) {
+      sortType = this.rankingSortType;
+    }
+    
     if (!this.userInteractionCache || this.userInteractionCache.size === 0) {
       // 如果缓存为空，为所有鱼设置默认状态
       rankingFishes.forEach(fishItem => {
         fishItem.userInteraction = { liked: false, disliked: false, action: null };
+        // 初始化临时score为0
+        // 不再需要初始化临时score，直接使用fishCardData.score
       });
       return;
     }
@@ -893,10 +951,16 @@ class EventHandler {
         // 如果缓存中没有，设置默认状态
         fishItem.userInteraction = { liked: false, disliked: false, action: null };
       }
+      
+      // 初始化临时score（如果还没有的话）
+      // 不再需要初始化临时score，直接使用fishCardData.score
     });
 
-    console.log(`为 ${rankingFishes.length} 条小鱼设置了交互状态`);
+    console.log(`为 ${rankingFishes.length} 条小鱼设置了交互状态和临时score`);
   }
+  
+  // 移除initTempScore方法，不再需要初始化临时score
+  // 直接使用fishCardData中的score值
 
   // 新增：更新全局用户交互缓存
   updateUserInteractionCache(fishName, interaction) {
@@ -931,6 +995,171 @@ class EventHandler {
         cache.set(fishName, fishCardData);
       }
     });
+  }
+  
+  // 更新fishCardData中的score值
+  updateFishScore(fishName, action, sortType, operation = 'increment') {
+    if (!sortType) return;
+    
+    // 获取对应的缓存
+    const cache = this.rankingCache[sortType];
+    if (!cache || !cache.has(fishName)) return;
+    
+    // 获取fishCardData
+    const fishCardData = cache.get(fishName);
+    
+    // 获取当前score
+    const currentScore = fishCardData.score || 0;
+    
+    // 保存原始score（如果还没有保存）
+    if (fishCardData.originalScore === undefined) {
+      fishCardData.originalScore = currentScore;
+    }
+    
+    // 根据操作更新score
+    const change = operation === 'increment' ? 1 : -1;
+    const newScore = action === 'star' ? currentScore + change : currentScore - change;
+    
+    // 直接更新score并标记为已修改
+    fishCardData.score = newScore;
+    fishCardData.scoreChanged = 1;
+    
+    // 更新缓存
+    cache.set(fishName, fishCardData);
+    
+    // 同步更新排行榜UI中的fishData.score
+    if (this.rankingData && this.rankingData.fishes) {
+      const fishItem = this.rankingData.fishes.find(item => 
+        item.fishData.fishName === fishName
+      );
+      if (fishItem) {
+        fishItem.fishData.score = newScore;
+      }
+    }
+    
+    console.log(`更新fishCardData score: ${fishName} ${action === 'star' ? '点赞' : '点踩'} ${operation === 'increment' ? '+' : '-'}1, ${currentScore} → ${newScore}`);
+  }
+  
+  // 新增：回滚临时score对象
+  // 回滚fishCardData中的score值
+  rollbackFishScore(fishName, action, sortType, operation = 'increment') {
+    if (!sortType) return;
+    
+    // 获取对应的缓存
+    const cache = this.rankingCache[sortType];
+    if (!cache || !cache.has(fishName)) return;
+    
+    // 获取fishCardData
+    const fishCardData = cache.get(fishName);
+    
+    // 获取当前score
+    const currentScore = fishCardData.score || 0;
+    
+    // 根据操作回滚score
+    const change = operation === 'increment' ? 1 : -1;
+    const newScore = action === 'star' ? currentScore - change : currentScore + change;
+    
+    // 直接更新score
+    fishCardData.score = newScore;
+    
+    // 更新缓存
+    cache.set(fishName, fishCardData);
+    
+    // 同步更新排行榜UI中的fishData.score
+    if (this.rankingData && this.rankingData.fishes) {
+      const fishItem = this.rankingData.fishes.find(item => 
+        item.fishData.fishName === fishName
+      );
+      if (fishItem) {
+        fishItem.fishData.score = newScore;
+      }
+    }
+    
+    console.log(`回滚fishCardData score: ${fishName} ${action === 'star' ? '点赞' : '点踩'} ${operation === 'increment' ? '+' : '-'}1, ${currentScore} → ${newScore}`);
+  }
+  
+  // 异步更新comment集合的score
+  updateCommentScoreAsync(fishName, action, sortType) {
+    // 异步执行，不阻塞主流程
+    setTimeout(async () => {
+      try {
+        console.log(`异步更新comment集合score: ${fishName}, ${action}`);
+        
+        // 调用云函数更新comment集合的score
+        const result = await wx.cloud.callFunction({
+          name: 'updateCommentScore',
+          data: {
+            fishName: fishName,
+            action: action, // 'star' or 'unstar'
+            openid: this.userOpenid
+          }
+        });
+        
+        if (result.result && result.result.success) {
+          console.log(`云函数更新comment score成功: ${fishName}, 新score: ${result.result.newScore}`);
+          
+          // 更新成功后，重置scoreChanged标志
+          const cache = this.rankingCache[sortType];
+          if (cache && cache.has(fishName)) {
+            const fishCardData = cache.get(fishName);
+            fishCardData.scoreChanged = 0;
+            cache.set(fishName, fishCardData);
+          }
+        } else {
+          console.warn(`云函数更新comment score失败: ${result.result?.error || '未知错误'}`);
+        }
+      } catch (error) {
+        console.error('异步更新comment score失败:', error);
+      }
+    }, 100); // 延迟100ms执行，确保UI更新完成
+  }
+  
+  // 批量处理所有scoreChanged=1的鱼
+  async batchUpdateChangedScores() {
+    // 遍历所有排行榜类型
+    for (const sortType of ['best', 'worst', 'latest']) {
+      const cache = this.rankingCache[sortType];
+      if (!cache) continue;
+      
+      // 找出所有scoreChanged=1的鱼
+      const changedFishes = Array.from(cache.entries())
+        .filter(([fishName, fishCardData]) => fishCardData.scoreChanged === 1);
+      
+      // 如果没有需要更新的鱼，跳过
+      if (changedFishes.length === 0) continue;
+      
+      console.log(`开始批量更新${sortType}排行榜中的${changedFishes.length}条鱼的score`);
+      
+      // 逐条更新
+      for (const [fishName, fishCardData] of changedFishes) {
+        try {
+          // 根据score变化确定action
+          const originalScore = fishCardData.originalScore || 0;
+          const action = fishCardData.score > originalScore ? 'star' : 'unstar';
+          
+          // 调用云函数更新
+          const result = await wx.cloud.callFunction({
+            name: 'updateCommentScore',
+            data: {
+              fishName: fishName,
+              action: action,
+              openid: this.userOpenid
+            }
+          });
+          
+          if (result.result && result.result.success) {
+            // 更新成功，重置标志
+            fishCardData.scoreChanged = 0;
+            cache.set(fishName, fishCardData);
+            console.log(`批量更新成功: ${fishName}, 新score: ${result.result.newScore}`);
+          } else {
+            console.warn(`批量更新失败: ${fishName}, 错误: ${result.result?.error || '未知错误'}`);
+          }
+        } catch (error) {
+          console.error(`批量更新异常: ${fishName}`, error);
+        }
+      }
+    }
   }
 
   // 新增：立即更新UI状态
@@ -1410,6 +1639,7 @@ async refreshFishTank() {
           
           rankingFishesWithImages.push({
             fishData: {
+              _id: fishCardData._id, // 添加_id字段
               fishName: fishCardData.fishName,
               base64: fishCardData.base64,
               createdAt: fishCardData.createdAt,
@@ -1467,10 +1697,10 @@ async refreshFishTank() {
       const scoreData = await this.databaseManager.calculateFishScore(fishData.fishName);
       const { score, starCount, unstarCount } = scoreData;
 
-      // 统一使用临时字段存储评分数据
-      fishData.tempScore = score;
-      fishData.tempStar = starCount;
-      fishData.tempUnstar = unstarCount;
+      // 直接更新fishCardData.score
+      fishData.score = score;
+      fishData.starCount = starCount;
+      fishData.unstarCount = unstarCount;
 
       console.log(`鱼 ${fishData.fishName} 评分更新: ${score} (star: ${starCount}, unstar: ${unstarCount})`);
     } catch (error) {
@@ -1492,8 +1722,8 @@ async refreshFishTank() {
       await this.loadAllUserInteractions();
     }
 
-    // 从本地缓存设置交互状态
-    this.setRankingFishesInteractionsFromCache(rankingFishes);
+      // 从本地缓存设置交互状态和临时score
+    this.setRankingFishesInteractionsFromCache(rankingFishes, this.rankingSortType);
   }
 
   // 新增：加载下一页排行榜数据
@@ -1556,6 +1786,7 @@ async refreshFishTank() {
           
           const fishItem = {
             fishData: {
+              _id: fishCardData._id, // 添加_id字段
               fishName: fishCardData.fishName,
               base64: fishCardData.base64,
               createdAt: fishCardData.createdAt,
@@ -1581,6 +1812,9 @@ async refreshFishTank() {
       this.rankingData.fishes = this.rankingData.fishes.concat(newFishes);
 
       console.log(`成功加载 ${newFishes.length} 条新的排行榜数据，当前总数: ${this.rankingData.fishes.length}`);
+      
+      // 为新加载的小鱼设置临时score
+      this.setRankingFishesInteractionsFromCache(newFishes, this.rankingSortType);
 
       // 重新计算最大滚动距离
       this.touchHandlers.ranking.calculateMaxScroll();
@@ -1619,10 +1853,10 @@ async refreshFishTank() {
         userInteraction: userInteraction ? {...userInteraction} : null
       };
 
-      // 统一使用临时字段
-      originalState.tempStarCount = fishData.tempStar || 0;
-      originalState.tempUnstarCount = fishData.tempUnstar || 0;
-      originalState.tempScore = fishData.tempScore || 0;
+      // 保存原始状态
+      originalState.originalStarCount = fishData.starCount || 0;
+      originalState.originalUnstarCount = fishData.unstarCount || 0;
+      originalState.originalScore = fishData.score || 0;
 
       // 统一处理逻辑
       if (currentAction === action) {
@@ -1692,9 +1926,9 @@ async refreshFishTank() {
     const fishData = fishItem.fishData;
 
     // 统一使用临时字段
-    fishData.tempStar = originalState.tempStarCount || 0;
-    fishData.tempUnstar = originalState.tempUnstarCount || 0;
-    fishData.tempScore = originalState.tempScore || 0;
+    fishData.starCount = originalState.originalStarCount || 0;
+    fishData.unstarCount = originalState.originalUnstarCount || 0;
+    fishData.score = originalState.originalScore || 0;
 
     fishItem.userInteraction = originalState.userInteraction;
 
@@ -1722,6 +1956,10 @@ async refreshFishTank() {
     this.rankingData = null;
     // 清除所有排行榜相关的本地缓存
     this.localInteractionCache.clear();
+    
+    // 清除临时score对象
+    // 不再需要清理tempScores
+    
     // 注意：不清除全局用户交互缓存，保留供下次使用
     // this.userInteractionCache.clear(); 
     // 重置滚动位置
@@ -1745,6 +1983,9 @@ async refreshFishTank() {
     const oldSortType = this.rankingSortType;
     this.rankingSortType = sortType;
     console.log('排行榜排序类型已设置为:', sortType);
+
+    // 清除旧榜单的临时score，避免数据混乱
+    // 不再需要清理tempScores
 
     // 重新加载排行榜数据
     if (this.isRankingInterfaceVisible) {
@@ -1818,6 +2059,10 @@ async refreshFishTank() {
           createTimestamp: item.fishData.createTimestamp,
           score: item.fishData.score
         }));
+        
+        // 清除新榜单的临时score，重新初始化
+        // 不再需要初始化tempScores
+        this.setRankingFishesInteractionsFromCache(rankingFishesWithImages, newSortType);
         
       } else {
         // 缓存为空，重新从数据库加载
@@ -2207,10 +2452,10 @@ async refreshFishTank() {
         userInteraction: userInteraction ? {...userInteraction} : null
       };
       
-      // 统一使用临时字段
-      originalState.tempStarCount = fishData.tempStar || 0;
-      originalState.tempUnstarCount = fishData.tempUnstar || 0;
-      originalState.tempScore = fishData.tempScore || 0;
+      // 保存原始状态
+      originalState.originalStarCount = fishData.starCount || 0;
+      originalState.originalUnstarCount = fishData.unstarCount || 0;
+      originalState.originalScore = fishData.score || 0;
 
       const oppositeAction = actionType === 'star' ? 'unstar' : 'star';
 
@@ -2283,9 +2528,9 @@ async refreshFishTank() {
     const fishData = this.selectedFishData.fishData;
 
     // 统一使用临时字段
-    fishData.tempStar = originalState.tempStarCount || 0;
-    fishData.tempUnstar = originalState.tempUnstarCount || 0;
-    fishData.tempScore = originalState.tempScore || 0;
+    fishData.starCount = originalState.originalStarCount || 0;
+    fishData.unstarCount = originalState.originalUnstarCount || 0;
+    fishData.score = originalState.originalScore || 0;
     
     this.selectedFishData.userInteraction = originalState.userInteraction;
 

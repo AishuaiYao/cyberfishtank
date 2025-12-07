@@ -4,8 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="细微优化-三个button">
+    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="细微优化-排行榜 三个对象缓存">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aiService.js" beforeDir="false" afterPath="$PROJECT_DIR$/aiService.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/databaseManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/databaseManager.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/eventHandler.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/touchHandlers/rankingTouchHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/rankingTouchHandler.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -70,86 +74,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00112" summary="共同绘画-绘制房间-房间号">
-      <option name="closed" value="true" />
-      <created>1764770498122</created>
-      <option name="number" value="00112" />
-      <option name="presentableId" value="LOCAL-00112" />
-      <option name="project" value="LOCAL" />
-      <updated>1764770498122</updated>
-    </task>
-    <task id="LOCAL-00113" summary="共同绘画-绘制房间-画笔大小提示跳动">
-      <option name="closed" value="true" />
-      <created>1764771101682</created>
-      <option name="number" value="00113" />
-      <option name="presentableId" value="LOCAL-00113" />
-      <option name="project" value="LOCAL" />
-      <updated>1764771101682</updated>
-    </task>
-    <task id="LOCAL-00114" summary="共同绘画-绘制房间">
-      <option name="closed" value="true" />
-      <created>1764771555094</created>
-      <option name="number" value="00114" />
-      <option name="presentableId" value="LOCAL-00114" />
-      <option name="project" value="LOCAL" />
-      <updated>1764771555094</updated>
-    </task>
-    <task id="LOCAL-00115" summary="共同绘画-绘制房间-搜房间">
-      <option name="closed" value="true" />
-      <created>1764772783413</created>
-      <option name="number" value="00115" />
-      <option name="presentableId" value="LOCAL-00115" />
-      <option name="project" value="LOCAL" />
-      <updated>1764772783413</updated>
-    </task>
-    <task id="LOCAL-00116" summary="共同绘画-绘制房间-搜房间">
-      <option name="closed" value="true" />
-      <created>1764774095079</created>
-      <option name="number" value="00116" />
-      <option name="presentableId" value="LOCAL-00116" />
-      <option name="project" value="LOCAL" />
-      <updated>1764774095079</updated>
-    </task>
-    <task id="LOCAL-00117" summary="共同绘画-绘制房间-搜房间">
-      <option name="closed" value="true" />
-      <created>1764774738855</created>
-      <option name="number" value="00117" />
-      <option name="presentableId" value="LOCAL-00117" />
-      <option name="project" value="LOCAL" />
-      <updated>1764774738855</updated>
-    </task>
-    <task id="LOCAL-00118" summary="共同绘画-绘制房间-搜房间">
-      <option name="closed" value="true" />
-      <created>1764775053360</created>
-      <option name="number" value="00118" />
-      <option name="presentableId" value="LOCAL-00118" />
-      <option name="project" value="LOCAL" />
-      <updated>1764775053360</updated>
-    </task>
-    <task id="LOCAL-00119" summary="共同绘画-绘制房间-搜房间">
-      <option name="closed" value="true" />
-      <created>1764775623481</created>
-      <option name="number" value="00119" />
-      <option name="presentableId" value="LOCAL-00119" />
-      <option name="project" value="LOCAL" />
-      <updated>1764775623481</updated>
-    </task>
-    <task id="LOCAL-00120" summary="共同绘画-绘制房间-显示房间号输入框">
-      <option name="closed" value="true" />
-      <created>1764855174761</created>
-      <option name="number" value="00120" />
-      <option name="presentableId" value="LOCAL-00120" />
-      <option name="project" value="LOCAL" />
-      <updated>1764855174762</updated>
-    </task>
-    <task id="LOCAL-00121" summary="共同绘画-绘制房间-对齐button">
-      <option name="closed" value="true" />
-      <created>1764855344524</created>
-      <option name="number" value="00121" />
-      <option name="presentableId" value="LOCAL-00121" />
-      <option name="project" value="LOCAL" />
-      <updated>1764855344524</updated>
     </task>
     <task id="LOCAL-00122" summary="共同绘画-绘制房间-弹出等待提示">
       <option name="closed" value="true" />
@@ -463,16 +387,90 @@
       <option name="project" value="LOCAL" />
       <updated>1765033145363</updated>
     </task>
-    <option name="localTasksCounter" value="161" />
+    <task id="LOCAL-00161" summary="细微优化-去掉旧数据结构">
+      <option name="closed" value="true" />
+      <created>1765034089453</created>
+      <option name="number" value="00161" />
+      <option name="presentableId" value="LOCAL-00161" />
+      <option name="project" value="LOCAL" />
+      <updated>1765034089453</updated>
+    </task>
+    <task id="LOCAL-00162" summary="细微优化-通过comment排序-评分没有正常显示">
+      <option name="closed" value="true" />
+      <created>1765069290067</created>
+      <option name="number" value="00162" />
+      <option name="presentableId" value="LOCAL-00162" />
+      <option name="project" value="LOCAL" />
+      <updated>1765069290067</updated>
+    </task>
+    <task id="LOCAL-00163" summary="细微优化-通过comment排序-评分没有正常显示">
+      <option name="closed" value="true" />
+      <created>1765069894857</created>
+      <option name="number" value="00163" />
+      <option name="presentableId" value="LOCAL-00163" />
+      <option name="project" value="LOCAL" />
+      <updated>1765069894857</updated>
+    </task>
+    <task id="LOCAL-00164" summary="细微优化-通过comment排序-评分没有正常显示">
+      <option name="closed" value="true" />
+      <created>1765071052171</created>
+      <option name="number" value="00164" />
+      <option name="presentableId" value="LOCAL-00164" />
+      <option name="project" value="LOCAL" />
+      <updated>1765071052171</updated>
+    </task>
+    <task id="LOCAL-00165" summary="细微优化-通过comment排序-评分没有正常显示">
+      <option name="closed" value="true" />
+      <created>1765071950343</created>
+      <option name="number" value="00165" />
+      <option name="presentableId" value="LOCAL-00165" />
+      <option name="project" value="LOCAL" />
+      <updated>1765071950343</updated>
+    </task>
+    <task id="LOCAL-00166" summary="细微优化-通过comment排序-评分没有正常显示">
+      <option name="closed" value="true" />
+      <created>1765072641716</created>
+      <option name="number" value="00166" />
+      <option name="presentableId" value="LOCAL-00166" />
+      <option name="project" value="LOCAL" />
+      <updated>1765072641716</updated>
+    </task>
+    <task id="LOCAL-00167" summary="细微优化-通过comment排序">
+      <option name="closed" value="true" />
+      <created>1765072888627</created>
+      <option name="number" value="00167" />
+      <option name="presentableId" value="LOCAL-00167" />
+      <option name="project" value="LOCAL" />
+      <updated>1765072888627</updated>
+    </task>
+    <task id="LOCAL-00168" summary="细微优化-卡片增高，赞和踩ui渲染ok">
+      <option name="closed" value="true" />
+      <created>1765075988705</created>
+      <option name="number" value="00168" />
+      <option name="presentableId" value="LOCAL-00168" />
+      <option name="project" value="LOCAL" />
+      <updated>1765075988705</updated>
+    </task>
+    <task id="LOCAL-00169" summary="细微优化-优化了交互渲染读取数据库效率更高">
+      <option name="closed" value="true" />
+      <created>1765076818376</created>
+      <option name="number" value="00169" />
+      <option name="presentableId" value="LOCAL-00169" />
+      <option name="project" value="LOCAL" />
+      <updated>1765076818376</updated>
+    </task>
+    <task id="LOCAL-00170" summary="细微优化-排行榜 三个对象缓存">
+      <option name="closed" value="true" />
+      <created>1765087228601</created>
+      <option name="number" value="00170" />
+      <option name="presentableId" value="LOCAL-00170" />
+      <option name="project" value="LOCAL" />
+      <updated>1765087228601</updated>
+    </task>
+    <option name="localTasksCounter" value="171" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="共同绘画-绘制房间-对齐button" />
-    <MESSAGE value="共同绘画-绘制房间-弹出等待提示" />
-    <MESSAGE value="共同绘画-绘制房间-插入数据" />
-    <MESSAGE value="共同绘画-绘制房间-监测加入" />
-    <MESSAGE value="共同绘画-房主的提示消失" />
-    <MESSAGE value="共同绘画-提示正常" />
     <MESSAGE value="共同绘画-房主侧绘画正常" />
     <MESSAGE value="共同绘画-双侧绘画正常" />
     <MESSAGE value="共同绘画-将房主的绘画同步到伙伴" />
@@ -492,6 +490,12 @@
     <MESSAGE value="细微优化-排行榜删除button" />
     <MESSAGE value="细微优化-下移返回" />
     <MESSAGE value="细微优化-三个button" />
-    <option name="LAST_COMMIT_MESSAGE" value="细微优化-三个button" />
+    <MESSAGE value="细微优化-去掉旧数据结构" />
+    <MESSAGE value="细微优化-通过comment排序-评分没有正常显示" />
+    <MESSAGE value="细微优化-通过comment排序" />
+    <MESSAGE value="细微优化-卡片增高，赞和踩ui渲染ok" />
+    <MESSAGE value="细微优化-优化了交互渲染读取数据库效率更高" />
+    <MESSAGE value="细微优化-排行榜 三个对象缓存" />
+    <option name="LAST_COMMIT_MESSAGE" value="细微优化-排行榜 三个对象缓存" />
   </component>
 </project>

@@ -445,6 +445,13 @@ class RankingTouchHandler {
   handleTouchEnd(x, y) {
     this.isScrolling = false;
 
+    // 添加标志，避免重复处理按钮点击
+    const isButtonClick = this.isButtonClick(x, y);
+    
+    if (isButtonClick) {
+      return; // 如果点击了按钮，不执行滚动逻辑
+    }
+
     // 检查是否需要弹性回弹
     if (this.currentScrollY < 0 || this.currentScrollY > this.maxScrollY) {
       this.startElasticAnimation();
@@ -456,8 +463,55 @@ class RankingTouchHandler {
       this.startInertiaScrolling();
     }
 
-    // 在触摸结束时也检查是否需要加载更多数据
+    // 只有在滚动结束时才检查是否需要加载更多数据
     this.checkLoadMore();
+  }
+  
+  // 检查是否点击了按钮（不执行操作，只返回结果）
+  isButtonClick(x, y) {
+    if (!this.eventHandler.rankingData || this.eventHandler.rankingData.fishes.length === 0) {
+      return false;
+    }
+
+    const cardWidth = (config.screenWidth - 60) / 2;
+    const cardHeight = 220;
+    const startY = 100 - this.currentScrollY;
+
+    for (let i = 0; i < this.eventHandler.rankingData.fishes.length; i++) {
+      const fishItem = this.eventHandler.rankingData.fishes[i];
+      const row = Math.floor(i / 2);
+      const col = i % 2;
+
+      const cardX = 20 + col * (cardWidth + 20);
+      const cardY = startY + row * (cardHeight + 15);
+
+      // 检查是否在卡片范围内
+      if (x >= cardX && x <= cardX + cardWidth &&
+          y >= cardY && y <= cardY + cardHeight) {
+
+        // 计算按钮区域
+        const buttonAreaY = cardY + cardHeight - 35;
+        const likeButtonX = cardX + 15;
+        const likeButtonWidth = 40;
+        const dislikeButtonX = cardX + cardWidth - 55;
+        const dislikeButtonWidth = 40;
+        const buttonHeight = 25;
+
+        // 检查点赞按钮点击
+        if (x >= likeButtonX && x <= likeButtonX + likeButtonWidth &&
+            y >= buttonAreaY && y <= buttonAreaY + buttonHeight) {
+          return true;
+        }
+
+        // 检查点踩按钮点击
+        if (x >= dislikeButtonX && x <= dislikeButtonX + dislikeButtonWidth &&
+            y >= buttonAreaY && y <= buttonAreaY + buttonHeight) {
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
 
   // 计算最大滚动距离
