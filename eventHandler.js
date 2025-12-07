@@ -117,6 +117,23 @@ class EventHandler {
     // 新增：全局用户交互状态缓存 - 存储用户的所有交互记录
     this.userInteractionCache = new Map(); // key: fishName, value: {action, liked, disliked, timestamp}
     this.isUserInteractionCacheLoaded = false; // 标记是否已加载
+    
+    // 新增：三个独立的排行榜缓存Map - 存储每个榜单的小鱼数据
+    this.rankingCache = {
+      best: new Map(),    // key: fishName, value: fishCardData (最佳榜)
+      worst: new Map(),   // key: fishName, value: fishCardData (最丑榜)
+      latest: new Map()    // key: fishName, value: fishCardData (最新榜)
+    };
+    
+    // 新增：每个排行榜的分页信息
+    this.rankingPages = {
+      best: { currentPage: 0, hasMore: true },
+      worst: { currentPage: 0, hasMore: true },
+      latest: { currentPage: 0, hasMore: true }
+    };
+    
+    // 新增：缓存版本控制
+    this.cacheVersion = 1;
 
     this.bindEvents();
     this.initUserOpenid(); // 新增：初始化时获取用户openid
@@ -642,6 +659,9 @@ class EventHandler {
           // 更新全局用户交互缓存
           this.updateUserInteractionCache(fishName, dbInteraction);
           
+          // 同时更新所有排行榜缓存中的交互状态
+          this.updateInteractionStateInAllRankings(fishName, dbInteraction);
+          
           fishItem.userInteraction = dbInteraction;
           console.log('设置排行榜交互状态（包含_id）:', dbInteraction);
         } else {
@@ -664,6 +684,9 @@ class EventHandler {
           
           // 更新全局用户交互缓存
           this.updateUserInteractionCache(fishName, interaction);
+          
+          // 同时更新所有排行榜缓存中的交互状态
+          this.updateInteractionStateInAllRankings(fishName, interaction);
           
           fishItem.userInteraction = interaction;
         }
@@ -688,6 +711,9 @@ class EventHandler {
     
     // 同时更新全局用户交互缓存
     this.updateUserInteractionCache(fishName, null);
+    
+    // 同时更新所有排行榜缓存中的交互状态
+    this.updateInteractionStateInAllRankings(fishName, null);
   }
 
   // 新增：统一回滚交互状态
@@ -736,6 +762,9 @@ class EventHandler {
           // 更新全局用户交互缓存
           this.updateUserInteractionCache(fishName, dbInteraction);
           
+          // 同时更新所有排行榜缓存中的交互状态
+          this.updateInteractionStateInAllRankings(fishName, dbInteraction);
+          
           fishItem.userInteraction = dbInteraction;
           console.log('设置排行榜交互状态（包含_id）:', dbInteraction);
         } else {
@@ -758,6 +787,9 @@ class EventHandler {
           
           // 更新全局用户交互缓存
           this.updateUserInteractionCache(fishName, interaction);
+          
+          // 同时更新所有排行榜缓存中的交互状态
+          this.updateInteractionStateInAllRankings(fishName, interaction);
           
           fishItem.userInteraction = interaction;
         }
@@ -782,6 +814,9 @@ class EventHandler {
     
     // 同时更新全局用户交互缓存
     this.updateUserInteractionCache(fishName, null);
+    
+    // 同时更新所有排行榜缓存中的交互状态
+    this.updateInteractionStateInAllRankings(fishName, null);
   }
 
   // 新增：统一回滚交互状态
@@ -882,6 +917,20 @@ class EventHandler {
       // 如果interaction为空，删除缓存记录
       this.userInteractionCache.delete(fishName);
     }
+  }
+  
+  // 新增：更新所有排行榜缓存中的交互状态
+  updateInteractionStateInAllRankings(fishName, interaction) {
+    // 更新三个排行榜缓存中的交互状态
+    ['best', 'worst', 'latest'].forEach(sortType => {
+      const cache = this.rankingCache[sortType];
+      if (cache.has(fishName)) {
+        const fishCardData = cache.get(fishName);
+        fishCardData.userInteraction = interaction;
+        fishCardData.lastUpdateTime = Date.now();
+        cache.set(fishName, fishCardData);
+      }
+    });
   }
 
   // 新增：立即更新UI状态
@@ -1328,38 +1377,63 @@ async refreshFishTank() {
 
     try {
       console.log('加载排行榜初始数据...');
-      let initialRankingFishes;
-
-      // 初始只加载第一页数据
-      // 赛博排行榜：第一页数据，传递当前排序类型
-      const result = await this.databaseManager.getRankingDataPage(0, this.rankingIncrementalData.cyber.pageSize, this.rankingSortType);
-      initialRankingFishes = result.data;
-      this.rankingIncrementalData.cyber.hasMore = result.hasMore;
-
-      // 存入缓存
-      this.rankingIncrementalData.cyber.cachedData = [...initialRankingFishes];
-
-      // 为每条鱼创建图像对象
-      const rankingFishesWithImages = [];
-      for (const fishData of initialRankingFishes) {
-        try {
-          const fishImage = await this.fishManager.data.base64ToCanvas(fishData.base64);
-          rankingFishesWithImages.push({
-            fishData: fishData,
-            fishImage: fishImage
-          });
-        } catch (error) {
-          console.warn('创建排行榜鱼图像失败:', error);
-        }
-      }
-
-
-
+      
       // 一次性加载用户的所有交互记录（新逻辑）
       await this.loadAllUserInteractions();
       
-      // 从本地缓存设置排行榜小鱼的交互状态
-      this.setRankingFishesInteractionsFromCache(rankingFishesWithImages);
+      // 使用支持缓存的方法加载第一页数据
+      const result = await this.databaseManager.getRankingDataPageWithCache(
+        0, 
+        this.rankingIncrementalData.cyber.pageSize, 
+        this.rankingSortType,
+        this.rankingCache,
+        this.rankingPages,
+        this.userInteractionCache
+      );
+      
+      // 更新增量加载状态
+      this.rankingIncrementalData.cyber.hasMore = result.hasMore;
+      
+      // 更新缓存的分页信息
+      this.rankingPages[this.rankingSortType].currentPage = 0;
+      this.rankingPages[this.rankingSortType].hasMore = result.hasMore;
+
+      // 为每条鱼创建图像对象
+      const rankingFishesWithImages = [];
+      for (const fishCardData of result.data) {
+        try {
+          // 如果还没有图像对象，创建一个
+          if (!fishCardData.fishImage) {
+            fishCardData.fishImage = await this.fishManager.data.base64ToCanvas(fishCardData.base64);
+            fishCardData.imageLoadStatus = 'loaded';
+          }
+          
+          rankingFishesWithImages.push({
+            fishData: {
+              fishName: fishCardData.fishName,
+              base64: fishCardData.base64,
+              createdAt: fishCardData.createdAt,
+              createTimestamp: fishCardData.createTimestamp,
+              score: fishCardData.score
+            },
+            fishImage: fishCardData.fishImage,
+            // 添加用户交互状态
+            userInteraction: fishCardData.userInteraction
+          });
+        } catch (error) {
+          console.warn('创建排行榜鱼图像失败:', error);
+          fishCardData.imageLoadStatus = 'failed';
+        }
+      }
+
+      // 存入增量加载的缓存数据（保持兼容性）
+      this.rankingIncrementalData.cyber.cachedData = result.data.map(item => ({
+        fishName: item.fishName,
+        base64: item.base64,
+        createdAt: item.createdAt,
+        createTimestamp: item.createTimestamp,
+        score: item.score
+      }));
 
       this.rankingData = {
         fishes: rankingFishesWithImages,
@@ -1443,15 +1517,22 @@ async refreshFishTank() {
     incrementalData.currentPage++;
 
     try {
-      // 优化：加载后续20条小鱼数据，传递当前排序类型
-      const nextPageResult = await this.databaseManager.getRankingDataPage(
+      // 优化：加载后续20条小鱼数据，使用支持缓存的方法
+      const nextPageResult = await this.databaseManager.getRankingDataPageWithCache(
         incrementalData.currentPage,
         20, // 固定加载20条小鱼
-        this.rankingSortType
+        this.rankingSortType,
+        this.rankingCache,
+        this.rankingPages,
+        this.userInteractionCache
       );
 
       // 更新是否有更多数据的标志
       incrementalData.hasMore = nextPageResult.hasMore;
+      
+      // 更新分页信息
+      this.rankingPages[this.rankingSortType].currentPage = incrementalData.currentPage;
+      this.rankingPages[this.rankingSortType].hasMore = nextPageResult.hasMore;
 
       if (nextPageResult.data.length === 0) {
         console.log('没有更多数据可以加载');
@@ -1459,30 +1540,39 @@ async refreshFishTank() {
         return;
       }
 
-      // 将新数据添加到缓存
+      // 将新数据添加到缓存（保持兼容性）
       incrementalData.cachedData = [...incrementalData.cachedData, ...nextPageResult.data];
 
       // 为新加载的鱼数据创建图像
       const newFishes = [];
 
-      for (const fishData of nextPageResult.data) {
+      for (const fishCardData of nextPageResult.data) {
         try {
-          const fishImage = await this.fishManager.data.base64ToCanvas(fishData.base64);
+          // 如果还没有图像对象，创建一个
+          if (!fishCardData.fishImage) {
+            fishCardData.fishImage = await this.fishManager.data.base64ToCanvas(fishCardData.base64);
+            fishCardData.imageLoadStatus = 'loaded';
+          }
+          
           const fishItem = {
-            fishData: fishData,
-            fishImage: fishImage
+            fishData: {
+              fishName: fishCardData.fishName,
+              base64: fishCardData.base64,
+              createdAt: fishCardData.createdAt,
+              createTimestamp: fishCardData.createTimestamp,
+              score: fishCardData.score
+            },
+            fishImage: fishCardData.fishImage,
+            // 添加用户交互状态
+            userInteraction: fishCardData.userInteraction
           };
 
           newFishes.push(fishItem);
         } catch (error) {
           console.warn('创建排行榜鱼图像失败:', error);
+          fishCardData.imageLoadStatus = 'failed';
         }
       }
-
-
-
-      // 从本地缓存设置新加载小鱼的交互状态
-      this.setRankingFishesInteractionsFromCache(newFishes);
 
       // 将新加载的鱼添加到现有数据中
       if (!this.rankingData) {
@@ -1652,14 +1742,100 @@ async refreshFishTank() {
       return;
     }
 
+    const oldSortType = this.rankingSortType;
     this.rankingSortType = sortType;
     console.log('排行榜排序类型已设置为:', sortType);
 
     // 重新加载排行榜数据
     if (this.isRankingInterfaceVisible) {
-      // 重置排行榜数据并重新加载界面
-      this.rankingData = null;
-      this.showRankingInterface();
+      this.loadRankingWithCache(oldSortType, sortType);
+    }
+  }
+  
+  // 新增：利用缓存加载排行榜数据
+  async loadRankingWithCache(oldSortType, newSortType) {
+    wx.showLoading({ title: '切换榜单...', mask: true });
+    
+    try {
+      // 检查新榜单的缓存情况
+      const newCache = this.rankingCache[newSortType];
+      const newPageInfo = this.rankingPages[newSortType];
+      
+      let rankingFishesWithImages = [];
+      
+      if (newCache.size > 0) {
+        // 从缓存获取数据
+        console.log(`从${newSortType}榜缓存获取数据，缓存大小: ${newCache.size}`);
+        
+        // 获取第一页数据（pageSize条）
+        const pageSize = this.rankingIncrementalData.cyber.pageSize;
+        const cachedFishNames = Array.from(newCache.keys()).slice(0, pageSize);
+        
+        for (const fishName of cachedFishNames) {
+          const fishCardData = newCache.get(fishName);
+          if (fishCardData) {
+            // 创建图像对象
+            if (!fishCardData.fishImage) {
+              try {
+                fishCardData.fishImage = await this.fishManager.data.base64ToCanvas(fishCardData.base64);
+                fishCardData.imageLoadStatus = 'loaded';
+              } catch (error) {
+                console.warn('创建排行榜鱼图像失败:', error);
+                fishCardData.imageLoadStatus = 'failed';
+              }
+            }
+            
+            rankingFishesWithImages.push({
+              fishData: {
+                fishName: fishCardData.fishName,
+                base64: fishCardData.base64,
+                createdAt: fishCardData.createdAt,
+                createTimestamp: fishCardData.createTimestamp,
+                score: fishCardData.score
+              },
+              fishImage: fishCardData.fishImage,
+              userInteraction: fishCardData.userInteraction
+            });
+          }
+        }
+        
+        // 更新排行榜数据
+        this.rankingData = {
+          fishes: rankingFishesWithImages,
+          lastUpdate: new Date(),
+          mode: newSortType
+        };
+        
+        // 更新增量加载状态
+        this.rankingIncrementalData.cyber.currentPage = newPageInfo.currentPage;
+        this.rankingIncrementalData.cyber.hasMore = newPageInfo.hasMore;
+        
+        // 保持兼容性的缓存数据
+        this.rankingIncrementalData.cyber.cachedData = rankingFishesWithImages.map(item => ({
+          fishName: item.fishData.fishName,
+          base64: item.fishData.base64,
+          createdAt: item.fishData.createdAt,
+          createTimestamp: item.fishData.createTimestamp,
+          score: item.fishData.score
+        }));
+        
+      } else {
+        // 缓存为空，重新从数据库加载
+        console.log(`${newSortType}榜缓存为空，从数据库加载`);
+        this.rankingData = null;
+        await this.showRankingInterface();
+      }
+      
+      // 重置滚动位置
+      this.touchHandlers.ranking.resetScroll();
+      
+      // 更新UI
+      this.uiManager.drawGameUI(this.gameState);
+      
+    } catch (error) {
+      Utils.handleError(error, '切换榜单失败');
+    } finally {
+      wx.hideLoading();
     }
   }
 

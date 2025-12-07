@@ -975,6 +975,105 @@ async getRandomFishesByUserFallback(openid, count = 20) {
     }
   }
 
+  // 新增：获取排行榜分页数据（支持缓存机制）
+  async getRankingDataPageWithCache(page, pageSize, sortType, rankingCache, rankingPages, userInteractionCache) {
+    const cacheKey = sortType; // 'best', 'worst', 'latest'
+    const currentCache = rankingCache[cacheKey];
+    const currentPageInfo = rankingPages[cacheKey];
+    
+    // 检查是否需要从数据库加载新数据
+    const needLoadFromDB = page > currentPageInfo.currentPage || 
+                         currentCache.size === 0 || 
+                         page === 0; // 第一页总是加载
+    
+    if (!needLoadFromDB) {
+      // 从缓存中获取数据
+      const cachedFishNames = Array.from(currentCache.keys());
+      const startIndex = page * pageSize;
+      const endIndex = Math.min(startIndex + pageSize, cachedFishNames.length);
+      const fishNames = cachedFishNames.slice(startIndex, endIndex);
+      
+      // 从缓存获取小鱼数据
+      const fishes = [];
+      for (const fishName of fishNames) {
+        const fishCardData = currentCache.get(fishName);
+        if (fishCardData) {
+          fishes.push(fishCardData);
+        }
+      }
+      
+      return {
+        data: fishes,
+        hasMore: endIndex < cachedFishNames.length,
+        fromCache: true
+      };
+    }
+    
+    // 需要从数据库加载数据
+    const result = await this.getRankingDataPage(page, pageSize, sortType);
+    
+    // 将新加载的数据添加到缓存
+    if (result.data && result.data.length > 0) {
+      for (const fishData of result.data) {
+        // 检查缓存中是否已存在
+        if (!currentCache.has(fishData.fishName)) {
+          // 创建统一的小鱼卡片数据结构
+          const fishCardData = {
+            // === 基础信息 ===
+            fishName: fishData.fishName,
+            base64: fishData.base64,
+            createdAt: fishData.createdAt,
+            createTimestamp: fishData.createTimestamp,
+            
+            // === 评分信息（来自comment集合）===
+            score: fishData.score || 0,
+            
+            // === 用户交互状态 ===
+            userInteraction: this.getUserInteractionFromCache(fishData.fishName, userInteractionCache),
+            
+            // === 排行榜相关信息 ===
+            rank: page * pageSize + result.data.indexOf(fishData) + 1,
+            
+            // === UI渲染相关 ===
+            fishImage: null, // 延迟加载
+            imageLoadStatus: 'pending',
+            
+            // === 缓存管理 ===
+            cacheTime: Date.now(),
+            lastUpdateTime: Date.now(),
+            cacheVersion: 1
+          };
+          
+          // 添加到缓存
+          currentCache.set(fishData.fishName, fishCardData);
+        }
+      }
+      
+      // 更新分页信息
+      currentPageInfo.currentPage = page;
+      currentPageInfo.hasMore = result.hasMore;
+    }
+    
+    return {
+      ...result,
+      fromCache: false
+    };
+  }
+  
+  // 辅助方法：从用户交互缓存获取交互状态
+  getUserInteractionFromCache(fishName, userInteractionCache) {
+    if (!userInteractionCache || !userInteractionCache.has(fishName)) {
+      return {
+        liked: false,
+        disliked: false,
+        action: null,
+        _id: null
+      };
+    }
+    
+    return userInteractionCache.get(fishName);
+  }
+
   // 新增：获取用户的所有交互记录
   async getAllUserInteractions(userOpenid) {
     if (!Utils.checkDatabaseInitialization(this, '获取用户所有交互记录')) return new Map();
