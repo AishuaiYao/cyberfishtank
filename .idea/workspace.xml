@@ -4,8 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="细微优化-排行榜点赞ok，点踩有问题-修复了interaction插入数据冗余">
+    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="细微优化-更新comment">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/databaseManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/databaseManager.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/eventHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/eventHandler.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -71,22 +72,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00124" summary="共同绘画-绘制房间-插入数据">
-      <option name="closed" value="true" />
-      <created>1764860012447</created>
-      <option name="number" value="00124" />
-      <option name="presentableId" value="LOCAL-00124" />
-      <option name="project" value="LOCAL" />
-      <updated>1764860012447</updated>
-    </task>
-    <task id="LOCAL-00125" summary="共同绘画-绘制房间-监测加入">
-      <option name="closed" value="true" />
-      <created>1764896435960</created>
-      <option name="number" value="00125" />
-      <option name="presentableId" value="LOCAL-00125" />
-      <option name="project" value="LOCAL" />
-      <updated>1764896435960</updated>
     </task>
     <task id="LOCAL-00126" summary="共同绘画-房主的提示消失">
       <option name="closed" value="true" />
@@ -464,11 +449,26 @@
       <option name="project" value="LOCAL" />
       <updated>1765096156936</updated>
     </task>
-    <option name="localTasksCounter" value="173" />
+    <task id="LOCAL-00173" summary="细微优化-排行榜点赞ok，点踩有问题-修复了interaction插入数据冗余">
+      <option name="closed" value="true" />
+      <created>1765100441689</created>
+      <option name="number" value="00173" />
+      <option name="presentableId" value="LOCAL-00173" />
+      <option name="project" value="LOCAL" />
+      <updated>1765100441689</updated>
+    </task>
+    <task id="LOCAL-00174" summary="细微优化-更新comment">
+      <option name="closed" value="true" />
+      <created>1765100561201</created>
+      <option name="number" value="00174" />
+      <option name="presentableId" value="LOCAL-00174" />
+      <option name="project" value="LOCAL" />
+      <updated>1765100561201</updated>
+    </task>
+    <option name="localTasksCounter" value="175" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="共同绘画-将房主的绘画同步到伙伴" />
     <MESSAGE value="共同绘画-实现了基础的操作互传，不过还有些小bug" />
     <MESSAGE value="共同绘画-实现了基础的操作互传，不过还有些小bug-返回操作" />
     <MESSAGE value="共同绘画-实现了基础的操作互传，不过还有些小bug-返回操作好了但是同步绘画的功能坏了" />
@@ -493,6 +493,7 @@
     <MESSAGE value="细微优化-排行榜 三个对象缓存" />
     <MESSAGE value="细微优化-排行榜点赞ok，点踩有问题" />
     <MESSAGE value="细微优化-排行榜点赞ok，点踩有问题-修复了interaction插入数据冗余" />
-    <option name="LAST_COMMIT_MESSAGE" value="细微优化-排行榜点赞ok，点踩有问题-修复了interaction插入数据冗余" />
+    <MESSAGE value="细微优化-更新comment" />
+    <option name="LAST_COMMIT_MESSAGE" value="细微优化-更新comment" />
   </component>
 </project>

@@ -1699,17 +1699,17 @@ async refreshFishTank() {
 
   // 删除评分重新计算逻辑，统一使用comment集合的score值
 
-  // 新增：计算单条鱼的评分
-  async calculateSingleFishScore(fishData) {
+  // 新增：从comment集合加载单条鱼的评分数据（详情页使用）
+  async loadFishScoreFromComment(fishData) {
     if (!fishData || !fishData.fishName) {
       return;
     }
 
-    console.log(`开始计算鱼 ${fishData.fishName} 的评分...`);
+    console.log(`从comment集合加载鱼 ${fishData.fishName} 的评分数据...`);
 
     try {
-      // 计算评分
-      const scoreData = await this.databaseManager.calculateFishScore(fishData.fishName);
+      // 从comment集合获取评分数据（与排行榜逻辑对齐）
+      const scoreData = await this.databaseManager.getFishScoreFromComment(fishData.fishName);
       const { score, starCount, unstarCount } = scoreData;
 
       // 直接更新fishCardData.score
@@ -1717,11 +1717,13 @@ async refreshFishTank() {
       fishData.starCount = starCount;
       fishData.unstarCount = unstarCount;
 
-      console.log(`鱼 ${fishData.fishName} 评分更新: ${score} (star: ${starCount}, unstar: ${unstarCount})`);
+      console.log(`鱼 ${fishData.fishName} 评分加载完成: ${score} (star: ${starCount}, unstar: ${unstarCount})`);
     } catch (error) {
-      Utils.handleError(error, `计算鱼 ${fishData.fishName} 的评分失败`);
+      Utils.handleError(error, `从comment集合加载鱼 ${fishData.fishName} 的评分失败`);
     }
   }
+
+
 
   // 修改：为排行榜鱼数据加载用户交互状态 - 现在使用本地缓存
   async loadRankingFishesUserInteractions(rankingFishes) {
@@ -2390,8 +2392,8 @@ async refreshFishTank() {
       this.clearLocalInteractionState(fish.fishData.fishName);
     }
 
-    // 新增：计算鱼的评分（从interaction集合中实时计算）
-    await this.calculateSingleFishScore(fish.fishData);
+    // 修改：从comment集合获取鱼的评分数据（与排行榜逻辑对齐）
+    await this.loadFishScoreFromComment(fish.fishData);
 
     // 新增：加载用户交互状态
     await this.loadUserInteraction(fish.fishData.fishName);

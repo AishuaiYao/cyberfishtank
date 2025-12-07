@@ -959,7 +959,7 @@ class UIManager {
       ctx.textAlign = 'center';
 
       if (hasInteracted) {
-        const actionText = userAction === 'star' ? '已点赞' : userAction === 'unstar' ? '已点踩' : '已投票';
+        const actionText = isLiked ? '已点赞' : isDisliked ? '已点踩' : '已投票';
         ctx.fillText(`您${actionText}，点击可取消`, detailX + detailWidth / 2, buttonY + 50);
       } else {
         ctx.fillText('点击按钮表达您的态度', detailX + detailWidth / 2, buttonY + 50);

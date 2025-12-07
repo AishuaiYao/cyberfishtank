@@ -1103,6 +1103,40 @@ async getRandomFishesByUserFallback(openid, count = 20) {
       return Utils.handleDatabaseError(error, '获取用户所有交互记录', new Map());
     }
   }
+
+  // 新增：从comment集合获取单条鱼的评分数据（详情页使用）
+  async getFishScoreFromComment(fishName) {
+    return this._executeDatabaseOperation('获取单条鱼评分', async () => {
+      if (!fishName) {
+        console.warn('鱼名为空，无法获取评分');
+        return { score: 0, starCount: 0, unstarCount: 0 };
+      }
+
+      console.log(`从comment集合获取鱼 ${fishName} 的评分数据`);
+
+      // 查询comment集合中该鱼的评分数据
+      const result = await this.cloudDb.collection('comment')
+        .where({
+          fishName: fishName
+        })
+        .get();
+
+      if (result.data.length > 0) {
+        const commentData = result.data[0];
+        console.log(`找到鱼 ${fishName} 的评分数据:`, commentData);
+        
+        // 返回评分数据，与排行榜逻辑保持一致
+        return {
+          score: commentData.score || 0,
+          starCount: commentData.starCount || 0,
+          unstarCount: commentData.unstarCount || 0
+        };
+      } else {
+        console.log(`鱼 ${fishName} 暂无评分数据，返回默认值`);
+        return { score: 0, starCount: 0, unstarCount: 0 };
+      }
+    }, { score: 0, starCount: 0, unstarCount: 0 });
+  }
 }
 
 module.exports = DatabaseManager;
