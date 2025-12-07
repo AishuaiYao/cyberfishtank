@@ -147,8 +147,10 @@ class SwimTouchHandler {
       }
     }
 
-    // 刷新按钮（现在在最右边）
-    const refreshButtonX = this.eventHandler.canvas.width / this.eventHandler.uiManager.pixelRatio - 70;
+    // 刷新按钮（现在在鱼缸选择器旁边）
+    const selectorWidth = 100; // 鱼缸选择器宽度
+    const buttonSpacing = 5; // 按钮间距
+    const refreshButtonX = 80 + selectorWidth + buttonSpacing; // 放在选择器右侧，使用相同间距
     if (x >= refreshButtonX && x <= refreshButtonX + 50 && y >= 40 && y <= 70) {
       this.eventHandler.refreshFishTank();
       return;

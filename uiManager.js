@@ -76,9 +76,10 @@ class UIManager {
     // 绘制鱼缸选择器（类似iPhone闹钟时间选择器风格）
     this.drawTankSelector(buttonY);
 
-    // 绘制刷新按钮
-    const refreshButtonX = config.screenWidth - 70;
-    Utils.drawModernButton(ctx, refreshButtonX, buttonY, 50, buttonHeight, '🔄', false, false, false, true);
+    // 绘制刷新按钮（移到鱼缸选择器旁边，使用返回按钮风格）
+    const selectorWidth = 100; // 鱼缸选择器宽度
+    const refreshButtonX = 80 + selectorWidth + buttonSpacing; // 放在选择器右侧，使用相同间距
+    Utils.drawModernButton(ctx, refreshButtonX, buttonY, 50, buttonHeight, '刷新', false, true);
 
     // 修改这里：根据鱼缸模式显示不同的提示文字
     ctx.fillStyle = '#374151'; // 深蓝色
@@ -315,8 +316,12 @@ class UIManager {
       // 绘制收起状态的按钮
       const selectedItem = this.eventHandler.tankSelectorState.items[this.eventHandler.tankSelectorState.selectedIndex];
       
-      // 绘制按钮背景 - 使用更现代的样式
-      ctx.fillStyle = '#F2F2F7';
+      // 优化按钮背景颜色 - 使用与返回按钮相同的渐变风格
+      const buttonGradient = ctx.createLinearGradient(selectorX, selectorY, selectorX, selectorY + buttonHeight);
+      buttonGradient.addColorStop(0, '#F8F9FA'); // 浅灰色渐变
+      buttonGradient.addColorStop(1, '#F2F2F7'); // 稍深一点的灰色
+      
+      ctx.fillStyle = buttonGradient;
       ctx.strokeStyle = '#E5E5EA';
       ctx.lineWidth = 0.5;
       Utils.drawRoundedRect(ctx, selectorX, selectorY, selectorWidth, buttonHeight, 6, true, false);
