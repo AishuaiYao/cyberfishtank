@@ -1231,6 +1231,10 @@ class EventHandler {
     } else if (this.isOtherFishTankVisible) {
       console.log('路由到游泳处理器处理串门界面');
       this.touchHandlers.swim.handleTouch(x, y);
+    } else if (this.touchHandlers.main.paletteHandler && this.touchHandlers.main.paletteHandler.isVisible) {
+      console.log('路由到调色板处理器');
+      // 调色板界面优先处理触摸事件
+      this.touchHandlers.main.paletteHandler.handlePaletteTouch(x, y);
     } else {
       // 主界面
       this.touchHandlers.main.handleTouchStart(x, y);
