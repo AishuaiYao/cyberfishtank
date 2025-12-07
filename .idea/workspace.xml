@@ -4,12 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="调色板">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config.js" beforeDir="false" afterPath="$PROJECT_DIR$/config.js" afterDir="false" />
+    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="调色板-可以选颜色">
       <change beforePath="$PROJECT_DIR$/interfaceRenderer.js" beforeDir="false" afterPath="$PROJECT_DIR$/interfaceRenderer.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/touchHandlers/mainTouchHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/mainTouchHandler.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uiManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/uiManager.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -74,30 +70,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00142" summary="共同绘画-基本比较流畅-有些时候撤销会撤销对面的操作">
-      <option name="closed" value="true" />
-      <created>1765003894168</created>
-      <option name="number" value="00142" />
-      <option name="presentableId" value="LOCAL-00142" />
-      <option name="project" value="LOCAL" />
-      <updated>1765003894168</updated>
-    </task>
-    <task id="LOCAL-00143" summary="共同绘画-基本比较流畅-撤销会高亮下一步">
-      <option name="closed" value="true" />
-      <created>1765011102362</created>
-      <option name="number" value="00143" />
-      <option name="presentableId" value="LOCAL-00143" />
-      <option name="project" value="LOCAL" />
-      <updated>1765011102362</updated>
-    </task>
-    <task id="LOCAL-00144" summary="共同绘画-基本比较流畅">
-      <option name="closed" value="true" />
-      <created>1765012742572</created>
-      <option name="number" value="00144" />
-      <option name="presentableId" value="LOCAL-00144" />
-      <option name="project" value="LOCAL" />
-      <updated>1765012742572</updated>
     </task>
     <task id="LOCAL-00145" summary="共同绘画-基本比较流畅">
       <option name="closed" value="true" />
@@ -467,11 +439,34 @@
       <option name="project" value="LOCAL" />
       <updated>1765118853105</updated>
     </task>
-    <option name="localTasksCounter" value="191" />
+    <task id="LOCAL-00191" summary="调色板-可以选颜色">
+      <option name="closed" value="true" />
+      <created>1765118975020</created>
+      <option name="number" value="00191" />
+      <option name="presentableId" value="LOCAL-00191" />
+      <option name="project" value="LOCAL" />
+      <updated>1765118975020</updated>
+    </task>
+    <task id="LOCAL-00192" summary="调色板-可以选颜色">
+      <option name="closed" value="true" />
+      <created>1765119024909</created>
+      <option name="number" value="00192" />
+      <option name="presentableId" value="LOCAL-00192" />
+      <option name="project" value="LOCAL" />
+      <updated>1765119024909</updated>
+    </task>
+    <task id="LOCAL-00193" summary="调色板-可以选颜色">
+      <option name="closed" value="true" />
+      <created>1765119034600</created>
+      <option name="number" value="00193" />
+      <option name="presentableId" value="LOCAL-00193" />
+      <option name="project" value="LOCAL" />
+      <updated>1765119034600</updated>
+    </task>
+    <option name="localTasksCounter" value="194" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="共同绘画-进入房间的权限问题" />
     <MESSAGE value="主要功能基本完成" />
     <MESSAGE value="细微优化-排行榜删除button" />
     <MESSAGE value="细微优化-下移返回" />
@@ -496,6 +491,7 @@
     <MESSAGE value="最佳鱼缸刷新" />
     <MESSAGE value="最佳鱼缸刷新OK" />
     <MESSAGE value="调色板" />
-    <option name="LAST_COMMIT_MESSAGE" value="调色板" />
+    <MESSAGE value="调色板-可以选颜色" />
+    <option name="LAST_COMMIT_MESSAGE" value="调色板-可以选颜色" />
   </component>
 </project>

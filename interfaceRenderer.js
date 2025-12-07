@@ -166,20 +166,25 @@ class InterfaceRenderer {
     ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
     ctx.fill();
     
-    // 绘制调色板扇形区域 - 模拟专业软件的调色板样式
-    const sectorColors = ['#FF3B30', '#FF9500', '#FFCC00', '#4CD964', '#5AC8FA', '#5856D6'];
+    // 绘制调色板扇形区域 - 增加扇形数量和色彩丰富度
+    const sectorColors = [
+      '#FF3B30', '#FF6B6B', '#FF9500', '#FFB74D', 
+      '#FFCC00', '#FFEB3B', '#4CD964', '#66BB6A',
+      '#5AC8FA', '#42A5F5', '#5856D6', '#7E57C2',
+      '#E91E63', '#9C27B0', '#00BCD4', '#26C6DA'
+    ];
     const sectorCount = sectorColors.length;
     const sectorAngle = (Math.PI * 2) / sectorCount;
     
-    // 绘制扇形区域
+    // 绘制扇形区域 - 每个扇形角度更小，色彩更丰富
     for (let i = 0; i < sectorCount; i++) {
       const startAngle = i * sectorAngle - Math.PI / 6; // 偏移角度，让调色板更生动
       const endAngle = (i + 1) * sectorAngle - Math.PI / 6;
-      
+
       ctx.fillStyle = sectorColors[i];
       ctx.beginPath();
       ctx.moveTo(centerX, centerY);
-      ctx.arc(centerX, centerY, radius * 0.8, startAngle, endAngle);
+      ctx.arc(centerX, centerY, radius * 0.85, startAngle, endAngle);
       ctx.closePath();
       ctx.fill();
     }
@@ -201,7 +206,7 @@ class InterfaceRenderer {
     ctx.strokeStyle = 'rgba(255,255,255,0.6)';
     ctx.lineWidth = 0.8;
     
-    // 绘制分割线
+    // 绘制分割线 - 更新扇形数量
     for (let i = 0; i < sectorCount; i++) {
       const angle = i * sectorAngle - Math.PI / 6;
       const startX = centerX + Math.cos(angle) * radius * 0.3;

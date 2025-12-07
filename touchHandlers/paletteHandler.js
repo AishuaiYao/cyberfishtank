@@ -10,55 +10,78 @@ class PaletteHandler {
     this.positions = getAreaPositions();
   }
 
-  // 生成调色板颜色数组
+  // 生成调色板颜色数组 - 真正的多彩色系
   generatePaletteColors() {
-    // 生成丰富的调色板颜色，包括基本色、中间色和渐变色
     const colors = [];
     
-    // 基本颜色
-    const baseColors = [
-      '#FF3B30', '#FF9500', '#FFCC00', '#4CD964', '#5AC8FA', '#5856D6', // 原色
-      '#8E8E93', '#C7C7CC', '#EFEFF4', '#000000', '#1D1D1F', '#FFFFFF'  // 中性色
+    // 基础颜色 - 彩虹色系
+    const rainbowColors = [
+      // 红色系
+      '#FF0000', '#FF3333', '#FF6666', '#FF9999', '#FFCCCC',
+      // 橙色系
+      '#FF8000', '#FF9933', '#FFB366', '#FFCC99', '#FFE5CC',
+      // 黄色系
+      '#FFFF00', '#FFFF33', '#FFFF66', '#FFFF99', '#FFFFCC',
+      // 绿色系
+      '#00FF00', '#33FF33', '#66FF66', '#99FF99', '#CCFFCC',
+      // 青色系
+      '#00FFFF', '#33FFFF', '#66FFFF', '#99FFFF', '#CCFFFF',
+      // 蓝色系
+      '#0000FF', '#3333FF', '#6666FF', '#9999FF', '#CCCCFF',
+      // 紫色系
+      '#8000FF', '#9933FF', '#B366FF', '#CC99FF', '#E5CCFF',
+      // 品红色系
+      '#FF00FF', '#FF33FF', '#FF66FF', '#FF99FF', '#FFCCFF'
     ];
     
-    // 红色系
-    for (let i = 0; i <= 100; i += 20) {
-      const brightness = 100 - i;
-      colors.push(`hsl(0, ${100}%, ${brightness}%)`);
-    }
+    // 专业颜色 - 饱和度/亮度变化
+    const professionalColors = [
+      // 高饱和度鲜艳色
+      '#FF3B30', '#FF9500', '#FFCC00', '#4CD964', '#5AC8FA', 
+      '#5856D6', '#E91E63', '#9C27B0', '#00BCD4', '#26C6DA',
+      
+      // 中等饱和度
+      '#FF6B6B', '#FFB74D', '#FFEB3B', '#66BB6A', '#42A5F5',
+      '#7E57C2', '#F48FB1', '#BA68C8', '#4FC3F7', '#4DD0E1',
+      
+      // 低饱和度柔和色
+      '#FFCDD2', '#FFE0B2', '#FFF9C4', '#C8E6C9', '#B3E5FC',
+      '#C5CAE9', '#F8BBD0', '#E1BEE7', '#B3E5FC', '#B2EBF2'
+    ];
     
-    // 橙色系
-    for (let i = 0; i <= 100; i += 20) {
-      const brightness = 100 - i;
-      colors.push(`hsl(30, ${100}%, ${brightness}%)`);
-    }
+    // 灰度色系
+    const grayscaleColors = [
+      '#000000', '#1A1A1A', '#333333', '#4D4D4D', '#666666',
+      '#808080', '#999999', '#B3B3B3', '#CCCCCC', '#E6E6E6',
+      '#FFFFFF'
+    ];
     
-    // 黄色系
-    for (let i = 0; i <= 100; i += 20) {
-      const brightness = 100 - i;
-      colors.push(`hsl(60, ${100}%, ${brightness}%)`);
-    }
+    // 自然色系
+    const naturalColors = [
+      // 肤色
+      '#FFDBAC', '#F1C27D', '#E0AC69', '#C68642', '#8D5524',
+      // 植物色
+      '#8BC34A', '#689F38', '#558B2F', '#33691E', '#1B5E20',
+      // 大地色
+      '#795548', '#6D4C41', '#5D4037', '#4E342E', '#3E2723',
+      // 天空/水色
+      '#03A9F4', '#0288D1', '#0277BD', '#01579B', '#004D40'
+    ];
     
-    // 绿色系
-    for (let i = 0; i <= 100; i += 20) {
-      const brightness = 100 - i;
-      colors.push(`hsl(120, ${100}%, ${brightness}%)`);
-    }
+    // 金属色系
+    const metallicColors = [
+      // 金色
+      '#FFD700', '#FFDF00', '#FFEC8B', '#FFFACD',
+      // 银色
+      '#C0C0C0', '#D3D3D3', '#E8E8E8', '#F5F5F5',
+      // 青铜色
+      '#B87333', '#CD7F32', '#E6BE8A', '#F0D9B5',
+      // 铜色
+      '#B87333', '#D2691E', '#CD853F', '#DEB887'
+    ];
     
-    // 蓝色系
-    for (let i = 0; i <= 100; i += 20) {
-      const brightness = 100 - i;
-      colors.push(`hsl(240, ${100}%, ${brightness}%)`);
-    }
-    
-    // 紫色系
-    for (let i = 0; i <= 100; i += 20) {
-      const brightness = 100 - i;
-      colors.push(`hsl(270, ${100}%, ${brightness}%)`);
-    }
-    
-    // 添加基本颜色
-    colors.push(...baseColors);
+    // 组合所有颜色
+    colors.push(...rainbowColors, ...professionalColors, ...grayscaleColors, ...naturalColors, ...metallicColors);
     
     return [...new Set(colors)]; // 去重
   }
@@ -92,9 +115,9 @@ class PaletteHandler {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
     ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
     
-    // 绘制调色板面板
+    // 绘制调色板面板 - 增大高度以适应更多颜色
     const panelWidth = config.screenWidth - 60;
-    const panelHeight = 300;
+    const panelHeight = Math.min(config.screenHeight - 80, 545); // 增大高度到545px（再增加10%）
     const panelX = 30;
     const panelY = (config.screenHeight - panelHeight) / 2;
     
@@ -211,7 +234,7 @@ class PaletteHandler {
     if (!this.isVisible) return false;
     
     const panelWidth = config.screenWidth - 60;
-    const panelHeight = 300;
+    const panelHeight = Math.min(config.screenHeight - 80, 545); // 增大高度到545px（再增加10%）
     const panelX = 30;
     const panelY = (config.screenHeight - panelHeight) / 2;
     
