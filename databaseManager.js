@@ -974,6 +974,78 @@ async getRandomFishesByUserFallback(openid, count = 20) {
       return Utils.handleDatabaseError(error, '查询用户交互状态', {});
     }
   }
+
+  // 新增：获取用户的所有交互记录
+  async getAllUserInteractions(userOpenid) {
+    if (!Utils.checkDatabaseInitialization(this, '获取用户所有交互记录')) return new Map();
+    
+    if (!userOpenid) {
+      console.log('用户openid为空，无法获取交互记录');
+      return new Map();
+    }
+
+    try {
+      console.log('获取用户的所有交互记录:', userOpenid);
+
+      // 分批查询，避免一次查询过多数据
+      const batchSize = 100;
+      const interactionMap = new Map();
+      let hasMore = true;
+      let skip = 0;
+
+      while (hasMore) {
+        const result = await this.cloudDb.collection('interaction')
+          .where({
+            _openid: userOpenid
+          })
+          .orderBy('createTimestamp', 'desc') // 按时间倒序
+          .limit(batchSize)
+          .skip(skip)
+          .get();
+
+        // 处理查询结果
+        if (result.data && result.data.length > 0) {
+          result.data.forEach(interaction => {
+            // 兼容处理：确保同时包含action字段和liked/disliked字段
+            let liked = false;
+            let disliked = false;
+            
+            if (interaction.action) {
+              // 如果有action字段，基于它设置liked/disliked
+              liked = interaction.action === 'star';
+              disliked = interaction.action === 'unstar';
+            } else if (interaction.liked !== undefined || interaction.disliked !== undefined) {
+              // 如果有liked/disliked字段，直接使用
+              liked = interaction.liked || false;
+              disliked = interaction.disliked || false;
+            }
+            
+            // 存储到Map中
+            interactionMap.set(interaction.fishName, {
+              action: interaction.action || (liked ? 'star' : (disliked ? 'unstar' : null)),
+              liked: liked,
+              disliked: disliked,
+              timestamp: interaction.createTimestamp || Date.now(),
+              _id: interaction._id
+            });
+          });
+
+          // 更新skip值
+          skip += batchSize;
+          
+          // 如果返回的数据少于batchSize，说明没有更多数据
+          hasMore = result.data.length >= batchSize;
+        } else {
+          hasMore = false;
+        }
+      }
+
+      console.log(`成功获取用户 ${interactionMap.size} 条交互记录`);
+      return interactionMap;
+    } catch (error) {
+      return Utils.handleDatabaseError(error, '获取用户所有交互记录', new Map());
+    }
+  }
 }
 
 module.exports = DatabaseManager;

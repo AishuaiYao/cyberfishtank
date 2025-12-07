@@ -113,6 +113,10 @@ class EventHandler {
 
     // 新增：本地交互状态缓存 - 用于即时UI更新
     this.localInteractionCache = new Map(); // key: fishName, value: {action, timestamp, originalState}
+    
+    // 新增：全局用户交互状态缓存 - 存储用户的所有交互记录
+    this.userInteractionCache = new Map(); // key: fishName, value: {action, liked, disliked, timestamp}
+    this.isUserInteractionCacheLoaded = false; // 标记是否已加载
 
     this.bindEvents();
     this.initUserOpenid(); // 新增：初始化时获取用户openid
@@ -635,6 +639,9 @@ class EventHandler {
             dbInteraction.disliked = dbInteraction.action === 'unstar';
           }
           
+          // 更新全局用户交互缓存
+          this.updateUserInteractionCache(fishName, dbInteraction);
+          
           fishItem.userInteraction = dbInteraction;
           console.log('设置排行榜交互状态（包含_id）:', dbInteraction);
         } else {
@@ -654,6 +661,9 @@ class EventHandler {
             interaction.disliked = true;
             interaction.action = action;
           }
+          
+          // 更新全局用户交互缓存
+          this.updateUserInteractionCache(fishName, interaction);
           
           fishItem.userInteraction = interaction;
         }
@@ -675,6 +685,9 @@ class EventHandler {
     } else if (!isRanking && this.selectedFishData) {
       this.selectedFishData.userInteraction = null;
     }
+    
+    // 同时更新全局用户交互缓存
+    this.updateUserInteractionCache(fishName, null);
   }
 
   // 新增：统一回滚交互状态
@@ -720,6 +733,9 @@ class EventHandler {
             dbInteraction.disliked = dbInteraction.action === 'unstar';
           }
           
+          // 更新全局用户交互缓存
+          this.updateUserInteractionCache(fishName, dbInteraction);
+          
           fishItem.userInteraction = dbInteraction;
           console.log('设置排行榜交互状态（包含_id）:', dbInteraction);
         } else {
@@ -739,6 +755,9 @@ class EventHandler {
             interaction.disliked = true;
             interaction.action = action;
           }
+          
+          // 更新全局用户交互缓存
+          this.updateUserInteractionCache(fishName, interaction);
           
           fishItem.userInteraction = interaction;
         }
@@ -760,6 +779,9 @@ class EventHandler {
     } else if (!isRanking && this.selectedFishData) {
       this.selectedFishData.userInteraction = null;
     }
+    
+    // 同时更新全局用户交互缓存
+    this.updateUserInteractionCache(fishName, null);
   }
 
   // 新增：统一回滚交互状态
@@ -776,8 +798,90 @@ class EventHandler {
 
   // 新增：获取最终的交互状态（优先本地缓存）
   getFinalInteractionState(fishName, userInteraction) {
+    // 优先检查临时交互状态（正在进行的操作）
     const localState = this.getLocalInteractionState(fishName);
-    return localState || userInteraction;
+    if (localState) {
+      return localState;
+    }
+    
+    // 然后检查全局用户交互缓存
+    if (this.userInteractionCache && this.userInteractionCache.has(fishName)) {
+      return this.userInteractionCache.get(fishName);
+    }
+    
+    // 最后使用传入的用户交互状态
+    return userInteraction;
+  }
+
+  // 新增：一次性加载用户的所有交互记录
+  async loadAllUserInteractions() {
+    if (!this.userOpenid) {
+      console.warn('用户openid未初始化，无法加载交互记录');
+      return;
+    }
+
+    // 如果已经加载过，不再重复加载
+    if (this.isUserInteractionCacheLoaded) {
+      console.log('用户交互缓存已加载，跳过');
+      return;
+    }
+
+    try {
+      console.log('开始加载用户的所有交互记录...');
+      this.userInteractionCache = await this.databaseManager.getAllUserInteractions(this.userOpenid);
+      this.isUserInteractionCacheLoaded = true;
+      console.log(`成功加载 ${this.userInteractionCache.size} 条用户交互记录`);
+    } catch (error) {
+      Utils.handleError(error, '加载用户所有交互记录失败');
+      this.userInteractionCache = new Map();
+      this.isUserInteractionCacheLoaded = false;
+    }
+  }
+
+  // 新增：从本地缓存设置排行榜小鱼的交互状态
+  setRankingFishesInteractionsFromCache(rankingFishes) {
+    if (!this.userInteractionCache || this.userInteractionCache.size === 0) {
+      // 如果缓存为空，为所有鱼设置默认状态
+      rankingFishes.forEach(fishItem => {
+        fishItem.userInteraction = { liked: false, disliked: false, action: null };
+      });
+      return;
+    }
+
+    rankingFishes.forEach(fishItem => {
+      const fishName = fishItem.fishData.fishName;
+      
+      // 从全局缓存中获取交互状态
+      if (this.userInteractionCache.has(fishName)) {
+        fishItem.userInteraction = this.userInteractionCache.get(fishName);
+      } else {
+        // 如果缓存中没有，设置默认状态
+        fishItem.userInteraction = { liked: false, disliked: false, action: null };
+      }
+    });
+
+    console.log(`为 ${rankingFishes.length} 条小鱼设置了交互状态`);
+  }
+
+  // 新增：更新全局用户交互缓存
+  updateUserInteractionCache(fishName, interaction) {
+    if (!this.userInteractionCache) {
+      this.userInteractionCache = new Map();
+    }
+    
+    if (interaction) {
+      // 更新缓存
+      this.userInteractionCache.set(fishName, {
+        action: interaction.action,
+        liked: interaction.liked || false,
+        disliked: interaction.disliked || false,
+        timestamp: interaction.createTimestamp || interaction.timestamp || Date.now(),
+        _id: interaction._id
+      });
+    } else {
+      // 如果interaction为空，删除缓存记录
+      this.userInteractionCache.delete(fishName);
+    }
   }
 
   // 新增：立即更新UI状态
@@ -1251,8 +1355,11 @@ async refreshFishTank() {
 
 
 
-      // 加载用户交互状态
-      await this.loadRankingFishesUserInteractions(rankingFishesWithImages);
+      // 一次性加载用户的所有交互记录（新逻辑）
+      await this.loadAllUserInteractions();
+      
+      // 从本地缓存设置排行榜小鱼的交互状态
+      this.setRankingFishesInteractionsFromCache(rankingFishesWithImages);
 
       this.rankingData = {
         fishes: rankingFishesWithImages,
@@ -1297,62 +1404,22 @@ async refreshFishTank() {
     }
   }
 
-  // 修改：为排行榜鱼数据加载用户交互状态 - 使用批量查询方法
+  // 修改：为排行榜鱼数据加载用户交互状态 - 现在使用本地缓存
   async loadRankingFishesUserInteractions(rankingFishes) {
     if (!rankingFishes || rankingFishes.length === 0) {
       return;
     }
 
-    console.log('开始加载排行榜鱼的用户交互状态...');
+    console.log('开始从本地缓存加载排行榜鱼的用户交互状态...');
 
-    // 使用缓存的openid
-    if (!this.userOpenid) {
-      console.warn('用户openid未初始化，无法加载交互状态');
-      return;
+    // 确保用户交互缓存已加载
+    if (!this.isUserInteractionCacheLoaded) {
+      console.log('用户交互缓存未加载，先加载所有交互记录');
+      await this.loadAllUserInteractions();
     }
 
-    console.log('使用缓存的openid批量查询交互状态:', this.userOpenid);
-
-    // 提取所有鱼名
-    const fishNames = rankingFishes.map(fishItem => fishItem.fishData.fishName);
-
-    try {
-      // 批量查询用户交互状态
-      const interactionMap = await this.databaseManager.getUserInteractionStatus(
-        fishNames,
-        this.userOpenid
-      );
-
-      // 为每条鱼设置用户交互状态 - 兼容两种数据结构
-      rankingFishes.forEach(fishItem => {
-        const interaction = interactionMap[fishItem.fishData.fishName];
-        
-        // 确保交互记录包含兼容的字段
-        if (interaction) {
-          // 如果有action字段但没有liked/disliked，基于action设置
-          if (interaction.action && (interaction.liked === undefined && interaction.disliked === undefined)) {
-            interaction.liked = interaction.action === 'star';
-            interaction.disliked = interaction.action === 'unstar';
-          }
-          // 如果有liked/disliked但没有action，基于liked/disliked设置
-          else if ((interaction.liked !== undefined || interaction.disliked !== undefined) && !interaction.action) {
-            interaction.action = interaction.liked ? 'star' : (interaction.disliked ? 'unstar' : null);
-          }
-          
-          fishItem.userInteraction = interaction;
-        } else {
-          fishItem.userInteraction = { liked: false, disliked: false, action: null };
-        }
-      });
-
-      console.log(`批量加载了 ${Object.keys(interactionMap).length} 条鱼的用户交互状态`);
-    } catch (error) {
-      Utils.handleWarning(error, '批量加载用户交互状态失败');
-      // 如果失败，为所有鱼设置默认状态
-      rankingFishes.forEach(fishItem => {
-        fishItem.userInteraction = { liked: false, disliked: false };
-      });
-    }
+    // 从本地缓存设置交互状态
+    this.setRankingFishesInteractionsFromCache(rankingFishes);
   }
 
   // 新增：加载下一页排行榜数据
@@ -1414,20 +1481,8 @@ async refreshFishTank() {
 
 
 
-      // 加载用户交互状态
-      for (const fishItem of newFishes) {
-        if (this.userOpenid) {
-          try {
-            fishItem.userInteraction = await this.databaseManager.getUserInteraction(
-              fishItem.fishData.fishName,
-              this.userOpenid
-            );
-          } catch (error) {
-            Utils.handleWarning(error, `加载鱼 ${fishItem.fishData.fishName} 的交互状态失败`);
-            fishItem.userInteraction = null;
-          }
-        }
-      }
+      // 从本地缓存设置新加载小鱼的交互状态
+      this.setRankingFishesInteractionsFromCache(newFishes);
 
       // 将新加载的鱼添加到现有数据中
       if (!this.rankingData) {
@@ -1577,6 +1632,8 @@ async refreshFishTank() {
     this.rankingData = null;
     // 清除所有排行榜相关的本地缓存
     this.localInteractionCache.clear();
+    // 注意：不清除全局用户交互缓存，保留供下次使用
+    // this.userInteractionCache.clear(); 
     // 重置滚动位置
     this.touchHandlers.ranking.resetScroll();
     this.uiManager.drawGameUI(this.gameState);
