@@ -700,8 +700,8 @@ class UIManager {
     ctx.fillStyle = config.primaryColor;
     ctx.font = 'bold 14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
 
-    // 统一使用临时字段
-    let finalScore = fishData.tempScore || 0;
+    // 使用从comment集合获取的score字段
+    let finalScore = fishData.score || 0;
 
     ctx.fillText(`评分: ${finalScore}`, Math.round(x + width / 2), textStartY + 40);
 
@@ -858,8 +858,8 @@ class UIManager {
     ctx.fillStyle = config.primaryColor;
     ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
 
-    // 统一使用临时字段
-    let score = fishData.tempScore || 0;
+    // 使用从comment集合获取的score字段
+    let score = fishData.score || 0;
 
     ctx.fillText(`评分: ${score}`, detailX + detailWidth / 2, textStartY + 50);
 
