@@ -709,16 +709,15 @@ class UIManager {
     this.drawRankingCardButtons(ctx, x, y, width, height, fishData, finalInteraction);
   }
 
-  // 修改后的 drawRankingCardButtons 方法：使用最终交互状态
+  // 修改后的 drawRankingCardButtons 方法：使用新的用户交互状态数据结构
   drawRankingCardButtons(ctx, x, y, width, height, fishData, finalInteraction) {
     const buttonAreaY = y + height - 35;
     const buttonHeight = 25;
 
-    // 检查最终交互状态
+    // 检查最终交互状态（使用新的数据结构：liked和disliked字段）
     const hasInteracted = !!finalInteraction;
-    const userAction = finalInteraction ? finalInteraction.action : null;
-    const isLiked = hasInteracted && userAction === 'star';
-    const isDisliked = hasInteracted && userAction === 'unstar';
+    const isLiked = hasInteracted && finalInteraction.liked === true;
+    const isDisliked = hasInteracted && finalInteraction.disliked === true;
 
     // 点赞按钮（左侧）
     const likeButtonX = x + 15;

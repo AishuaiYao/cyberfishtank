@@ -233,32 +233,78 @@ class DatabaseManager {
 
       while (allData.length < limit) {
         let query = this.cloudDb.collection('fishes');
-        
+
         // 根据排序类型设置不同的排序字段
         switch (sortType) {
-          case 'best': // 点赞最多（最佳榜）
-            query = query.orderBy('star', 'desc').orderBy('createTimestamp', 'desc');
+          case 'best': // 从comment集合读取score，按从大到小排序（最佳榜）
+            // 先获取所有有评论的鱼，按score降序排列
+            const commentResult = await this.cloudDb.collection('comment')
+              .orderBy('score', 'desc')
+              .limit(limit)
+              .get();
+            
+            // 提取鱼名列表
+            const fishNames = commentResult.data.map(comment => comment.fishName);
+            
+            // 根据鱼名查询对应的鱼数据
+            if (fishNames.length > 0) {
+              const fishResult = await this.cloudDb.collection('fishes')
+                .where({
+                  fishName: this.cloudDb.command.in(fishNames)
+                })
+                .get();
+              
+              // 按照comment中的score排序鱼数据
+              const fishMap = {};
+              fishResult.data.forEach(fish => {
+                fishMap[fish.fishName] = fish;
+              });
+              
+              const sortedFishes = [];
+              commentResult.data.forEach(comment => {
+                if (fishMap[comment.fishName]) {
+                  sortedFishes.push({
+                    ...fishMap[comment.fishName],
+                    score: comment.score // 使用comment集合中的score
+                  });
+                }
+              });
+              
+              allData = sortedFishes;
+            }
             break;
+            
           case 'worst': // 点踩最多（最丑榜）
             query = query.orderBy('unstar', 'desc').orderBy('createTimestamp', 'desc');
+            const worstResult = await query
+              .skip(skip)
+              .limit(batchSize)
+              .get();
+            if (worstResult.data.length === 0) break;
+            allData = allData.concat(worstResult.data);
+            skip += batchSize;
             break;
+            
           case 'latest': // 创作时间最新（最新榜）
           default:
             query = query.orderBy('createTimestamp', 'desc');
+            const latestResult = await query
+              .skip(skip)
+              .limit(batchSize)
+              .get();
+            if (latestResult.data.length === 0) break;
+            allData = allData.concat(latestResult.data);
+            skip += batchSize;
             break;
         }
 
-        const result = await query
-          .skip(skip)
-          .limit(batchSize)
-          .get();
-
-        if (result.data.length === 0) break; // 没有更多数据了
-
-        allData = allData.concat(result.data);
-        skip += batchSize;
+        if (sortType === 'best' && allData.length > 0) {
+          break; // 最佳榜已经通过一次性查询获取了所有数据
+        }
 
         console.log(`已获取 ${allData.length} 条数据`);
+        
+        if (allData.length >= limit) break;
       }
 
       // 限制最终数量并过滤有效数据
@@ -272,18 +318,74 @@ class DatabaseManager {
     }
   }
 
-  // 新增：分页获取排行榜数据
-  async getRankingDataPage(page = 0, pageSize = 20) {
+  // 修改：分页获取排行榜数据，支持从comment集合读取score
+  async getRankingDataPage(page = 0, pageSize = 20, sortType = 'latest') {
     if (!Utils.checkDatabaseInitialization(this, '获取排行榜分页数据')) return { data: [], hasMore: false };
 
     try {
-      console.log(`获取排行榜第${page+1}页，每页${pageSize}条`);
+      console.log(`获取排行榜第${page+1}页，每页${pageSize}条，排序类型: ${sortType}`);
 
-      const result = await this.cloudDb.collection('fishes')
-        .orderBy('createTimestamp', 'desc')
-        .skip(page * pageSize)
-        .limit(pageSize)
-        .get();
+      let result;
+      
+      // 根据排序类型使用不同的查询逻辑
+      if (sortType === 'best') {
+        // 最佳榜：从comment集合读取score，按从大到小排序
+        const commentResult = await this.cloudDb.collection('comment')
+          .orderBy('score', 'desc')
+          .skip(page * pageSize)
+          .limit(pageSize)
+          .get();
+        
+        // 提取鱼名列表
+        const fishNames = commentResult.data.map(comment => comment.fishName);
+        
+        if (fishNames.length === 0) {
+          return { data: [], hasMore: false };
+        }
+        
+        // 根据鱼名查询对应的鱼数据
+        const fishResult = await this.cloudDb.collection('fishes')
+          .where({
+            fishName: this.cloudDb.command.in(fishNames)
+          })
+          .get();
+        
+        // 按照comment中的score排序鱼数据
+        const fishMap = {};
+        fishResult.data.forEach(fish => {
+          fishMap[fish.fishName] = fish;
+        });
+        
+        const sortedFishes = [];
+        commentResult.data.forEach(comment => {
+          if (fishMap[comment.fishName]) {
+            sortedFishes.push({
+              ...fishMap[comment.fishName],
+              score: comment.score // 使用comment集合中的score
+            });
+          }
+        });
+        
+        result = { data: sortedFishes };
+      } else {
+        // 其他排序类型：使用原有逻辑
+        let query = this.cloudDb.collection('fishes');
+        
+        switch (sortType) {
+          case 'worst': // 点踩最多（最丑榜）
+            query = query.orderBy('unstar', 'desc').orderBy('createTimestamp', 'desc');
+            break;
+          case 'latest': // 创作时间最新（最新榜）
+          default:
+            query = query.orderBy('createTimestamp', 'desc');
+            break;
+        }
+        
+        result = await query
+          .skip(page * pageSize)
+          .limit(pageSize)
+          .get();
+      }
 
       // 过滤有效数据
       const validRankingData = result.data.filter(fish => fish.base64 && fish.base64.length > 0);
@@ -828,6 +930,41 @@ async getRandomFishesByUserFallback(openid, count = 20) {
     } catch (error) {
       console.error('删除房间数据失败:', error);
       return false;
+    }
+  }
+
+  // 新增：查询用户对指定鱼的点赞/点踩状态
+  async getUserInteractionStatus(fishNames, openid) {
+    if (!Utils.checkDatabaseInitialization(this, '查询用户交互状态')) return {};
+    
+    if (!fishNames || fishNames.length === 0 || !openid) {
+      console.log('无效的查询参数，跳过用户交互状态查询');
+      return {};
+    }
+
+    try {
+      console.log(`查询用户 ${openid} 对 ${fishNames.length} 条鱼的交互状态`);
+
+      const result = await this.cloudDb.collection('interaction')
+        .where({
+          fishName: this.cloudDb.command.in(fishNames),
+          _openid: openid
+        })
+        .get();
+
+      // 构建鱼名到交互状态的映射
+      const interactionMap = {};
+      result.data.forEach(interaction => {
+        interactionMap[interaction.fishName] = {
+          liked: interaction.liked || false,
+          disliked: interaction.disliked || false
+        };
+      });
+
+      console.log(`成功查询到 ${result.data.length} 条交互记录`);
+      return interactionMap;
+    } catch (error) {
+      return Utils.handleDatabaseError(error, '查询用户交互状态', {});
     }
   }
 }

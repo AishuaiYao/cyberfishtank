@@ -1170,8 +1170,8 @@ async refreshFishTank() {
       let initialRankingFishes;
 
       // 初始只加载第一页数据
-      // 赛博排行榜：第一页数据
-      const result = await this.databaseManager.getRankingDataPage(0, this.rankingIncrementalData.cyber.pageSize);
+      // 赛博排行榜：第一页数据，传递当前排序类型
+      const result = await this.databaseManager.getRankingDataPage(0, this.rankingIncrementalData.cyber.pageSize, this.rankingSortType);
       initialRankingFishes = result.data;
       this.rankingIncrementalData.cyber.hasMore = result.hasMore;
 
@@ -1282,7 +1282,7 @@ async refreshFishTank() {
     }
   }
 
-  // 修改：为排行榜鱼数据加载用户交互状态 - 使用缓存的openid
+  // 修改：为排行榜鱼数据加载用户交互状态 - 使用批量查询方法
   async loadRankingFishesUserInteractions(rankingFishes) {
     if (!rankingFishes || rankingFishes.length === 0) {
       return;
@@ -1296,23 +1296,32 @@ async refreshFishTank() {
       return;
     }
 
-    console.log('使用缓存的openid加载交互状态:', this.userOpenid);
+    console.log('使用缓存的openid批量查询交互状态:', this.userOpenid);
 
-    // 批量查询用户交互状态
-    const interactionPromises = rankingFishes.map(async (fishItem) => {
-      try {
-        fishItem.userInteraction = await this.databaseManager.getUserInteraction(
-          fishItem.fishData.fishName,
-          this.userOpenid
-        );
-      } catch (error) {
-        Utils.handleWarning(error, `加载鱼 ${fishItem.fishData.fishName} 的交互状态失败`);
-        fishItem.userInteraction = null;
-      }
-    });
+    // 提取所有鱼名
+    const fishNames = rankingFishes.map(fishItem => fishItem.fishData.fishName);
 
-    await Promise.all(interactionPromises);
-    console.log('排行榜鱼用户交互状态加载完成');
+    try {
+      // 批量查询用户交互状态
+      const interactionMap = await this.databaseManager.getUserInteractionStatus(
+        fishNames,
+        this.userOpenid
+      );
+
+      // 为每条鱼设置用户交互状态
+      rankingFishes.forEach(fishItem => {
+        const interaction = interactionMap[fishItem.fishData.fishName];
+        fishItem.userInteraction = interaction || { liked: false, disliked: false };
+      });
+
+      console.log(`批量加载了 ${Object.keys(interactionMap).length} 条鱼的用户交互状态`);
+    } catch (error) {
+      Utils.handleWarning(error, '批量加载用户交互状态失败');
+      // 如果失败，为所有鱼设置默认状态
+      rankingFishes.forEach(fishItem => {
+        fishItem.userInteraction = { liked: false, disliked: false };
+      });
+    }
   }
 
   // 新增：加载下一页排行榜数据
@@ -1336,10 +1345,11 @@ async refreshFishTank() {
     incrementalData.currentPage++;
 
     try {
-      // 优化：加载后续20条小鱼数据
+      // 优化：加载后续20条小鱼数据，传递当前排序类型
       const nextPageResult = await this.databaseManager.getRankingDataPage(
         incrementalData.currentPage,
-        20 // 固定加载20条小鱼
+        20, // 固定加载20条小鱼
+        this.rankingSortType
       );
 
       // 更新是否有更多数据的标志
