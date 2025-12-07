@@ -4,12 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="细微优化-排行榜 三个对象缓存">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/aiService.js" beforeDir="false" afterPath="$PROJECT_DIR$/aiService.js" afterDir="false" />
+    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="细微优化-排行榜点赞ok，点踩有问题">
+      <change beforePath="$PROJECT_DIR$/collaborationManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/collaborationManager.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/databaseManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/databaseManager.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/eventHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/eventHandler.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/touchHandlers/rankingTouchHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/rankingTouchHandler.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -74,14 +72,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00122" summary="共同绘画-绘制房间-弹出等待提示">
-      <option name="closed" value="true" />
-      <created>1764857151602</created>
-      <option name="number" value="00122" />
-      <option name="presentableId" value="LOCAL-00122" />
-      <option name="project" value="LOCAL" />
-      <updated>1764857151602</updated>
     </task>
     <task id="LOCAL-00123" summary="共同绘画-绘制房间-弹出等待提示">
       <option name="closed" value="true" />
@@ -467,11 +457,18 @@
       <option name="project" value="LOCAL" />
       <updated>1765087228601</updated>
     </task>
-    <option name="localTasksCounter" value="171" />
+    <task id="LOCAL-00171" summary="细微优化-排行榜点赞ok，点踩有问题">
+      <option name="closed" value="true" />
+      <created>1765094369971</created>
+      <option name="number" value="00171" />
+      <option name="presentableId" value="LOCAL-00171" />
+      <option name="project" value="LOCAL" />
+      <updated>1765094369971</updated>
+    </task>
+    <option name="localTasksCounter" value="172" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="共同绘画-房主侧绘画正常" />
     <MESSAGE value="共同绘画-双侧绘画正常" />
     <MESSAGE value="共同绘画-将房主的绘画同步到伙伴" />
     <MESSAGE value="共同绘画-实现了基础的操作互传，不过还有些小bug" />
@@ -496,6 +493,7 @@
     <MESSAGE value="细微优化-卡片增高，赞和踩ui渲染ok" />
     <MESSAGE value="细微优化-优化了交互渲染读取数据库效率更高" />
     <MESSAGE value="细微优化-排行榜 三个对象缓存" />
-    <option name="LAST_COMMIT_MESSAGE" value="细微优化-排行榜 三个对象缓存" />
+    <MESSAGE value="细微优化-排行榜点赞ok，点踩有问题" />
+    <option name="LAST_COMMIT_MESSAGE" value="细微优化-排行榜点赞ok，点踩有问题" />
   </component>
 </project>
