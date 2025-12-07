@@ -65,20 +65,24 @@ class UIManager {
       ctx.textAlign = 'left';
     }
 
-    // 在 drawFishTankInterface() 方法中：
-    // 绘制返回按钮
-    Utils.drawModernButton(ctx, 20, 40, 50, 30, '返回', false, true);
+    // 对齐到排行榜界面的按钮高度和间距
+    const buttonHeight = 30;
+    const buttonY = 50; // 与排行榜界面按钮对齐
+    const buttonSpacing = 5; // 与排行榜界面间距一致
 
-    // 绘制鱼缸切换按钮（现在在第二个位置）
+    // 绘制返回按钮
+    Utils.drawModernButton(ctx, 20, buttonY, 50, buttonHeight, '返回', false, true);
+
+    // 绘制鱼缸切换按钮（第二个位置）
     const switchButtonWidth = 120;
-    const switchButtonX = 80; // 从中间位置移到第二个位置
+    const switchButtonX = 20 + 50 + buttonSpacing;
     const switchButtonText = this.eventHandler.getSwitchButtonText();
 
-    Utils.drawModernButton(ctx, switchButtonX, 40, switchButtonWidth, 30, switchButtonText, false, false);
+    Utils.drawModernButton(ctx, switchButtonX, buttonY, switchButtonWidth, buttonHeight, switchButtonText, false, false);
 
-    // 绘制刷新按钮（现在在第三个位置）
-    const refreshButtonX = switchButtonX + switchButtonWidth;
-    Utils.drawModernButton(ctx, refreshButtonX, 40, 50, 30, '🔄', false, false, false, true);
+    // 绘制刷新按钮（第三个位置）
+    const refreshButtonX = switchButtonX + switchButtonWidth + buttonSpacing;
+    Utils.drawModernButton(ctx, refreshButtonX, buttonY, 50, buttonHeight, '🔄', false, false, false, true);
 
     // 修改这里：根据鱼缸模式显示不同的提示文字
     ctx.fillStyle = '#374151'; // 深蓝色
@@ -1115,8 +1119,11 @@ drawMainTitle() {
       ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
     }
 
+    // 对齐到排行榜界面的按钮高度
+    const buttonY = 50; // 与排行榜界面按钮对齐
+
     // 绘制返回按钮
-    Utils.drawModernButton(ctx, 20, 40, 50, 30, '返回', false, true);
+    Utils.drawModernButton(ctx, 20, buttonY, 50, 30, '返回', false, true);
 
     // 绘制串门标题
     ctx.fillStyle = '#374151'; // 深蓝色
@@ -1125,9 +1132,9 @@ drawMainTitle() {
     
     if (this.eventHandler.otherFishTankData && this.eventHandler.otherFishTankData.originalFishName) {
       ctx.fillText(`正在参观 ${this.eventHandler.otherFishTankData.originalFishName} 主人的鱼缸`, 
-                   Math.round(config.screenWidth / 2), 60);
+                   Math.round(config.screenWidth / 2), 70);
     } else {
-      ctx.fillText('正在参观他人的鱼缸', Math.round(config.screenWidth / 2), 60);
+      ctx.fillText('正在参观他人的鱼缸', Math.round(config.screenWidth / 2), 70);
     }
 
     // 绘制提示文字
