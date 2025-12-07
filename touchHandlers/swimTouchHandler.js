@@ -7,7 +7,7 @@ class SwimTouchHandler {
     this.tapTimeout = null;
   }
 
-  // 修改：处理游泳界面触摸
+  // 修改：处理游泳界面触摸（在触摸结束时调用）
   handleTouch(x, y) {
     // 返回按钮
     if (x >= 20 && x <= 70 && y >= 40 && y <= 70) {

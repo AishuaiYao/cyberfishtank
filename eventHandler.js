@@ -1279,8 +1279,14 @@ class EventHandler {
       // 鱼详情界面不需要处理结束
     } else if (this.isDialogVisible) {
       // 对话框界面不需要处理结束
-    } else if (this.isSwimInterfaceVisible) {
-      // 游泳界面不需要处理结束
+    } else if (this.isSwimInterfaceVisible || this.isOtherFishTankVisible) {
+      // 游泳界面和串门界面 - 在触摸结束时也处理按钮点击
+      if (e.changedTouches && e.changedTouches.length > 0) {
+        const touch = e.changedTouches[0];
+        const x = touch.clientX;
+        const y = touch.clientY;
+        this.touchHandlers.swim.handleTouch(x, y);
+      }
     } else if (this.isTeamInterfaceVisible || this.isCollaborativePaintingVisible) {
       // 组队界面和共同绘画界面需要处理结束（传递给组队处理器）
       this.touchHandlers.team.handleTouchEnd();
