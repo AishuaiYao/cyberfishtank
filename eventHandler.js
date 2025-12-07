@@ -1192,8 +1192,7 @@ async refreshFishTank() {
         }
       }
 
-      // 计算每条鱼的评分（从interaction集合中实时计算）
-      await this.calculateFishesScores(rankingFishesWithImages);
+
 
       // 加载用户交互状态
       await this.loadRankingFishesUserInteractions(rankingFishesWithImages);
@@ -1215,48 +1214,7 @@ async refreshFishTank() {
     }
   }
 
-  // 新增：计算多条鱼的评分
-  async calculateFishesScores(fishesWithImages) {
-    if (!fishesWithImages || fishesWithImages.length === 0) {
-      return;
-    }
-
-    console.log('开始计算鱼的评分...');
-
-    try {
-      // 提取所有鱼的名称
-      const fishNames = fishesWithImages.map(item => item.fishData.fishName);
-
-      // 批量计算评分
-      const scoresMap = await this.databaseManager.calculateMultipleFishesScores(fishNames);
-
-      // 更新每条鱼的评分数据
-      fishesWithImages.forEach(item => {
-        const fishName = item.fishData.fishName;
-        if (scoresMap[fishName]) {
-          const { score, starCount, unstarCount } = scoresMap[fishName];
-
-          // 兼容新旧数据结构：如果鱼数据有评分字段则更新，否则使用临时字段
-          if ('score' in item.fishData) {
-            item.fishData.score = score;
-            item.fishData.star = starCount;
-            item.fishData.unstar = unstarCount;
-          } else {
-            // 使用临时字段存储评分数据
-            item.fishData.tempScore = score;
-            item.fishData.tempStar = starCount;
-            item.fishData.tempUnstar = unstarCount;
-          }
-
-          console.log(`鱼 ${fishName} 评分更新: ${score} (star: ${starCount}, unstar: ${unstarCount})`);
-        }
-      });
-
-      console.log('鱼的评分计算完成');
-    } catch (error) {
-      Utils.handleError(error, '计算鱼的评分失败');
-    }
-  }
+  // 删除评分重新计算逻辑，统一使用comment集合的score值
 
   // 新增：计算单条鱼的评分
   async calculateSingleFishScore(fishData) {
@@ -1381,8 +1339,7 @@ async refreshFishTank() {
         }
       }
 
-      // 计算新加载鱼的评分
-      await this.calculateFishesScores(newFishes);
+
 
       // 加载用户交互状态
       for (const fishItem of newFishes) {

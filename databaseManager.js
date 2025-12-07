@@ -457,69 +457,7 @@ class DatabaseManager {
     }
   }
 
-  // 新增：从interaction集合中计算鱼的评分
-  async calculateFishScore(fishName) {
-    return this._executeDatabaseOperation('计算鱼评分', async () => {
-      if (!fishName) {
-        Utils.handleWarning('', '鱼名为空，无法计算评分');
-        return { score: 0, starCount: 0, unstarCount: 0 };
-      }
 
-      console.log(`计算鱼 ${fishName} 的评分`);
-
-      // 查询所有对这条鱼的star操作
-      const starResult = await this.cloudDb.collection('interaction')
-        .where({
-          fishName: fishName,
-          action: 'star'
-        })
-        .count();
-
-      // 查询所有对这条鱼的unstar操作
-      const unstarResult = await this.cloudDb.collection('interaction')
-        .where({
-          fishName: fishName,
-          action: 'unstar'
-        })
-        .count();
-
-      const starCount = starResult.total || 0;
-      const unstarCount = unstarResult.total || 0;
-      const score = starCount - unstarCount;
-
-      console.log(`鱼 ${fishName} 的评分计算结果: star=${starCount}, unstar=${unstarCount}, score=${score}`);
-
-      return { score, starCount, unstarCount };
-    }, { score: 0, starCount: 0, unstarCount: 0 });
-  }
-
-  // 新增：批量计算多条鱼的评分
-  async calculateMultipleFishesScores(fishNames) {
-    if (!fishNames || fishNames.length === 0) {
-      return {};
-    }
-
-    // 使用Promise.all并行计算所有鱼的评分
-    const scorePromises = fishNames.map(async (fishName) => {
-      const scoreData = await this.calculateFishScore(fishName);
-      return { fishName, ...scoreData };
-    });
-
-    const results = await Promise.all(scorePromises);
-
-    // 转换为以鱼名为键的对象，方便查找
-    const scoresMap = {};
-    results.forEach(result => {
-      scoresMap[result.fishName] = {
-        score: result.score,
-        starCount: result.starCount,
-        unstarCount: result.unstarCount
-      };
-    });
-
-    console.log(`批量计算了 ${Object.keys(scoresMap).length} 条鱼的评分`);
-    return scoresMap;
-  }
 
 
 
