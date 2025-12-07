@@ -143,7 +143,7 @@ class RankingTouchHandler {
     }
 
     const cardWidth = (config.screenWidth - 60) / 2;
-    const cardHeight = 200;
+    const cardHeight = 220;
     const startY = 100 - this.currentScrollY;
 
     for (let i = 0; i < this.eventHandler.rankingData.fishes.length; i++) {
@@ -199,7 +199,7 @@ class RankingTouchHandler {
     }
 
     const cardWidth = (config.screenWidth - 60) / 2;
-    const cardHeight = 200;
+    const cardHeight = 220;
     const startY = 100 - this.currentScrollY;
 
     for (let i = 0; i < this.eventHandler.rankingData.fishes.length; i++) {
@@ -354,7 +354,7 @@ class RankingTouchHandler {
       this.eventHandler.rankingData.fishes.length;
 
     // 计算当前可见的最后一条鱼的排名
-    const cardHeight = 200;
+    const cardHeight = 220;
     const rowHeight = cardHeight + 15;
     const startY = 110; // 下移10像素，与返回按钮位置保持一致
     const visibleHeight = config.screenHeight - startY;
@@ -468,7 +468,7 @@ class RankingTouchHandler {
     }
 
     const cardWidth = (config.screenWidth - 60) / 2;
-    const cardHeight = 200;
+    const cardHeight = 220;
     const startY = 110; // 下移10像素，与返回按钮位置保持一致
     const rowCount = Math.ceil(this.eventHandler.rankingData.fishes.length / 2);
     const totalContentHeight = startY + rowCount * (cardHeight + 15) + 20;

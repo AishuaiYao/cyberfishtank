@@ -443,7 +443,7 @@ class UIManager {
     const scrollOffset = this.eventHandler.touchHandlers.ranking.getScrollOffset();
 
     const cardWidth = (config.screenWidth - 60) / 2;
-    const cardHeight = 200;
+    const cardHeight = 220;
     const rowHeight = cardHeight + 15;
     const startY = 110 - scrollOffset; // 下移10像素，与返回按钮位置保持一致
 
@@ -520,7 +520,7 @@ class UIManager {
 
     // 性能优化：缓存计算值
     const cardWidth = (config.screenWidth - 60) / 2;
-    const cardHeight = 200;
+    const cardHeight = 220;
     const rowHeight = cardHeight + 15;
     const startY = 110 - scrollOffset; // 下移10像素，与返回按钮位置保持一致
     const visibleAreaHeight = config.screenHeight - 110; // 调整可见区域高度，与下移的起始位置保持一致
