@@ -168,9 +168,9 @@ class UIManager {
       };
     }
     
-    // 减小选择器宽度和高度，使整体更协调
-    const selectorWidth = 120;
-    const selectorHeight = 180; // 减小选择器总高度
+    // 进一步减小选择器宽度和高度，使整体更紧凑
+    const selectorWidth = 100; // 减小宽度
+    const selectorHeight = 160; // 减小高度
     const selectorX = 80; // 紧跟在返回按钮后面
     const selectorY = buttonY;
     
@@ -185,33 +185,33 @@ class UIManager {
     
     // 如果选择器展开，绘制半透明遮罩
     if (this.eventHandler.tankSelectorState.isOpen) {
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.25)'; // 减小遮罩透明度
       ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
       
       // 绘制选择器背景卡片 - 使用更现代的样式
-      ctx.shadowColor = 'rgba(0,0,0,0.25)';
-      ctx.shadowBlur = 15;
+      ctx.shadowColor = 'rgba(0,0,0,0.15)'; // 减小阴影
+      ctx.shadowBlur = 10;
       ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 5;
+      ctx.shadowOffsetY = 3;
       
       // 使用更柔和的背景色渐变，去掉纯蓝色
       const bgGradient = ctx.createLinearGradient(selectorX, selectorY, selectorX, selectorY + selectorHeight);
-      bgGradient.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
-      bgGradient.addColorStop(1, 'rgba(245, 245, 247, 0.95)');
+      bgGradient.addColorStop(0, 'rgba(255, 255, 255, 0.98)');
+      bgGradient.addColorStop(1, 'rgba(248, 248, 250, 0.98)');
       
       ctx.fillStyle = bgGradient;
-      Utils.drawRoundedRect(ctx, selectorX, selectorY, selectorWidth, selectorHeight, 10, true, false);
+      Utils.drawRoundedRect(ctx, selectorX, selectorY, selectorWidth, selectorHeight, 8, true, false); // 减小圆角
       
       // 添加内部边框
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.08)';
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.05)'; // 更淡的边框
       ctx.lineWidth = 0.5;
-      Utils.drawRoundedRect(ctx, selectorX, selectorY, selectorWidth, selectorHeight, 10, false, true);
+      Utils.drawRoundedRect(ctx, selectorX, selectorY, selectorWidth, selectorHeight, 8, false, true);
       
       ctx.shadowColor = 'transparent';
       ctx.shadowBlur = 0;
       
-      // 减小选项高度，使布局更紧凑
-      const itemHeight = 36; // 减小选项高度
+      // 进一步减小选项高度，使布局更紧凑
+      const itemHeight = 32; // 减小选项高度
       
       // 初始化滚动偏移量（如果不存在）
       if (this.eventHandler.tankSelectorState.scrollOffset === undefined) {
@@ -220,13 +220,13 @@ class UIManager {
       
       // 绘制选中项高亮（中间位置）- 使用更淡的背景色
       const highlightY = selectorY + selectorHeight / 2 - itemHeight / 2;
-      ctx.fillStyle = 'rgba(0, 122, 255, 0.1)'; // 淡蓝色背景
-      Utils.drawRoundedRect(ctx, selectorX + 5, highlightY, selectorWidth - 10, itemHeight, 6, true, false);
+      ctx.fillStyle = 'rgba(0, 122, 255, 0.08)'; // 更淡的蓝色背景
+      Utils.drawRoundedRect(ctx, selectorX + 4, highlightY, selectorWidth - 8, itemHeight, 4, true, false); // 减小边距和圆角
       
       // 添加选中项边框
-      ctx.strokeStyle = 'rgba(0, 122, 255, 0.2)';
-      ctx.lineWidth = 1;
-      Utils.drawRoundedRect(ctx, selectorX + 5, highlightY, selectorWidth - 10, itemHeight, 6, false, true);
+      ctx.strokeStyle = 'rgba(0, 122, 255, 0.15)'; // 更淡的边框
+      ctx.lineWidth = 0.5;
+      Utils.drawRoundedRect(ctx, selectorX + 4, highlightY, selectorWidth - 8, itemHeight, 4, false, true);
       
       // 绘制选项文本
       ctx.textAlign = 'center';
@@ -253,12 +253,12 @@ class UIManager {
           let opacity = 1.0;
           
           if (distanceFromCenter > itemHeight) {
-            opacity = Math.max(0.5, 1 - (distanceFromCenter - itemHeight) / (visibleAreaHeight / 2));
+            opacity = Math.max(0.6, 1 - (distanceFromCenter - itemHeight) / (visibleAreaHeight / 2));
           }
           
           // 选项名称 - 使用更小的字体和更柔和的颜色
-          ctx.font = isSelected ? '600 14px -apple-system, "SF Pro Display", "PingFang SC", "Helvetica Neue", Arial, sans-serif' : 
-                                 '500 14px -apple-system, "SF Pro Display", "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+          ctx.font = isSelected ? '600 12px -apple-system, "SF Pro Display", "PingFang SC", "Helvetica Neue", Arial, sans-serif' : 
+                                 '500 12px -apple-system, "SF Pro Display", "PingFang SC", "Helvetica Neue", Arial, sans-serif';
                                  
           if (isSelected) {
             ctx.fillStyle = '#007AFF'; // 选中项使用蓝色
@@ -268,12 +268,12 @@ class UIManager {
           
           // 添加文字阴影，提高可读性
           ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
-          ctx.shadowBlur = 1;
+          ctx.shadowBlur = 0.5;
           ctx.shadowOffsetX = 0;
-          ctx.shadowOffsetY = 1;
+          ctx.shadowOffsetY = 0.5;
           
-          // 确保文字不会超出边界
-          const textPadding = 8;
+          // 确保文字不会超出边界 - 减小内边距
+          const textPadding = 6;
           const maxTextWidth = selectorWidth - textPadding * 2;
           let displayText = item.name;
           
@@ -294,18 +294,18 @@ class UIManager {
         }
       }
       
-      // 绘制顶部和底部渐变边缘 - 更现代的效果，减小渐变区域
-      const fadeHeight = 20; // 减小渐变区域高度
+      // 绘制顶部和底部渐变边缘 - 更现代的效果，进一步减小渐变区域
+      const fadeHeight = 15; // 进一步减小渐变区域高度
       
       const topGradient = ctx.createLinearGradient(0, selectorY, 0, selectorY + fadeHeight);
-      topGradient.addColorStop(0, 'rgba(245, 245, 247, 0.9)');
-      topGradient.addColorStop(1, 'rgba(245, 245, 247, 0)');
+      topGradient.addColorStop(0, 'rgba(248, 248, 250, 0.9)');
+      topGradient.addColorStop(1, 'rgba(248, 248, 250, 0)');
       ctx.fillStyle = topGradient;
       ctx.fillRect(selectorX, selectorY, selectorWidth, fadeHeight);
       
       const bottomGradient = ctx.createLinearGradient(0, selectorY + selectorHeight - fadeHeight, 0, selectorY + selectorHeight);
-      bottomGradient.addColorStop(0, 'rgba(245, 245, 247, 0)');
-      bottomGradient.addColorStop(1, 'rgba(245, 245, 247, 0.9)');
+      bottomGradient.addColorStop(0, 'rgba(248, 248, 250, 0)');
+      bottomGradient.addColorStop(1, 'rgba(248, 248, 250, 0.9)');
       ctx.fillStyle = bottomGradient;
       ctx.fillRect(selectorX, selectorY + selectorHeight - fadeHeight, selectorWidth, fadeHeight);
       
@@ -322,25 +322,42 @@ class UIManager {
       Utils.drawRoundedRect(ctx, selectorX, selectorY, selectorWidth, buttonHeight, 6, true, false);
       Utils.drawRoundedRect(ctx, selectorX, selectorY, selectorWidth, buttonHeight, 6, false, true);
       
-      // 绘制当前选中的文本 - 使用更小的字体
+      // 绘制当前选中的文本 - 使用更小的字体并确保居中对齐
       ctx.fillStyle = '#1D1D1F';
-      ctx.font = '500 13px -apple-system, "SF Pro Display", "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(selectedItem.name, selectorX + 10, selectorY + buttonHeight / 2);
+      ctx.font = '500 12px -apple-system, "SF Pro Display", "PingFang SC", "Helvetica Neue", Arial, sans-serif'; // 减小字体
       
-      // 绘制下拉箭头 - 使用更小的图标
+      // 确保文本居中显示
+      ctx.textAlign = 'center'; // 改为居中对齐
+      ctx.textBaseline = 'middle';
+      
+      // 计算文本显示位置，考虑下拉箭头的宽度
+      const arrowWidth = 15;
+      const maxTextWidth = selectorWidth - arrowWidth - 10;
+      let displayText = selectedItem.name;
+      
+      // 如果文字太长，进行截断
+      if (ctx.measureText(selectedItem.name).width > maxTextWidth) {
+        let truncatedText = selectedItem.name;
+        while (ctx.measureText(truncatedText + '...').width > maxTextWidth && truncatedText.length > 0) {
+          truncatedText = truncatedText.slice(0, -1);
+        }
+        displayText = truncatedText + '...';
+      }
+      
+      ctx.fillText(displayText, selectorX + (selectorWidth - arrowWidth) / 2, selectorY + buttonHeight / 2);
+      
+      // 绘制下拉箭头 - 使用更小的图标并确保居中对齐
       ctx.fillStyle = '#8E8E93';
-      ctx.font = '9px -apple-system, "SF Pro Display", "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-      ctx.textAlign = 'right';
-      ctx.fillText('▼', selectorX + selectorWidth - 10, selectorY + buttonHeight / 2);
+      ctx.font = '8px -apple-system, "SF Pro Display", "PingFang SC", "Helvetica Neue", Arial, sans-serif'; // 减小字体
+      ctx.textAlign = 'center'; // 居中对齐
+      ctx.fillText('▼', selectorX + selectorWidth - arrowWidth / 2, selectorY + buttonHeight / 2);
       
       // 添加微小的分隔线
       ctx.strokeStyle = '#E5E5EA';
       ctx.lineWidth = 0.5;
       ctx.beginPath();
-      ctx.moveTo(selectorX + selectorWidth - 20, selectorY + 8);
-      ctx.lineTo(selectorX + selectorWidth - 20, selectorY + buttonHeight - 8);
+      ctx.moveTo(selectorX + selectorWidth - arrowWidth - 3, selectorY + 6); // 调整位置
+      ctx.lineTo(selectorX + selectorWidth - arrowWidth - 3, selectorY + buttonHeight - 6); // 调整位置
       ctx.stroke();
       
       ctx.textAlign = 'left';

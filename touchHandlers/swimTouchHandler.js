@@ -92,8 +92,10 @@ class SwimTouchHandler {
       if (this.eventHandler.tankSelectorBounds) {
         const { x: selectorX, y: selectorY, width: selectorWidth, expandedHeight } = this.eventHandler.tankSelectorBounds;
         
+        // 如果点击在选择器区域内，不关闭选择器，只处理选项选择
         if (x >= selectorX && x <= selectorX + selectorWidth &&
             y >= selectorY && y <= selectorY + expandedHeight) {
+          
           // 如果选择器是刚刚打开的，不处理选项选择
           if (this.justOpenedSelector) {
             this.justOpenedSelector = false;
@@ -109,7 +111,7 @@ class SwimTouchHandler {
         }
       }
       
-      // 点击了选择器外部，关闭选择器
+      // 如果点击在选择器区域外，关闭选择器（不受滑动状态影响）
       this.eventHandler.tankSelectorState.isOpen = false;
       return;
     }
@@ -261,12 +263,15 @@ class SwimTouchHandler {
         this.eventHandler.tankSelectorState.startScrollY !== null) {
       
       // 启动惯性滚动效果
-      if (this.eventHandler.tankSelectorState.velocity) {
+      if (this.eventHandler.tankSelectorState.velocity && Math.abs(this.eventHandler.tankSelectorState.velocity) > 0.5) {
         this.startInertialScroll();
       } else {
         // 没有速度，直接切换模式
         const selectedItem = this.eventHandler.tankSelectorState.items[this.eventHandler.tankSelectorState.selectedIndex];
         this.eventHandler.switchToTankMode(selectedItem.id);
+        
+        // 注意：不要在这里自动关闭选择器，让用户决定何时关闭
+        // 这样可以确保用户在滑动后，选择器仍然保持打开状态
       }
       
       // 重置滑动状态
@@ -274,6 +279,7 @@ class SwimTouchHandler {
       this.eventHandler.tankSelectorState.startScrollOffset = null;
       this.eventHandler.tankSelectorState.scrollOffset = 0; // 重置滚动偏移
       this.eventHandler.tankSelectorState.lastY = null;
+      this.eventHandler.tankSelectorState.velocity = null;
     }
   }
   
@@ -297,6 +303,9 @@ class SwimTouchHandler {
         // 滚动结束，切换到当前选中的模式
         const selectedItem = this.eventHandler.tankSelectorState.items[this.eventHandler.tankSelectorState.selectedIndex];
         this.eventHandler.switchToTankMode(selectedItem.id);
+        
+        // 注意：不要在这里关闭选择器，让用户决定何时关闭
+        // 这样可以避免惯性滚动结束后选择器意外关闭
         return;
       }
       
