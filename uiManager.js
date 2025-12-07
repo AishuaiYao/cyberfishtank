@@ -152,20 +152,23 @@ class UIManager {
     
     // 初始化选择器状态（如果不存在）
     if (!this.eventHandler.tankSelectorState) {
+      // 调整选项顺序：赛博鱼缸放在第三个位置
+      const items = [
+        { id: 'best', name: '最佳鱼缸' },
+        { id: 'worst', name: '最丑鱼缸' },
+        { id: 'public', name: '赛博鱼缸' },
+        { id: 'latest', name: '最新鱼缸' },
+        { id: 'my', name: '我的鱼缸' }
+      ];
+      
+      // 设置默认选中赛博鱼缸（索引2）
+      const defaultSelectedIndex = 2;
+      
       this.eventHandler.tankSelectorState = {
         isOpen: false,
-        selectedIndex: this.eventHandler.currentTankMode === 'public' ? 0 : 
-                      (this.eventHandler.currentTankMode === 'best' ? 1 : 
-                       (this.eventHandler.currentTankMode === 'worst' ? 2 : 
-                        (this.eventHandler.currentTankMode === 'latest' ? 3 : 4))),
+        selectedIndex: defaultSelectedIndex,
         startScrollY: null,
-        items: [
-          { id: 'public', name: '赛博鱼缸' },
-          { id: 'best', name: '最佳鱼缸' },
-          { id: 'worst', name: '最丑鱼缸' },
-          { id: 'latest', name: '最新鱼缸' },
-          { id: 'my', name: '我的鱼缸' }
-        ]
+        items: items
       };
     }
     

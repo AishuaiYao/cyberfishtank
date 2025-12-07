@@ -139,7 +139,21 @@ class SwimTouchHandler {
         console.log('[触摸事件] 点击了收起状态的选择器，展开选择器');
         // 收起状态，点击后展开选择器
         if (!this.eventHandler.tankSelectorState) {
-          this.eventHandler.tankSelectorState = { isOpen: false };
+          // 初始化选择器状态，使用与UI管理器相同的选项顺序和默认选择
+          const items = [
+            { id: 'best', name: '最佳鱼缸' },
+            { id: 'worst', name: '最丑鱼缸' },
+            { id: 'public', name: '赛博鱼缸' },
+            { id: 'latest', name: '最新鱼缸' },
+            { id: 'my', name: '我的鱼缸' }
+          ];
+          
+          this.eventHandler.tankSelectorState = {
+            isOpen: false,
+            selectedIndex: 2, // 默认选中赛博鱼缸（索引2）
+            startScrollY: null,
+            items: items
+          };
         }
         this.eventHandler.tankSelectorState.isOpen = true;
         this.justOpenedSelector = true; // 标记选择器刚刚打开

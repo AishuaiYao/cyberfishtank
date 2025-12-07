@@ -5,7 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="鱼缸button滑动选择-基础OK">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/touchHandlers/swimTouchHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/swimTouchHandler.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uiManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/uiManager.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -70,22 +71,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00134" summary="共同绘画-将房主的绘画同步到伙伴">
-      <option name="closed" value="true" />
-      <created>1764949801794</created>
-      <option name="number" value="00134" />
-      <option name="presentableId" value="LOCAL-00134" />
-      <option name="project" value="LOCAL" />
-      <updated>1764949801795</updated>
-    </task>
-    <task id="LOCAL-00135" summary="共同绘画-实现了基础的操作互传，不过还有些小bug">
-      <option name="closed" value="true" />
-      <created>1764950341222</created>
-      <option name="number" value="00135" />
-      <option name="presentableId" value="LOCAL-00135" />
-      <option name="project" value="LOCAL" />
-      <updated>1764950341222</updated>
     </task>
     <task id="LOCAL-00136" summary="共同绘画-实现了基础的操作互传，不过还有些小bug">
       <option name="closed" value="true" />
@@ -463,7 +448,23 @@
       <option name="project" value="LOCAL" />
       <updated>1765113196766</updated>
     </task>
-    <option name="localTasksCounter" value="183" />
+    <task id="LOCAL-00183" summary="鱼缸button滑动选择-基础OK">
+      <option name="closed" value="true" />
+      <created>1765114176066</created>
+      <option name="number" value="00183" />
+      <option name="presentableId" value="LOCAL-00183" />
+      <option name="project" value="LOCAL" />
+      <updated>1765114176066</updated>
+    </task>
+    <task id="LOCAL-00184" summary="鱼缸button滑动选择-基础OK">
+      <option name="closed" value="true" />
+      <created>1765114182274</created>
+      <option name="number" value="00184" />
+      <option name="presentableId" value="LOCAL-00184" />
+      <option name="project" value="LOCAL" />
+      <updated>1765114182274</updated>
+    </task>
+    <option name="localTasksCounter" value="185" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
