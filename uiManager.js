@@ -709,15 +709,30 @@ class UIManager {
     this.drawRankingCardButtons(ctx, x, y, width, height, fishData, finalInteraction);
   }
 
-  // 修改后的 drawRankingCardButtons 方法：使用新的用户交互状态数据结构
+  // 修改后的 drawRankingCardButtons 方法：兼容新旧用户交互状态数据结构
   drawRankingCardButtons(ctx, x, y, width, height, fishData, finalInteraction) {
     const buttonAreaY = y + height - 35;
     const buttonHeight = 25;
 
-    // 检查最终交互状态（使用新的数据结构：liked和disliked字段）
+    // 检查最终交互状态 - 兼容action字段和liked/disliked字段
     const hasInteracted = !!finalInteraction;
-    const isLiked = hasInteracted && finalInteraction.liked === true;
-    const isDisliked = hasInteracted && finalInteraction.disliked === true;
+    
+    // 兼容两种数据结构
+    let isLiked = false;
+    let isDisliked = false;
+    
+    if (hasInteracted) {
+      // 新数据结构使用liked/disliked字段
+      if (finalInteraction.liked !== undefined || finalInteraction.disliked !== undefined) {
+        isLiked = finalInteraction.liked === true;
+        isDisliked = finalInteraction.disliked === true;
+      } 
+      // 旧数据结构使用action字段
+      else if (finalInteraction.action) {
+        isLiked = finalInteraction.action === 'star';
+        isDisliked = finalInteraction.action === 'unstar';
+      }
+    }
 
     // 点赞按钮（左侧）
     const likeButtonX = x + 15;
@@ -867,12 +882,27 @@ class UIManager {
     const buttonWidth = (detailWidth - 60) / 2;
     const buttonY = textStartY + 75;
 
-    // 检查最终交互状态
+    // 检查最终交互状态 - 兼容action字段和liked/disliked字段
     const hasInteracted = !!finalInteraction;
-    const userAction = finalInteraction ? finalInteraction.action : null;
+    
+    // 兼容两种数据结构
+    let isLiked = false;
+    let isDisliked = false;
+    
+    if (hasInteracted) {
+      // 新数据结构使用liked/disliked字段
+      if (finalInteraction.liked !== undefined || finalInteraction.disliked !== undefined) {
+        isLiked = finalInteraction.liked === true;
+        isDisliked = finalInteraction.disliked === true;
+      } 
+      // 旧数据结构使用action字段
+      else if (finalInteraction.action) {
+        isLiked = finalInteraction.action === 'star';
+        isDisliked = finalInteraction.action === 'unstar';
+      }
+    }
 
     // 点赞按钮
-    const isLiked = hasInteracted && userAction === 'star';
     const likeButtonText = `👍`;
     this.drawInteractionButton(
       ctx,
@@ -886,7 +916,6 @@ class UIManager {
     );
 
     // 点踩按钮
-    const isDisliked = hasInteracted && userAction === 'unstar';
     const dislikeButtonText = `👎`;
     this.drawInteractionButton(
       ctx,

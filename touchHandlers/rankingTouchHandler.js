@@ -158,14 +158,14 @@ class RankingTouchHandler {
       if (x >= cardX && x <= cardX + cardWidth &&
           y >= cardY && y <= cardY + cardHeight) {
 
-        // 计算按钮区域
+        // 计算按钮区域 - 确保与UI渲染一致
         const buttonAreaY = cardY + cardHeight - 35; // 底部按钮区域
 
-        // 点赞按钮区域（左侧）
+        // 点赞按钮区域（左侧） - 确保与UI渲染一致
         const likeButtonX = cardX + 15;
         const likeButtonWidth = 40;
 
-        // 点踩按钮区域（右侧）
+        // 点踩按钮区域（右侧） - 确保与UI渲染一致
         const dislikeButtonX = cardX + cardWidth - 55;
         const dislikeButtonWidth = 40;
 

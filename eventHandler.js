@@ -532,7 +532,7 @@ class EventHandler {
     this.updateLocalFishData(fishData, currentAction, 'decrement');
     // 再增加新操作的值
     this.updateLocalFishData(fishData, newAction, 'increment');
-    
+
     // 设置本地缓存状态
     this.setLocalInteractionState(fishName, newAction, originalState);
 
@@ -543,7 +543,7 @@ class EventHandler {
     try {
       // 先删除原记录
       const deleteSuccess = await this.databaseManager.deleteUserInteraction(existingInteraction._id);
-      
+
       if (!deleteSuccess) {
         throw new Error('删除原记录失败');
       }
@@ -555,7 +555,7 @@ class EventHandler {
 
       if (insertSuccess) {
         console.log(`${isRanking ? '排行榜' : ''}切换操作成功：${currentAction} -> ${newAction}`);
-        
+
         // 更新交互状态
         await this.updateInteractionState(fishName, newAction, isRanking);
       } else {
@@ -571,13 +571,32 @@ class EventHandler {
     }
   }
 
-  // 新增：设置本地交互状态
+  // 新增：设置本地交互状态 - 兼容新旧数据结构
   setLocalInteractionState(fishName, action, originalState = null) {
-    this.localInteractionCache.set(fishName, {
-      action,
+    const state = {
       timestamp: Date.now(),
       originalState: originalState // 保存原始状态用于回滚
-    });
+    };
+    
+    // 兼容action字段和liked/disliked字段
+    if (action === null) {
+      // 取消操作状态
+      state.liked = false;
+      state.disliked = false;
+      state.action = null;
+    } else if (action === 'star') {
+      // 点赞状态
+      state.liked = true;
+      state.disliked = false;
+      state.action = action;
+    } else if (action === 'unstar') {
+      // 点踩状态
+      state.liked = false;
+      state.disliked = true;
+      state.action = action;
+    }
+    
+    this.localInteractionCache.set(fishName, state);
   }
 
   // 新增：清除本地交互状态
@@ -599,7 +618,7 @@ class EventHandler {
     fishData.tempScore = (fishData.tempStar || 0) - (fishData.tempUnstar || 0);
   }
 
-  // 新增：更新交互状态
+  // 新增：更新交互状态 - 兼容新旧数据结构
   async updateInteractionState(fishName, action, isRanking) {
     if (isRanking && this.rankingData && this.rankingData.fishes) {
       const fishItem = this.rankingData.fishes.find(item =>
@@ -609,15 +628,34 @@ class EventHandler {
         // 重新查询数据库获取完整的交互记录（包含_id）
         const dbInteraction = await this.databaseManager.getUserInteraction(fishName, this.userOpenid);
         if (dbInteraction) {
+          // 兼容处理数据库返回的交互记录
+          if (dbInteraction.action) {
+            // 如果有action字段，基于它设置liked/disliked
+            dbInteraction.liked = dbInteraction.action === 'star';
+            dbInteraction.disliked = dbInteraction.action === 'unstar';
+          }
+          
           fishItem.userInteraction = dbInteraction;
           console.log('设置排行榜交互状态（包含_id）:', dbInteraction);
         } else {
           // 如果没有找到记录，创建一个包含基本信息的对象
-          fishItem.userInteraction = {
+          const interaction = {
             fishName: fishName,
-            action: action,
             _openid: this.userOpenid
           };
+          
+          // 兼容处理action字段和liked/disliked字段
+          if (action === 'star') {
+            interaction.liked = true;
+            interaction.disliked = false;
+            interaction.action = action;
+          } else if (action === 'unstar') {
+            interaction.liked = false;
+            interaction.disliked = true;
+            interaction.action = action;
+          }
+          
+          fishItem.userInteraction = interaction;
         }
       }
     } else if (!isRanking) {
@@ -665,7 +703,7 @@ class EventHandler {
     fishData.tempScore = (fishData.tempStar || 0) - (fishData.tempUnstar || 0);
   }
 
-  // 新增：更新交互状态
+  // 新增：更新交互状态 - 兼容新旧数据结构
   async updateInteractionState(fishName, action, isRanking) {
     if (isRanking && this.rankingData && this.rankingData.fishes) {
       const fishItem = this.rankingData.fishes.find(item =>
@@ -675,15 +713,34 @@ class EventHandler {
         // 重新查询数据库获取完整的交互记录（包含_id）
         const dbInteraction = await this.databaseManager.getUserInteraction(fishName, this.userOpenid);
         if (dbInteraction) {
+          // 兼容处理数据库返回的交互记录
+          if (dbInteraction.action) {
+            // 如果有action字段，基于它设置liked/disliked
+            dbInteraction.liked = dbInteraction.action === 'star';
+            dbInteraction.disliked = dbInteraction.action === 'unstar';
+          }
+          
           fishItem.userInteraction = dbInteraction;
           console.log('设置排行榜交互状态（包含_id）:', dbInteraction);
         } else {
           // 如果没有找到记录，创建一个包含基本信息的对象
-          fishItem.userInteraction = {
+          const interaction = {
             fishName: fishName,
-            action: action,
             _openid: this.userOpenid
           };
+          
+          // 兼容处理action字段和liked/disliked字段
+          if (action === 'star') {
+            interaction.liked = true;
+            interaction.disliked = false;
+            interaction.action = action;
+          } else if (action === 'unstar') {
+            interaction.liked = false;
+            interaction.disliked = true;
+            interaction.action = action;
+          }
+          
+          fishItem.userInteraction = interaction;
         }
       }
     } else if (!isRanking) {
@@ -1266,10 +1323,26 @@ async refreshFishTank() {
         this.userOpenid
       );
 
-      // 为每条鱼设置用户交互状态
+      // 为每条鱼设置用户交互状态 - 兼容两种数据结构
       rankingFishes.forEach(fishItem => {
         const interaction = interactionMap[fishItem.fishData.fishName];
-        fishItem.userInteraction = interaction || { liked: false, disliked: false };
+        
+        // 确保交互记录包含兼容的字段
+        if (interaction) {
+          // 如果有action字段但没有liked/disliked，基于action设置
+          if (interaction.action && (interaction.liked === undefined && interaction.disliked === undefined)) {
+            interaction.liked = interaction.action === 'star';
+            interaction.disliked = interaction.action === 'unstar';
+          }
+          // 如果有liked/disliked但没有action，基于liked/disliked设置
+          else if ((interaction.liked !== undefined || interaction.disliked !== undefined) && !interaction.action) {
+            interaction.action = interaction.liked ? 'star' : (interaction.disliked ? 'unstar' : null);
+          }
+          
+          fishItem.userInteraction = interaction;
+        } else {
+          fishItem.userInteraction = { liked: false, disliked: false, action: null };
+        }
       });
 
       console.log(`批量加载了 ${Object.keys(interactionMap).length} 条鱼的用户交互状态`);
@@ -1843,6 +1916,13 @@ async refreshFishTank() {
 
       const interaction = await this.databaseManager.getUserInteraction(fishName, this.userOpenid);
       if (interaction) {
+        // 兼容处理数据库返回的交互记录
+        if (interaction.action) {
+          // 如果有action字段，基于它设置liked/disliked
+          interaction.liked = interaction.action === 'star';
+          interaction.disliked = interaction.action === 'unstar';
+        }
+        
         this.selectedFishData.userInteraction = interaction;
         console.log(`用户对鱼 ${fishName} 的交互状态:`, interaction.action);
       } else {

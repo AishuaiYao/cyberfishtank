@@ -109,8 +109,24 @@ class DatabaseManager {
         .get();
 
       if (result.data.length > 0) {
-        console.log(`找到用户对鱼 ${fishName} 的交互记录:`, result.data[0].action);
-        return result.data[0];
+        const interaction = result.data[0];
+        console.log(`找到用户对鱼 ${fishName} 的交互记录:`, interaction.action);
+        
+        // 兼容处理：确保同时包含action字段和liked/disliked字段
+        if (interaction.action) {
+          // 如果有action字段，基于它设置liked/disliked
+          interaction.liked = interaction.action === 'star';
+          interaction.disliked = interaction.action === 'unstar';
+        } else if (interaction.liked !== undefined || interaction.disliked !== undefined) {
+          // 如果有liked/disliked字段，基于它们设置action
+          if (interaction.liked) {
+            interaction.action = 'star';
+          } else if (interaction.disliked) {
+            interaction.action = 'unstar';
+          }
+        }
+        
+        return interaction;
       } else {
         console.log(`用户对鱼 ${fishName} 暂无交互记录`);
         return null;
@@ -134,13 +150,22 @@ class DatabaseManager {
         return false; // 返回false表示不需要插入新记录
       }
 
-      // 2. 插入新记录
+      // 2. 插入新记录 - 兼容处理：同时包含action字段和liked/disliked字段
       const interactionData = {
         fishName: fishName,
         action: action,
         createdAt: new Date(),
         createTimestamp: Date.now()
       };
+      
+      // 添加liked/disliked字段以确保兼容性
+      if (action === 'star') {
+        interactionData.liked = true;
+        interactionData.disliked = false;
+      } else if (action === 'unstar') {
+        interactionData.liked = false;
+        interactionData.disliked = true;
+      }
 
       console.log('准备插入交互记录:', interactionData);
 
@@ -919,12 +944,27 @@ async getRandomFishesByUserFallback(openid, count = 20) {
         })
         .get();
 
-      // 构建鱼名到交互状态的映射
+      // 构建鱼名到交互状态的映射 - 兼容action字段和liked/disliked字段
       const interactionMap = {};
       result.data.forEach(interaction => {
+        // 兼容处理：确保同时包含action字段和liked/disliked字段
+        let liked = false;
+        let disliked = false;
+        
+        if (interaction.action) {
+          // 如果有action字段，基于它设置liked/disliked
+          liked = interaction.action === 'star';
+          disliked = interaction.action === 'unstar';
+        } else if (interaction.liked !== undefined || interaction.disliked !== undefined) {
+          // 如果有liked/disliked字段，直接使用
+          liked = interaction.liked || false;
+          disliked = interaction.disliked || false;
+        }
+        
         interactionMap[interaction.fishName] = {
-          liked: interaction.liked || false,
-          disliked: interaction.disliked || false
+          liked: liked,
+          disliked: disliked,
+          action: interaction.action || (liked ? 'star' : (disliked ? 'unstar' : null))
         };
       });
 
