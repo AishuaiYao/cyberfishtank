@@ -27,14 +27,31 @@ class SwimTouchHandler {
           if (this.eventHandler.tankSelectorState.startScrollY === null) {
             this.eventHandler.tankSelectorState.startScrollY = y;
             this.eventHandler.tankSelectorState.startScrollOffset = this.eventHandler.tankSelectorState.scrollOffset || 0;
+            // 记录上一次的位置，用于计算速度
+            this.eventHandler.tankSelectorState.lastY = y;
+            this.eventHandler.tankSelectorState.velocity = 0;
           } else {
-            // 计算滚动距离并更新滚动偏移
-            const scrollDistance = y - this.eventHandler.tankSelectorState.startScrollY;
-            const itemHeight = 45;
-            const pixelsPerItem = itemHeight * 0.6; // 降低滚动敏感度
+            // 计算当前速度
+            const currentY = y;
+            const deltaY = currentY - (this.eventHandler.tankSelectorState.lastY || currentY);
             
-            // 更新滚动偏移
-            const newScrollOffset = this.eventHandler.tankSelectorState.startScrollOffset + scrollDistance;
+            // 更新速度，添加阻尼
+            this.eventHandler.tankSelectorState.velocity = 
+              (this.eventHandler.tankSelectorState.velocity || 0) * 0.7 + deltaY * 0.3;
+            
+            // 计算滚动距离
+            const scrollDistance = currentY - this.eventHandler.tankSelectorState.startScrollY;
+            const itemHeight = 36; // 更新为新的选项高度
+            const pixelsPerItem = itemHeight * 1.5; // 显著增加每个项目所需的像素数，降低敏感度
+            
+            // 限制最大滚动速度
+            const maxScrollSpeed = itemHeight * 0.5;
+            const limitedScrollDistance = Math.max(-maxScrollSpeed, 
+                                                   Math.min(maxScrollSpeed, 
+                                                          this.eventHandler.tankSelectorState.velocity));
+            
+            // 更新滚动偏移，使用限制后的速度
+            const newScrollOffset = (this.eventHandler.tankSelectorState.scrollOffset || 0) + limitedScrollDistance;
             this.eventHandler.tankSelectorState.scrollOffset = newScrollOffset;
             
             // 计算应该选中的索引（根据滚动偏移）
@@ -47,7 +64,13 @@ class SwimTouchHandler {
             // 更新选中索引
             if (newIndex !== this.eventHandler.tankSelectorState.selectedIndex) {
               this.eventHandler.tankSelectorState.selectedIndex = newIndex;
+              // 重置滚动偏移，避免累积偏移
+              this.eventHandler.tankSelectorState.scrollOffset = 0;
+              this.eventHandler.tankSelectorState.startScrollY = currentY;
             }
+            
+            // 更新上一次的位置
+            this.eventHandler.tankSelectorState.lastY = currentY;
           }
         }
       }
@@ -186,7 +209,7 @@ class SwimTouchHandler {
 
   // 处理选择器选项选择
   handleTankSelectorSelection(x, y, selectorX, selectorY, selectorWidth) {
-    const itemHeight = 45; // 选项高度
+    const itemHeight = 50; // 选项高度
     const selectorCenterY = selectorY + 60 / 2; // 60是选择器总高度
     
     // 计算点击位置相对于中心的位置
@@ -217,7 +240,7 @@ class SwimTouchHandler {
     if (isScrolling && this.eventHandler.tankSelectorState.startScrollY !== null) {
       // 正在滚动
       const scrollDistance = y - this.eventHandler.tankSelectorState.startScrollY;
-      const itemHeight = 45; // 更新为新的选项高度
+      const itemHeight = 50; // 更新为新的选项高度
       
       // 计算应该滚动到的项目索引
       const itemsToScroll = Math.round(scrollDistance / itemHeight);
@@ -237,15 +260,77 @@ class SwimTouchHandler {
         this.eventHandler.tankSelectorState.isOpen && 
         this.eventHandler.tankSelectorState.startScrollY !== null) {
       
-      // 如果有滑动，根据最终位置切换模式
-      const selectedItem = this.eventHandler.tankSelectorState.items[this.eventHandler.tankSelectorState.selectedIndex];
-      this.eventHandler.switchToTankMode(selectedItem.id);
+      // 启动惯性滚动效果
+      if (this.eventHandler.tankSelectorState.velocity) {
+        this.startInertialScroll();
+      } else {
+        // 没有速度，直接切换模式
+        const selectedItem = this.eventHandler.tankSelectorState.items[this.eventHandler.tankSelectorState.selectedIndex];
+        this.eventHandler.switchToTankMode(selectedItem.id);
+      }
       
       // 重置滑动状态
       this.eventHandler.tankSelectorState.startScrollY = null;
       this.eventHandler.tankSelectorState.startScrollOffset = null;
       this.eventHandler.tankSelectorState.scrollOffset = 0; // 重置滚动偏移
+      this.eventHandler.tankSelectorState.lastY = null;
     }
+  }
+  
+  // 启动惯性滚动效果
+  startInertialScroll() {
+    if (!this.eventHandler.tankSelectorState || !this.eventHandler.tankSelectorState.isOpen) return;
+    
+    // 创建惯性滚动动画
+    let velocity = this.eventHandler.tankSelectorState.velocity || 0;
+    const friction = 0.95; // 摩擦系数
+    const minVelocity = 0.5; // 最小速度阈值
+    
+    const animate = () => {
+      if (!this.eventHandler.tankSelectorState || !this.eventHandler.tankSelectorState.isOpen) return;
+      
+      // 应用摩擦力
+      velocity *= friction;
+      
+      // 如果速度太小，停止动画
+      if (Math.abs(velocity) < minVelocity) {
+        // 滚动结束，切换到当前选中的模式
+        const selectedItem = this.eventHandler.tankSelectorState.items[this.eventHandler.tankSelectorState.selectedIndex];
+        this.eventHandler.switchToTankMode(selectedItem.id);
+        return;
+      }
+      
+      // 计算滚动距离
+      const itemHeight = 36; // 选项高度
+      const pixelsPerItem = itemHeight * 1.5; // 每个项目需要的像素数
+      
+      // 更新滚动偏移
+      const newScrollOffset = (this.eventHandler.tankSelectorState.scrollOffset || 0) + velocity;
+      this.eventHandler.tankSelectorState.scrollOffset = newScrollOffset;
+      
+      // 计算应该选中的索引
+      const itemsToScroll = Math.round(newScrollOffset / pixelsPerItem);
+      let newIndex = this.eventHandler.tankSelectorState.selectedIndex - itemsToScroll;
+      
+      // 限制索引在有效范围内
+      newIndex = Math.max(0, Math.min(this.eventHandler.tankSelectorState.items.length - 1, newIndex));
+      
+      // 更新选中索引
+      if (newIndex !== this.eventHandler.tankSelectorState.selectedIndex) {
+        this.eventHandler.tankSelectorState.selectedIndex = newIndex;
+        // 重置滚动偏移，避免累积偏移
+        this.eventHandler.tankSelectorState.scrollOffset = 0;
+      }
+      
+      // 更新当前速度
+      this.eventHandler.tankSelectorState.velocity = velocity;
+      
+      // 继续动画
+      requestAnimationFrame(animate);
+    };
+    
+    // 开始动画
+    requestAnimationFrame(animate);
   }
 
   // 生成鱼粮
