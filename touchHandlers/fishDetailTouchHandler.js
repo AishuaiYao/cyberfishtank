@@ -51,13 +51,34 @@ class FishDetailTouchHandler {
       return;
     }
 
+    // 新增：串门按钮点击（非我的鱼缸模式下显示）
+    if (!this.eventHandler.isMyFish()) {
+      const visitButtonWidth = 80;
+      const visitButtonHeight = 36;
+      const visitButtonX = detailX + (detailWidth - visitButtonWidth) / 2;
+      const visitButtonY = buttonY + 50;
+
+      if (x >= visitButtonX && x <= visitButtonX + visitButtonWidth &&
+          y >= visitButtonY && y <= visitButtonY + visitButtonHeight) {
+        console.log('点击串门按钮');
+        this.eventHandler.handleVisitAction();
+        return;
+      }
+    }
+
     // 新增：删除按钮点击
-    if (this.eventHandler.isMyFish() &&
-        x >= deleteButtonX && x <= deleteButtonX + deleteButtonWidth &&
-        y >= deleteButtonY && y <= deleteButtonY + deleteButtonHeight) {
-      console.log('点击删除按钮');
-      this.eventHandler.handleDeleteAction();
-      return;
+    if (this.eventHandler.isMyFish()) {
+      const deleteButtonWidth = 80;
+      const deleteButtonHeight = 36;
+      const deleteButtonX = detailX + (detailWidth - deleteButtonWidth) / 2;
+      const deleteButtonY = buttonY + 100;
+
+      if (x >= deleteButtonX && x <= deleteButtonX + deleteButtonWidth &&
+          y >= deleteButtonY && y <= deleteButtonY + deleteButtonHeight) {
+        console.log('点击删除按钮');
+        this.eventHandler.handleDeleteAction();
+        return;
+      }
     }
 
     if (x >= likeButtonX && x <= likeButtonX + buttonWidth &&

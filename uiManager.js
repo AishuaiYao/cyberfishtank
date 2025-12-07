@@ -928,12 +928,50 @@ class UIManager {
       false
     );
 
+    // 新增：串门按钮（非我的鱼缸模式下显示）
+    if (!this.eventHandler.isMyFish()) {
+      const visitButtonWidth = 80;
+      const visitButtonHeight = 36;
+      const visitButtonX = detailX + (detailWidth - visitButtonWidth) / 2;
+      const visitButtonY = buttonY + 50;
+
+      Utils.drawModernButton(
+        ctx,
+        visitButtonX,
+        visitButtonY,
+        visitButtonWidth,
+        visitButtonHeight,
+        '🚪串门',
+        false,
+        false,
+        false
+      );
+
+      // 串门按钮提示文字
+      ctx.fillStyle = config.lightTextColor;
+      ctx.font = 'bold 12px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('去主人家的鱼缸看看', detailX + detailWidth / 2, visitButtonY + 50);
+    } else {
+      // 显示操作提示（我的鱼缸模式）
+      ctx.fillStyle = config.lightTextColor;
+      ctx.font = 'bold 12px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+      ctx.textAlign = 'center';
+
+      if (hasInteracted) {
+        const actionText = isLiked ? '已点赞' : isDisliked ? '已点踩' : '已投票';
+        ctx.fillText(`您${actionText}，点击可取消`, detailX + detailWidth / 2, buttonY + 50);
+      } else {
+        ctx.fillText('点击按钮表达您的态度', detailX + detailWidth / 2, buttonY + 50);
+      }
+    }
+
     // 新增：删除按钮（只在"我的鱼缸"模式下显示）
     if (this.eventHandler.isMyFish()) {
       const deleteButtonWidth = 80;
       const deleteButtonHeight = 36;
       const deleteButtonX = detailX + (detailWidth - deleteButtonWidth) / 2;
-      const deleteButtonY = buttonY + 50;
+      const deleteButtonY = buttonY + 100;
 
       Utils.drawModernButton(
         ctx,
@@ -952,18 +990,6 @@ class UIManager {
       ctx.font = 'bold 12px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('删除后将无法恢复', detailX + detailWidth / 2, deleteButtonY + 50);
-    } else {
-      // 显示操作提示（非我的鱼缸模式）
-      ctx.fillStyle = config.lightTextColor;
-      ctx.font = 'bold 12px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-      ctx.textAlign = 'center';
-
-      if (hasInteracted) {
-        const actionText = isLiked ? '已点赞' : isDisliked ? '已点踩' : '已投票';
-        ctx.fillText(`您${actionText}，点击可取消`, detailX + detailWidth / 2, buttonY + 50);
-      } else {
-        ctx.fillText('点击按钮表达您的态度', detailX + detailWidth / 2, buttonY + 50);
-      }
     }
 
     ctx.textAlign = 'left';
@@ -1077,6 +1103,40 @@ drawMainTitle() {
   ctx.textBaseline = originalTextBaseline;
 }
 
+  // 新增：绘制他人鱼缸界面（串门界面）
+  drawOtherFishTankInterface() {
+    const ctx = this.ctx;
+
+    // 绘制鱼缸背景
+    if (this.eventHandler.fishTank) {
+      this.eventHandler.fishTank.draw();
+    } else {
+      ctx.fillStyle = '#87CEEB'; // 水蓝色背景
+      ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
+    }
+
+    // 绘制返回按钮
+    Utils.drawModernButton(ctx, 20, 50, 50, 30, '返回', false, true);
+
+    // 绘制串门标题
+    ctx.fillStyle = '#374151'; // 深蓝色
+    ctx.font = 'bold 18px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+    ctx.textAlign = 'center';
+    
+    if (this.eventHandler.otherFishTankData && this.eventHandler.otherFishTankData.originalFishName) {
+      ctx.fillText(`正在参观 ${this.eventHandler.otherFishTankData.originalFishName} 主人的鱼缸`, 
+                   Math.round(config.screenWidth / 2), 60);
+    } else {
+      ctx.fillText('正在参观他人的鱼缸', Math.round(config.screenWidth / 2), 60);
+    }
+
+    // 绘制提示文字
+    ctx.font = 'bold 14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+    ctx.fillText('双击屏幕投放鱼粮', Math.round(config.screenWidth / 2), config.screenHeight - 30);
+
+    ctx.textAlign = 'left';
+  }
+
   // 绘制完整UI
   drawGameUI(gameState) {
     const positions = getAreaPositions();
@@ -1110,6 +1170,11 @@ drawMainTitle() {
 
       if (this.eventHandler.isCollaborativePaintingVisible) {
         this.drawCollaborativePaintingInterface(gameState);
+        return;
+      }
+
+      if (this.eventHandler.isOtherFishTankVisible) {
+        this.drawOtherFishTankInterface();
         return;
       }
     }

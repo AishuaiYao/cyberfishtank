@@ -49,9 +49,8 @@ class EventHandler {
     this.isFishDetailVisible = false;
     this.isDialogVisible = false;
     this.isTeamInterfaceVisible = false; // 新增：组队界面状态
-    this.isTeamInterfaceVisible = false; // 新增：组队界面状态
     this.isCollaborativePaintingVisible = false; // 新增：共同绘画界面状态
-    this.isCollaborativePaintingVisible = false; // 新增：共同绘画界面状态
+    this.isOtherFishTankVisible = false; // 新增：串门界面状态
 
     // 数据状态
     this.swimInterfaceData = null;
@@ -60,7 +59,7 @@ class EventHandler {
     this.dialogData = null;
     this.fishNameInput = '';
     this.teamInterfaceData = null; // 新增：组队界面数据
-    this.teamInterfaceData = null; // 新增：组队界面数据
+    this.otherFishTankData = null; // 新增：串门界面数据
 
     // 动画相关
     this.fishTank = null;
@@ -2508,6 +2507,238 @@ async refreshFishTank() {
   // 修改：点踩操作 - 使用缓存的openid
   async handleDislikeAction() {
     await this._handleInteraction('unstar');
+  }
+
+  // 新增：串门操作
+  async handleVisitAction() {
+    if (!this.selectedFishData) return;
+    
+    try {
+      // 获取鱼的创作者信息
+      const fishData = this.selectedFishData.fishData;
+      const creatorOpenId = fishData._openid;
+      
+      if (!creatorOpenId) {
+        console.log('无法获取创作者信息，无法串门');
+        return;
+      }
+
+      // 生成随机鱼数据
+      const randomFishes = await this.generateRandomFishesForVisit(20, creatorOpenId);
+      
+      // 设置串门界面数据
+      this.otherFishTankData = {
+        creatorOpenId: creatorOpenId,
+        fishes: randomFishes,
+        originalFishName: fishData.fishName
+      };
+      
+      // 显示串门界面
+      this.showOtherFishTank();
+      
+    } catch (error) {
+      console.error('串门操作失败:', error);
+      Utils.handleError(error, '串门');
+    }
+  }
+
+  // 新增：生成随机鱼数据用于串门
+  async generateRandomFishesForVisit(count, creatorOpenId) {
+    try {
+      console.log(`开始为创作者 ${creatorOpenId} 生成 ${count} 条随机鱼数据`);
+      
+      // 调用数据库管理器获取随机鱼数据
+      const randomFishes = await this.databaseManager.getRandomFishesByUserOpenid(creatorOpenId, count);
+      
+      console.log(`成功生成 ${randomFishes.length} 条随机鱼数据`);
+      return randomFishes;
+      
+    } catch (error) {
+      Utils.handleError(error, '生成随机鱼数据');
+      // 如果获取失败，返回空数组
+      return [];
+    }
+  }
+
+  // 新增：显示他人鱼缸界面
+  showOtherFishTank() {
+    this.isOtherFishTankVisible = true;
+    this.isFishDetailVisible = false; // 隐藏详情页
+    
+    // 清空当前鱼缸显示
+    if (this.fishTank) {
+      this.fishTank.fishes = [];
+      this.addedUserFishNames.clear();
+    }
+    
+    // 创建随机鱼对象并显示
+    this.createFishesForVisit();
+    
+    // 启动动画
+    this.fishManager.animator.startAnimationLoop();
+    
+    // 更新UI
+    this.uiManager.drawGameUI(this.gameState);
+    
+    console.log('进入他人鱼缸界面');
+  }
+
+  // 新增：为串门创建鱼对象
+  async createFishesForVisit() {
+    if (!this.otherFishTankData || !this.otherFishTankData.fishes || this.otherFishTankData.fishes.length === 0) {
+      console.log('没有串门鱼数据');
+      return;
+    }
+    
+    try {
+      const fishCreationPromises = this.otherFishTankData.fishes.map(fishData =>
+        this.fishManager.data.createFishFromDatabaseData(fishData)
+      );
+      
+      const createdFishes = await Promise.all(fishCreationPromises);
+      const validFishes = createdFishes.filter(fish => fish !== null);
+      
+      // 添加到鱼缸显示
+      validFishes.forEach(fish => {
+        this.fishTank.addFish(fish);
+        this.addedUserFishNames.add(fish.name);
+      });
+      
+      console.log(`成功创建 ${validFishes.length} 条串门鱼对象`);
+      
+    } catch (error) {
+      Utils.handleError(error, '创建串门鱼对象');
+    }
+  }
+
+  // 新增：隐藏他人鱼缸界面
+  hideOtherFishTank() {
+    this.isOtherFishTankVisible = false;
+    this.otherFishTankData = null;
+    
+    // 停止动画
+    this.fishManager.animator.stopAnimationLoop();
+    
+    // 更新UI
+    this.uiManager.drawGameUI(this.gameState);
+    
+    console.log('退出他人鱼缸界面');
+  }
+
+  // 新增：串门操作
+  async handleVisitAction() {
+    if (!this.selectedFishData) return;
+    
+    try {
+      // 获取鱼的创作者信息
+      const fishData = this.selectedFishData.fishData;
+      const creatorOpenId = fishData._openid;
+      
+      if (!creatorOpenId) {
+        console.log('无法获取创作者信息，无法串门');
+        return;
+      }
+
+      // 生成随机鱼数据
+      const randomFishes = await this.generateRandomFishesForVisit(20, creatorOpenId);
+      
+      // 设置串门界面数据
+      this.otherFishTankData = {
+        creatorOpenId: creatorOpenId,
+        fishes: randomFishes,
+        originalFishName: fishData.fishName
+      };
+      
+      // 显示串门界面
+      this.showOtherFishTank();
+      
+    } catch (error) {
+      console.error('串门操作失败:', error);
+      Utils.handleError(error, '串门');
+    }
+  }
+
+  // 新增：生成随机鱼数据用于串门
+  async generateRandomFishesForVisit(count, creatorOpenId) {
+    try {
+      console.log(`开始为创作者 ${creatorOpenId} 生成 ${count} 条随机鱼数据`);
+      
+      // 调用数据库管理器获取随机鱼数据
+      const randomFishes = await this.databaseManager.getRandomFishesByUserOpenid(creatorOpenId, count);
+      
+      console.log(`成功生成 ${randomFishes.length} 条随机鱼数据`);
+      return randomFishes;
+      
+    } catch (error) {
+      Utils.handleError(error, '生成随机鱼数据');
+      // 如果获取失败，返回空数组
+      return [];
+    }
+  }
+
+  // 新增：显示他人鱼缸界面
+  showOtherFishTank() {
+    this.isOtherFishTankVisible = true;
+    this.isFishDetailVisible = false; // 隐藏详情页
+    
+    // 清空当前鱼缸显示
+    if (this.fishTank) {
+      this.fishTank.fishes = [];
+      this.addedUserFishNames.clear();
+    }
+    
+    // 创建随机鱼对象并显示
+    this.createFishesForVisit();
+    
+    // 启动动画
+    this.fishManager.animator.startAnimationLoop();
+    
+    // 更新UI
+    this.uiManager.drawGameUI(this.gameState);
+    
+    console.log('进入他人鱼缸界面');
+  }
+
+  // 新增：为串门创建鱼对象
+  async createFishesForVisit() {
+    if (!this.otherFishTankData || !this.otherFishTankData.fishes || this.otherFishTankData.fishes.length === 0) {
+      console.log('没有串门鱼数据');
+      return;
+    }
+    
+    try {
+      const fishCreationPromises = this.otherFishTankData.fishes.map(fishData =>
+        this.fishManager.data.createFishFromDatabaseData(fishData)
+      );
+      
+      const createdFishes = await Promise.all(fishCreationPromises);
+      const validFishes = createdFishes.filter(fish => fish !== null);
+      
+      // 添加到鱼缸显示
+      validFishes.forEach(fish => {
+        this.fishTank.addFish(fish);
+        this.addedUserFishNames.add(fish.name);
+      });
+      
+      console.log(`成功创建 ${validFishes.length} 条串门鱼对象`);
+      
+    } catch (error) {
+      Utils.handleError(error, '创建串门鱼对象');
+    }
+  }
+
+  // 新增：隐藏他人鱼缸界面
+  hideOtherFishTank() {
+    this.isOtherFishTankVisible = false;
+    this.otherFishTankData = null;
+    
+    // 停止动画
+    this.fishManager.animator.stopAnimationLoop();
+    
+    // 更新UI
+    this.uiManager.drawGameUI(this.gameState);
+    
+    console.log('退出他人鱼缸界面');
   }
 
   // 修改：执行点赞操作 - 使用缓存的openid
