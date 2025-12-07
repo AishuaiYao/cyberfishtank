@@ -1137,6 +1137,116 @@ async getRandomFishesByUserFallback(openid, count = 20) {
       }
     }, { score: 0, starCount: 0, unstarCount: 0 });
   }
+
+  // 新增：获取最佳鱼数据（评分最高的20条鱼）
+  async getBestFishesFromDatabase(limit = 20) {
+    if (!Utils.checkDatabaseInitialization(this, '获取最佳鱼数据')) return [];
+
+    try {
+      // 先获取所有有评论的鱼，按score降序排列
+      const commentResult = await this.cloudDb.collection('comment')
+        .orderBy('score', 'desc')
+        .limit(limit)
+        .get();
+      
+      // 提取鱼名列表
+      const fishNames = commentResult.data.map(comment => comment.fishName);
+      
+      // 根据鱼名查询对应的鱼数据
+      if (fishNames.length > 0) {
+        const fishResult = await this.cloudDb.collection('fishes')
+          .where({
+            fishName: this.cloudDb.command.in(fishNames)
+          })
+          .get();
+        
+        // 按照comment中的score排序鱼数据
+        const fishMap = {};
+        fishResult.data.forEach(fish => {
+          fishMap[fish.fishName] = fish;
+        });
+        
+        const sortedFishes = [];
+        commentResult.data.forEach(comment => {
+          if (fishMap[comment.fishName]) {
+            sortedFishes.push({
+              ...fishMap[comment.fishName],
+              score: comment.score // 使用comment集合中的score
+            });
+          }
+        });
+        
+        return sortedFishes.slice(0, limit);
+      }
+      
+      return [];
+    } catch (error) {
+      return Utils.handleDatabaseError(error, '获取最佳鱼数据', []);
+    }
+  }
+
+  // 新增：获取最丑鱼数据（评分最低的20条鱼）
+  async getWorstFishesFromDatabase(limit = 20) {
+    if (!Utils.checkDatabaseInitialization(this, '获取最丑鱼数据')) return [];
+
+    try {
+      // 先获取所有有评论的鱼，按score升序排列
+      const commentResult = await this.cloudDb.collection('comment')
+        .orderBy('score', 'asc')
+        .limit(limit)
+        .get();
+      
+      // 提取鱼名列表
+      const fishNames = commentResult.data.map(comment => comment.fishName);
+      
+      // 根据鱼名查询对应的鱼数据
+      if (fishNames.length > 0) {
+        const fishResult = await this.cloudDb.collection('fishes')
+          .where({
+            fishName: this.cloudDb.command.in(fishNames)
+          })
+          .get();
+        
+        // 按照comment中的score排序鱼数据
+        const fishMap = {};
+        fishResult.data.forEach(fish => {
+          fishMap[fish.fishName] = fish;
+        });
+        
+        const sortedFishes = [];
+        commentResult.data.forEach(comment => {
+          if (fishMap[comment.fishName]) {
+            sortedFishes.push({
+              ...fishMap[comment.fishName],
+              score: comment.score // 使用comment集合中的score
+            });
+          }
+        });
+        
+        return sortedFishes.slice(0, limit);
+      }
+      
+      return [];
+    } catch (error) {
+      return Utils.handleDatabaseError(error, '获取最丑鱼数据', []);
+    }
+  }
+
+  // 新增：获取最新鱼数据（最新加入的20条鱼）
+  async getLatestFishesFromDatabase(limit = 20) {
+    if (!Utils.checkDatabaseInitialization(this, '获取最新鱼数据')) return [];
+
+    try {
+      const result = await this.cloudDb.collection('fishes')
+        .orderBy('createTime', 'desc') // 按创建时间降序排列
+        .limit(limit)
+        .get();
+
+      return result.data || [];
+    } catch (error) {
+      return Utils.handleDatabaseError(error, '获取最新鱼数据', []);
+    }
+  }
 }
 
 module.exports = DatabaseManager;

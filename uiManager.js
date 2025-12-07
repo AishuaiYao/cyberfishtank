@@ -44,7 +44,7 @@ class UIManager {
     this.eventHandler = eventHandler;
   }
 
-  // 修改：绘制鱼缸界面 - 将标题改为可点击的切换按钮
+  // 修改：绘制鱼缸界面 - 使用类似iPhone闹钟时间选择器风格的鱼缸选择器
   drawFishTankInterface() {
     const ctx = this.ctx;
 
@@ -73,15 +73,11 @@ class UIManager {
     // 绘制返回按钮
     Utils.drawModernButton(ctx, 20, buttonY, 50, buttonHeight, '返回', false, true);
 
-    // 绘制鱼缸切换按钮（第二个位置）
-    const switchButtonWidth = 120;
-    const switchButtonX = 20 + 50 + buttonSpacing;
-    const switchButtonText = this.eventHandler.getSwitchButtonText();
+    // 绘制鱼缸选择器（类似iPhone闹钟时间选择器风格）
+    this.drawTankSelector(buttonY);
 
-    Utils.drawModernButton(ctx, switchButtonX, buttonY, switchButtonWidth, buttonHeight, switchButtonText, false, false);
-
-    // 绘制刷新按钮（第三个位置）
-    const refreshButtonX = switchButtonX + switchButtonWidth + buttonSpacing;
+    // 绘制刷新按钮
+    const refreshButtonX = config.screenWidth - 70;
     Utils.drawModernButton(ctx, refreshButtonX, buttonY, 50, buttonHeight, '🔄', false, false, false, true);
 
     // 修改这里：根据鱼缸模式显示不同的提示文字
@@ -147,6 +143,141 @@ class UIManager {
   // 绘制排行榜卡片（带滚动效果）
   this.drawRankingCards();
 }
+
+  // 绘制类似iPhone闹钟时间选择器风格的鱼缸选择器
+  drawTankSelector(buttonY) {
+    const buttonHeight = 30; // 直接在方法内部定义
+    const ctx = this.ctx;
+    
+    // 初始化选择器状态（如果不存在）
+    if (!this.eventHandler.tankSelectorState) {
+      this.eventHandler.tankSelectorState = {
+        isOpen: false,
+        selectedIndex: this.eventHandler.currentTankMode === 'public' ? 0 : 
+                      (this.eventHandler.currentTankMode === 'best' ? 1 : 
+                       (this.eventHandler.currentTankMode === 'worst' ? 2 : 
+                        (this.eventHandler.currentTankMode === 'latest' ? 3 : 4))),
+        startScrollY: null,
+        items: [
+          { id: 'public', name: '赛博鱼缸' },
+          { id: 'best', name: '最佳鱼缸' },
+          { id: 'worst', name: '最丑鱼缸' },
+          { id: 'latest', name: '最新鱼缸' },
+          { id: 'my', name: '我的鱼缸' }
+        ]
+      };
+    }
+    
+    const selectorWidth = 150;
+    const selectorHeight = buttonY + 60; // 选择器总高度
+    const selectorX = 80; // 紧跟在返回按钮后面
+    const selectorY = buttonY;
+    
+    // 保存选择器边界到事件处理器，用于点击检测
+    this.eventHandler.tankSelectorBounds = {
+      x: selectorX,
+      y: selectorY,
+      width: selectorWidth,
+      collapsedHeight: buttonHeight, // 收起状态的高度
+      expandedHeight: 250 // 展开状态的高度（5个选项×50像素）
+    };
+    
+    // 如果选择器展开，绘制半透明遮罩
+    if (this.eventHandler.tankSelectorState.isOpen) {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+      ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
+      
+      // 绘制选择器背景卡片
+      ctx.shadowColor = 'rgba(0,0,0,0.15)';
+      ctx.shadowBlur = 10;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 3;
+      
+      Utils.drawCard(ctx, selectorX, selectorY, selectorWidth, selectorHeight);
+      
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      
+      // 绘制选择项
+      const itemHeight = 45; // 增加选项高度，方便触摸
+      
+      // 初始化滚动偏移量（如果不存在）
+      if (this.eventHandler.tankSelectorState.scrollOffset === undefined) {
+        this.eventHandler.tankSelectorState.scrollOffset = 0;
+      }
+      
+      // 绘制选中项高亮（中间位置）
+      const highlightY = selectorY + selectorHeight / 2 - itemHeight / 2;
+      ctx.fillStyle = '#007AFF'; // iOS蓝色
+      Utils.drawRoundedRect(ctx, selectorX + 5, highlightY, selectorWidth - 10, itemHeight, 5, true, false);
+      
+      // 绘制选项文本
+      ctx.textAlign = 'center';
+      
+      // 计算可见区域的高度
+      const visibleAreaHeight = selectorHeight;
+      const centerOffset = this.eventHandler.tankSelectorState.scrollOffset;
+      
+      // 绘制所有选项，但只显示可见部分
+      for (let i = 0; i < this.eventHandler.tankSelectorState.items.length; i++) {
+        const item = this.eventHandler.tankSelectorState.items[i];
+        
+        // 计算每个选项相对于中心的位置
+        const offsetFromCenter = (i - this.eventHandler.tankSelectorState.selectedIndex) * itemHeight + centerOffset;
+        const itemY = selectorY + selectorHeight / 2 - itemHeight / 2 + offsetFromCenter;
+        
+        // 只渲染可见范围内的选项
+        if (itemY > selectorY - itemHeight && itemY < selectorY + selectorHeight) {
+          const isSelected = i === this.eventHandler.tankSelectorState.selectedIndex;
+          
+          // 选项名称
+          ctx.font = isSelected ? 'bold 18px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif' : 
+                                 '18px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+          ctx.fillStyle = isSelected ? '#FFFFFF' : '#333333';
+          ctx.fillText(item.name, selectorX + selectorWidth / 2, itemY + itemHeight / 2 + 5);
+        }
+      }
+      
+      // 绘制顶部和底部渐变边缘
+      const gradient1 = ctx.createLinearGradient(0, selectorY, 0, selectorY + 30);
+      gradient1.addColorStop(0, 'rgba(255,255,255,0.9)');
+      gradient1.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = gradient1;
+      ctx.fillRect(selectorX, selectorY, selectorWidth, 30);
+      
+      const gradient2 = ctx.createLinearGradient(0, selectorY + selectorHeight - 30, 0, selectorY + selectorHeight);
+      gradient2.addColorStop(0, 'rgba(255,255,255,0)');
+      gradient2.addColorStop(1, 'rgba(255,255,255,0.9)');
+      ctx.fillStyle = gradient2;
+      ctx.fillRect(selectorX, selectorY + selectorHeight - 30, selectorWidth, 30);
+      
+      ctx.textAlign = 'left';
+    } else {
+      // 绘制收起状态的按钮
+      const selectedItem = this.eventHandler.tankSelectorState.items[this.eventHandler.tankSelectorState.selectedIndex];
+      
+      // 绘制按钮背景
+      ctx.fillStyle = '#FFFFFF';
+      ctx.strokeStyle = '#D1D5DB';
+      ctx.lineWidth = 1;
+      Utils.drawRoundedRect(ctx, selectorX, selectorY, selectorWidth, buttonHeight, 5, true, false);
+      Utils.drawRoundedRect(ctx, selectorX, selectorY, selectorWidth, buttonHeight, 5, false, true);
+      
+      // 绘制当前选中的文本
+      ctx.fillStyle = '#333333';
+      ctx.font = 'bold 15px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(selectedItem.name, selectorX + 15, selectorY + buttonHeight / 2 + 5);
+      
+      // 绘制下拉箭头
+      ctx.fillStyle = '#6B7280';
+      ctx.font = '12px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText('▼', selectorX + selectorWidth - 15, selectorY + buttonHeight / 2 + 4);
+      
+      ctx.textAlign = 'left';
+    }
+  }
 
 // 绘制组队界面
   drawTeamInterface() {

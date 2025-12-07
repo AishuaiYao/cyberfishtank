@@ -5,10 +5,92 @@ class SwimTouchHandler {
     this.lastTapTime = 0;
     this.tapCount = 0;
     this.tapTimeout = null;
+    this.lastTouchEvent = null; // 记录上次的触摸事件，防止重复处理
+    this.justOpenedSelector = false; // 标记选择器是否刚刚打开
+    
+    // 设置一个定时器，定期清除lastTouchEvent，防止影响真实的连续点击
+    setInterval(() => {
+      this.lastTouchEvent = null;
+    }, 500); // 500毫秒后清除
+  }
+
+  // 处理触摸移动
+  handleTouchMove(x, y) {
+    // 只在选择器展开时处理滑动
+    if (this.eventHandler.tankSelectorState && this.eventHandler.tankSelectorState.isOpen) {
+      // 检查是否点击了选择器区域
+      if (this.eventHandler.tankSelectorBounds) {
+        const { x: selectorX, y: selectorY, width: selectorWidth } = this.eventHandler.tankSelectorBounds;
+        
+        if (x >= selectorX && x <= selectorX + selectorWidth && y >= selectorY) {
+          // 开始跟踪滑动，记录起始位置
+          if (this.eventHandler.tankSelectorState.startScrollY === null) {
+            this.eventHandler.tankSelectorState.startScrollY = y;
+            this.eventHandler.tankSelectorState.startScrollOffset = this.eventHandler.tankSelectorState.scrollOffset || 0;
+          } else {
+            // 计算滚动距离并更新滚动偏移
+            const scrollDistance = y - this.eventHandler.tankSelectorState.startScrollY;
+            const itemHeight = 45;
+            const pixelsPerItem = itemHeight * 0.6; // 降低滚动敏感度
+            
+            // 更新滚动偏移
+            const newScrollOffset = this.eventHandler.tankSelectorState.startScrollOffset + scrollDistance;
+            this.eventHandler.tankSelectorState.scrollOffset = newScrollOffset;
+            
+            // 计算应该选中的索引（根据滚动偏移）
+            const itemsToScroll = Math.round(newScrollOffset / pixelsPerItem);
+            let newIndex = this.eventHandler.tankSelectorState.selectedIndex - itemsToScroll;
+            
+            // 限制索引在有效范围内
+            newIndex = Math.max(0, Math.min(this.eventHandler.tankSelectorState.items.length - 1, newIndex));
+            
+            // 更新选中索引
+            if (newIndex !== this.eventHandler.tankSelectorState.selectedIndex) {
+              this.eventHandler.tankSelectorState.selectedIndex = newIndex;
+            }
+          }
+        }
+      }
+    }
   }
 
   // 修改：处理游泳界面触摸（在触摸结束时调用）
   handleTouch(x, y) {
+    // 防止重复处理相同的触摸事件
+    const touchKey = `${Math.round(x)}_${Math.round(y)}`;
+    if (this.lastTouchEvent === touchKey) {
+      return;
+    }
+    this.lastTouchEvent = touchKey;
+    
+    // 首先检查选择器是否展开，如果是，则优先处理选择器的关闭逻辑
+    if (this.eventHandler.tankSelectorState && this.eventHandler.tankSelectorState.isOpen) {
+      // 检查是否点击了选择器区域（包括展开的列表区域）
+      if (this.eventHandler.tankSelectorBounds) {
+        const { x: selectorX, y: selectorY, width: selectorWidth, expandedHeight } = this.eventHandler.tankSelectorBounds;
+        
+        if (x >= selectorX && x <= selectorX + selectorWidth &&
+            y >= selectorY && y <= selectorY + expandedHeight) {
+          // 如果选择器是刚刚打开的，不处理选项选择
+          if (this.justOpenedSelector) {
+            this.justOpenedSelector = false;
+            return;
+          }
+          
+          // 只有在没有滑动的情况下才处理选项选择
+          if (!this.eventHandler.tankSelectorState.startScrollY) {
+            // 点击了选择器区域，检查是否点击了某个选项
+            this.handleTankSelectorSelection(x, y, selectorX, selectorY, selectorWidth);
+          }
+          return;
+        }
+      }
+      
+      // 点击了选择器外部，关闭选择器
+      this.eventHandler.tankSelectorState.isOpen = false;
+      return;
+    }
+
     // 返回按钮
     if (x >= 20 && x <= 70 && y >= 40 && y <= 70) {
       if (this.eventHandler.isOtherFishTankVisible) {
@@ -21,35 +103,31 @@ class SwimTouchHandler {
       return;
     }
 
-//    // 修改：刷新按钮 (在返回按钮旁边)
-//    if (x >= 80 && x <= 130 && y >= 40 && y <= 70) {
-//      this.eventHandler.refreshFishTank();
-//      return;
-//    }
-//
-//    // 新增：鱼缸切换按钮（在屏幕中央）
-//    const switchButtonWidth = 120;
-//    const switchButtonX = (this.eventHandler.canvas.width / this.eventHandler.uiManager.pixelRatio - switchButtonWidth) / 2;
-//
-//    if (x >= switchButtonX && x <= switchButtonX + switchButtonWidth &&
-//        y >= 40 && y <= 70) {
-//      this.eventHandler.switchTankMode();
-//      return;
-//    }
-// 鱼缸切换按钮（现在在第二个位置）
-const switchButtonWidth = 120;
-const switchButtonX = 80;
-if (x >= switchButtonX && x <= switchButtonX + switchButtonWidth && y >= 40 && y <= 70) {
-  this.eventHandler.switchTankMode();
-  return;
-}
+    // 检查鱼缸选择器的点击（仅在选择器未展开时）
+    if (this.eventHandler.tankSelectorBounds && (!this.eventHandler.tankSelectorState || !this.eventHandler.tankSelectorState.isOpen)) {
+      const { x: selectorX, y: selectorY, width: selectorWidth, collapsedHeight } = this.eventHandler.tankSelectorBounds;
+      
+      console.log(`[触摸事件] 检查收起状态选择器点击: 边界=(${selectorX},${selectorY},${selectorWidth},${collapsedHeight}), 点击坐标=(${x},${y})`);
+      
+      if (x >= selectorX && x <= selectorX + selectorWidth &&
+          y >= selectorY && y <= selectorY + collapsedHeight) {
+        console.log('[触摸事件] 点击了收起状态的选择器，展开选择器');
+        // 收起状态，点击后展开选择器
+        if (!this.eventHandler.tankSelectorState) {
+          this.eventHandler.tankSelectorState = { isOpen: false };
+        }
+        this.eventHandler.tankSelectorState.isOpen = true;
+        this.justOpenedSelector = true; // 标记选择器刚刚打开
+        return;
+      }
+    }
 
-// 刷新按钮（现在在第三个位置）
-const refreshButtonX = switchButtonX + switchButtonWidth + 10;
-if (x >= refreshButtonX && x <= refreshButtonX + 50 && y >= 40 && y <= 70) {
-  this.eventHandler.refreshFishTank();
-  return;
-}
+    // 刷新按钮（现在在最右边）
+    const refreshButtonX = this.eventHandler.canvas.width / this.eventHandler.uiManager.pixelRatio - 70;
+    if (x >= refreshButtonX && x <= refreshButtonX + 50 && y >= 40 && y <= 70) {
+      this.eventHandler.refreshFishTank();
+      return;
+    }
 
 
 
@@ -104,6 +182,70 @@ if (x >= refreshButtonX && x <= refreshButtonX + 50 && y >= 40 && y <= 70) {
     this.tapTimeout = setTimeout(() => {
       this.tapCount = 0;
     }, 300);
+  }
+
+  // 处理选择器选项选择
+  handleTankSelectorSelection(x, y, selectorX, selectorY, selectorWidth) {
+    const itemHeight = 45; // 选项高度
+    const selectorCenterY = selectorY + 60 / 2; // 60是选择器总高度
+    
+    // 计算点击位置相对于中心的位置
+    const relativeY = y - selectorCenterY;
+    
+    // 计算应该选中的索引（考虑当前的滚动偏移）
+    let clickedIndex = Math.round(relativeY / itemHeight) + this.eventHandler.tankSelectorState.selectedIndex;
+    
+    // 确保索引在有效范围内
+    clickedIndex = Math.max(0, Math.min(clickedIndex, this.eventHandler.tankSelectorState.items.length - 1));
+    
+    // 切换到选中的模式
+    this.eventHandler.tankSelectorState.selectedIndex = clickedIndex;
+    const selectedItem = this.eventHandler.tankSelectorState.items[clickedIndex];
+    this.eventHandler.switchToTankMode(selectedItem.id);
+    
+    // 关闭选择器并重置状态
+    this.eventHandler.tankSelectorState.isOpen = false;
+    this.eventHandler.tankSelectorState.scrollOffset = 0;
+    this.eventHandler.tankSelectorState.startScrollY = null;
+    this.eventHandler.tankSelectorState.startScrollOffset = null;
+  }
+
+  // 处理选择器的拖动滚动
+  handleTankSelectorScroll(x, y, isScrolling) {
+    if (!this.eventHandler.tankSelectorState || !this.eventHandler.tankSelectorState.isOpen) return;
+    
+    if (isScrolling && this.eventHandler.tankSelectorState.startScrollY !== null) {
+      // 正在滚动
+      const scrollDistance = y - this.eventHandler.tankSelectorState.startScrollY;
+      const itemHeight = 45; // 更新为新的选项高度
+      
+      // 计算应该滚动到的项目索引
+      const itemsToScroll = Math.round(scrollDistance / itemHeight);
+      const newIndex = Math.max(0, Math.min(this.eventHandler.tankSelectorState.items.length - 1, 
+                                           this.eventHandler.tankSelectorState.selectedIndex + itemsToScroll));
+      
+      // 更新选中项
+      if (newIndex !== this.eventHandler.tankSelectorState.selectedIndex) {
+        this.eventHandler.tankSelectorState.selectedIndex = newIndex;
+      }
+    }
+  }
+
+  // 结束滑动处理
+  handleTouchEnd(x, y) {
+    if (this.eventHandler.tankSelectorState && 
+        this.eventHandler.tankSelectorState.isOpen && 
+        this.eventHandler.tankSelectorState.startScrollY !== null) {
+      
+      // 如果有滑动，根据最终位置切换模式
+      const selectedItem = this.eventHandler.tankSelectorState.items[this.eventHandler.tankSelectorState.selectedIndex];
+      this.eventHandler.switchToTankMode(selectedItem.id);
+      
+      // 重置滑动状态
+      this.eventHandler.tankSelectorState.startScrollY = null;
+      this.eventHandler.tankSelectorState.startScrollOffset = null;
+      this.eventHandler.tankSelectorState.scrollOffset = 0; // 重置滚动偏移
+    }
   }
 
   // 生成鱼粮

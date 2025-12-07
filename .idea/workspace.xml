@@ -4,7 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="串门返回问题ok" />
+    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="鱼缸button位移">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/eventHandler.js" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -68,14 +71,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00130" summary="共同绘画-提示正常">
-      <option name="closed" value="true" />
-      <created>1764946035039</created>
-      <option name="number" value="00130" />
-      <option name="presentableId" value="LOCAL-00130" />
-      <option name="project" value="LOCAL" />
-      <updated>1764946035039</updated>
     </task>
     <task id="LOCAL-00131" summary="共同绘画-提示正常">
       <option name="closed" value="true" />
@@ -461,11 +456,18 @@
       <option name="project" value="LOCAL" />
       <updated>1765104759208</updated>
     </task>
-    <option name="localTasksCounter" value="179" />
+    <task id="LOCAL-00179" summary="鱼缸button位移">
+      <option name="closed" value="true" />
+      <created>1765105298122</created>
+      <option name="number" value="00179" />
+      <option name="presentableId" value="LOCAL-00179" />
+      <option name="project" value="LOCAL" />
+      <updated>1765105298122</updated>
+    </task>
+    <option name="localTasksCounter" value="180" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="共同绘画-基本比较流畅-有些时候撤销会撤销对面的操作" />
     <MESSAGE value="共同绘画-基本比较流畅-撤销会高亮下一步" />
     <MESSAGE value="共同绘画-基本比较流畅" />
     <MESSAGE value="共同绘画-基本比较流畅-退出后清空画布" />
@@ -490,6 +492,7 @@
     <MESSAGE value="串门" />
     <MESSAGE value="串门返回问题" />
     <MESSAGE value="串门返回问题ok" />
-    <option name="LAST_COMMIT_MESSAGE" value="串门返回问题ok" />
+    <MESSAGE value="鱼缸button位移" />
+    <option name="LAST_COMMIT_MESSAGE" value="鱼缸button位移" />
   </component>
 </project>

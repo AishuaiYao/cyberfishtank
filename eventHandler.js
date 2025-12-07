@@ -87,6 +87,11 @@ class EventHandler {
 
     // 新增：我的鱼缸相关
     this.myFishTankList = []; // 用户自己的鱼列表
+    
+    // 新增：特殊鱼缸列表
+    this.bestFishesList = []; // 最佳鱼列表（评分最高的20条鱼）
+    this.worstFishesList = []; // 最丑鱼列表（评分最低的20条鱼）
+    this.latestFishesList = []; // 最新鱼列表（最新加入的20条鱼）
     this.currentTankMode = 'public'; // 'public' 或 'my'
 
 
@@ -112,28 +117,28 @@ class EventHandler {
 
     // 新增：本地交互状态缓存 - 用于即时UI更新
     this.localInteractionCache = new Map(); // key: fishName, value: {action, timestamp, originalState}
-    
+
     // 新增：全局用户交互状态缓存 - 存储用户的所有交互记录
     this.userInteractionCache = new Map(); // key: fishName, value: {action, liked, disliked, timestamp}
     this.isUserInteractionCacheLoaded = false; // 标记是否已加载
-    
+
     // 新增：三个独立的排行榜缓存Map - 存储每个榜单的小鱼数据
     this.rankingCache = {
       best: new Map(),    // key: fishName, value: fishCardData (最佳榜)
       worst: new Map(),   // key: fishName, value: fishCardData (最丑榜)
       latest: new Map()    // key: fishName, value: fishCardData (最新榜)
     };
-    
+
     // 新增：每个排行榜的分页信息
     this.rankingPages = {
       best: { currentPage: 0, hasMore: true },
       worst: { currentPage: 0, hasMore: true },
       latest: { currentPage: 0, hasMore: true }
     };
-    
+
     // 新增：缓存版本控制
     this.cacheVersion = 1;
-    
+
     // 移除临时score对象，直接使用fishCardData.score
 
     this.bindEvents();
@@ -429,7 +434,7 @@ class EventHandler {
 
     // 2. 检查是否已存在交互记录，处理三种状态
     const existingInteraction = await this.databaseManager.getUserInteraction(fishName, this.userOpenid);
-    
+
     if (existingInteraction) {
       // 状态二：点击相同操作（取消）
       if (existingInteraction.action === action) {
@@ -446,7 +451,7 @@ class EventHandler {
 
     // 3. 立即更新本地状态
     this.updateLocalFishData(fishData, action, 'increment');
-    
+
     // 设置本地缓存状态
     this.setLocalInteractionState(fishName, action, originalState);
 
@@ -464,10 +469,10 @@ class EventHandler {
 
       if (interactionSuccess) {
         console.log(`${isRanking ? '排行榜' : ''}${isStar ? '点赞' : '点踩'}操作成功`);
-        
+
         // 更新交互状态
         await this.updateInteractionState(fishName, action, isRanking);
-        
+
         // 异步更新comment集合的score（状态一：无历史操作 → 点赞/点踩：变化量+1/-1）
         const scoreChange = action === 'star' ? 1 : -1;
         this.updateCommentScoreAsync(fishName, action, sortType, scoreChange);
@@ -516,9 +521,9 @@ class EventHandler {
 
     // 3. 立即更新本地状态
     this.updateLocalFishData(fishData, userInteraction.action, 'decrement');
-    
+
     // 4. score已在updateLocalFishData中回滚，不需要额外操作
-    
+
     // 设置本地缓存状态为取消状态
     this.setLocalInteractionState(fishName, null, originalState);
 
@@ -532,10 +537,10 @@ class EventHandler {
 
       if (interactionSuccess) {
         console.log(`取消${isRanking ? '排行榜' : ''}${isStar ? '点赞' : '点踩'}成功`);
-        
+
         // 清除交互状态
         this.clearInteractionState(fishName, isRanking);
-        
+
         // 异步更新comment集合的score（状态二：取消点赞/点踩：变化量-1/+1）
         const scoreChange = userInteraction.action === 'star' ? -1 : 1;
         this.updateCommentScoreAsync(fishName, userInteraction.action, sortType, scoreChange);
@@ -569,7 +574,7 @@ class EventHandler {
 
     // 2. 检查当前交互记录
     const existingInteraction = await this.databaseManager.getUserInteraction(fishName, this.userOpenid);
-    
+
     if (!existingInteraction || existingInteraction.action !== currentAction) {
       Utils.showError('无法找到要切换的交互记录');
       return;
@@ -606,7 +611,7 @@ class EventHandler {
 
         // 更新交互状态
         await this.updateInteractionState(fishName, newAction, isRanking);
-        
+
         // 异步更新comment集合的score（状态三：跨类型切换，变化量+2/-2）
         const scoreChange = newAction === 'star' ? 2 : -2;
         this.updateCommentScoreAsync(fishName, newAction, sortType, scoreChange);
@@ -629,7 +634,7 @@ class EventHandler {
       timestamp: Date.now(),
       originalState: originalState // 保存原始状态用于回滚
     };
-    
+
     // 兼容action字段和liked/disliked字段
     if (action === null) {
       // 取消操作状态
@@ -647,7 +652,7 @@ class EventHandler {
       state.disliked = true;
       state.action = action;
     }
-    
+
     this.localInteractionCache.set(fishName, state);
   }
 
@@ -665,15 +670,15 @@ class EventHandler {
     const currentScore = fishData.score || 0;
     const newScore = isStar ? currentScore + change : currentScore - change;
     fishData.score = newScore;
-    
+
     // 保存原始score（如果还没有保存）
     if (fishData.originalScore === undefined) {
       fishData.originalScore = currentScore;
     }
-    
+
     // 标记为已修改
     fishData.scoreChanged = 1;
-    
+
     // 如果是排行榜中的鱼，同时更新缓存中的fishCardData
     const cache = this.rankingCache[this.rankingSortType];
     if (cache && cache.has(fishData.fishName)) {
@@ -703,13 +708,13 @@ class EventHandler {
             dbInteraction.liked = dbInteraction.action === 'star';
             dbInteraction.disliked = dbInteraction.action === 'unstar';
           }
-          
+
           // 更新全局用户交互缓存
           this.updateUserInteractionCache(fishName, dbInteraction);
-          
+
           // 同时更新所有排行榜缓存中的交互状态
           this.updateInteractionStateInAllRankings(fishName, dbInteraction);
-          
+
           fishItem.userInteraction = dbInteraction;
           console.log('设置排行榜交互状态（包含_id）:', dbInteraction);
         } else {
@@ -718,7 +723,7 @@ class EventHandler {
             fishName: fishName,
             _openid: this.userOpenid
           };
-          
+
           // 兼容处理action字段和liked/disliked字段
           if (action === 'star') {
             interaction.liked = true;
@@ -729,13 +734,13 @@ class EventHandler {
             interaction.disliked = true;
             interaction.action = action;
           }
-          
+
           // 更新全局用户交互缓存
           this.updateUserInteractionCache(fishName, interaction);
-          
+
           // 同时更新所有排行榜缓存中的交互状态
           this.updateInteractionStateInAllRankings(fishName, interaction);
-          
+
           fishItem.userInteraction = interaction;
         }
       }
@@ -756,10 +761,10 @@ class EventHandler {
     } else if (!isRanking && this.selectedFishData) {
       this.selectedFishData.userInteraction = null;
     }
-    
+
     // 同时更新全局用户交互缓存
     this.updateUserInteractionCache(fishName, null);
-    
+
     // 同时更新所有排行榜缓存中的交互状态
     this.updateInteractionStateInAllRankings(fishName, null);
   }
@@ -785,15 +790,15 @@ class EventHandler {
     const currentScore = fishData.score || 0;
     const newScore = isStar ? currentScore + change : currentScore - change;
     fishData.score = newScore;
-    
+
     // 保存原始score（如果还没有保存）
     if (fishData.originalScore === undefined) {
       fishData.originalScore = currentScore;
     }
-    
+
     // 标记为已修改
     fishData.scoreChanged = 1;
-    
+
     // 如果是排行榜中的鱼，同时更新缓存中的fishCardData
     const cache = this.rankingCache[this.rankingSortType];
     if (cache && cache.has(fishData.fishName)) {
@@ -823,13 +828,13 @@ class EventHandler {
             dbInteraction.liked = dbInteraction.action === 'star';
             dbInteraction.disliked = dbInteraction.action === 'unstar';
           }
-          
+
           // 更新全局用户交互缓存
           this.updateUserInteractionCache(fishName, dbInteraction);
-          
+
           // 同时更新所有排行榜缓存中的交互状态
           this.updateInteractionStateInAllRankings(fishName, dbInteraction);
-          
+
           fishItem.userInteraction = dbInteraction;
           console.log('设置排行榜交互状态（包含_id）:', dbInteraction);
         } else {
@@ -838,7 +843,7 @@ class EventHandler {
             fishName: fishName,
             _openid: this.userOpenid
           };
-          
+
           // 兼容处理action字段和liked/disliked字段
           if (action === 'star') {
             interaction.liked = true;
@@ -849,13 +854,13 @@ class EventHandler {
             interaction.disliked = true;
             interaction.action = action;
           }
-          
+
           // 更新全局用户交互缓存
           this.updateUserInteractionCache(fishName, interaction);
-          
+
           // 同时更新所有排行榜缓存中的交互状态
           this.updateInteractionStateInAllRankings(fishName, interaction);
-          
+
           fishItem.userInteraction = interaction;
         }
       }
@@ -876,10 +881,10 @@ class EventHandler {
     } else if (!isRanking && this.selectedFishData) {
       this.selectedFishData.userInteraction = null;
     }
-    
+
     // 同时更新全局用户交互缓存
     this.updateUserInteractionCache(fishName, null);
-    
+
     // 同时更新所有排行榜缓存中的交互状态
     this.updateInteractionStateInAllRankings(fishName, null);
   }
@@ -903,12 +908,12 @@ class EventHandler {
     if (localState) {
       return localState;
     }
-    
+
     // 然后检查全局用户交互缓存
     if (this.userInteractionCache && this.userInteractionCache.has(fishName)) {
       return this.userInteractionCache.get(fishName);
     }
-    
+
     // 最后使用传入的用户交互状态
     return userInteraction;
   }
@@ -943,7 +948,7 @@ class EventHandler {
     if (!sortType) {
       sortType = this.rankingSortType;
     }
-    
+
     if (!this.userInteractionCache || this.userInteractionCache.size === 0) {
       // 如果缓存为空，为所有鱼设置默认状态
       rankingFishes.forEach(fishItem => {
@@ -956,7 +961,7 @@ class EventHandler {
 
     rankingFishes.forEach(fishItem => {
       const fishName = fishItem.fishData.fishName;
-      
+
       // 从全局缓存中获取交互状态
       if (this.userInteractionCache.has(fishName)) {
         fishItem.userInteraction = this.userInteractionCache.get(fishName);
@@ -964,14 +969,14 @@ class EventHandler {
         // 如果缓存中没有，设置默认状态
         fishItem.userInteraction = { liked: false, disliked: false, action: null };
       }
-      
+
       // 初始化临时score（如果还没有的话）
       // 不再需要初始化临时score，直接使用fishCardData.score
     });
 
     console.log(`为 ${rankingFishes.length} 条小鱼设置了交互状态和临时score`);
   }
-  
+
   // 移除initTempScore方法，不再需要初始化临时score
   // 直接使用fishCardData中的score值
 
@@ -980,7 +985,7 @@ class EventHandler {
     if (!this.userInteractionCache) {
       this.userInteractionCache = new Map();
     }
-    
+
     if (interaction) {
       // 更新缓存
       this.userInteractionCache.set(fishName, {
@@ -995,7 +1000,7 @@ class EventHandler {
       this.userInteractionCache.delete(fishName);
     }
   }
-  
+
   // 新增：更新所有排行榜缓存中的交互状态
   updateInteractionStateInAllRankings(fishName, interaction) {
     // 更新三个排行榜缓存中的交互状态
@@ -1009,95 +1014,95 @@ class EventHandler {
       }
     });
   }
-  
+
   // 更新fishCardData中的score值
   updateFishScore(fishName, action, sortType, operation = 'increment') {
     if (!sortType) return;
-    
+
     // 获取对应的缓存
     const cache = this.rankingCache[sortType];
     if (!cache || !cache.has(fishName)) return;
-    
+
     // 获取fishCardData
     const fishCardData = cache.get(fishName);
-    
+
     // 获取当前score
     const currentScore = fishCardData.score || 0;
-    
+
     // 保存原始score（如果还没有保存）
     if (fishCardData.originalScore === undefined) {
       fishCardData.originalScore = currentScore;
     }
-    
+
     // 根据操作更新score
     const change = operation === 'increment' ? 1 : -1;
     const newScore = action === 'star' ? currentScore + change : currentScore - change;
-    
+
     // 直接更新score并标记为已修改
     fishCardData.score = newScore;
     fishCardData.scoreChanged = 1;
-    
+
     // 更新缓存
     cache.set(fishName, fishCardData);
-    
+
     // 同步更新排行榜UI中的fishData.score
     if (this.rankingData && this.rankingData.fishes) {
-      const fishItem = this.rankingData.fishes.find(item => 
+      const fishItem = this.rankingData.fishes.find(item =>
         item.fishData.fishName === fishName
       );
       if (fishItem) {
         fishItem.fishData.score = newScore;
       }
     }
-    
+
     console.log(`更新fishCardData score: ${fishName} ${action === 'star' ? '点赞' : '点踩'} ${operation === 'increment' ? '+' : '-'}1, ${currentScore} → ${newScore}`);
   }
-  
+
   // 新增：回滚临时score对象
   // 回滚fishCardData中的score值
   rollbackFishScore(fishName, action, sortType, operation = 'increment') {
     if (!sortType) return;
-    
+
     // 获取对应的缓存
     const cache = this.rankingCache[sortType];
     if (!cache || !cache.has(fishName)) return;
-    
+
     // 获取fishCardData
     const fishCardData = cache.get(fishName);
-    
+
     // 获取当前score
     const currentScore = fishCardData.score || 0;
-    
+
     // 根据操作回滚score
     const change = operation === 'increment' ? 1 : -1;
     const newScore = action === 'star' ? currentScore - change : currentScore + change;
-    
+
     // 直接更新score
     fishCardData.score = newScore;
-    
+
     // 更新缓存
     cache.set(fishName, fishCardData);
-    
+
     // 同步更新排行榜UI中的fishData.score
     if (this.rankingData && this.rankingData.fishes) {
-      const fishItem = this.rankingData.fishes.find(item => 
+      const fishItem = this.rankingData.fishes.find(item =>
         item.fishData.fishName === fishName
       );
       if (fishItem) {
         fishItem.fishData.score = newScore;
       }
     }
-    
+
     console.log(`回滚fishCardData score: ${fishName} ${action === 'star' ? '点赞' : '点踩'} ${operation === 'increment' ? '+' : '-'}1, ${currentScore} → ${newScore}`);
   }
-  
+
   // 异步更新comment集合的score
   updateCommentScoreAsync(fishName, action, sortType, scoreChange = 1) {
     // 异步执行，不阻塞主流程
     setTimeout(async () => {
       try {
         console.log(`异步更新comment集合score: ${fishName}, ${action}, 变化量: ${scoreChange}`);
-        
+
         // 调用云函数更新comment集合的score
         const result = await wx.cloud.callFunction({
           name: 'updateCommentScore',
@@ -1108,10 +1113,10 @@ class EventHandler {
             scoreChange: scoreChange // 传递正确的变化量
           }
         });
-        
+
         if (result.result && result.result.success) {
           console.log(`云函数更新comment score成功: ${fishName}, 新score: ${result.result.newScore}`);
-          
+
           // 更新成功后，重置scoreChanged标志
           const cache = this.rankingCache[sortType];
           if (cache && cache.has(fishName)) {
@@ -1127,30 +1132,30 @@ class EventHandler {
       }
     }, 100); // 延迟100ms执行，确保UI更新完成
   }
-  
+
   // 批量处理所有scoreChanged=1的鱼
   async batchUpdateChangedScores() {
     // 遍历所有排行榜类型
     for (const sortType of ['best', 'worst', 'latest']) {
       const cache = this.rankingCache[sortType];
       if (!cache) continue;
-      
+
       // 找出所有scoreChanged=1的鱼
       const changedFishes = Array.from(cache.entries())
         .filter(([fishName, fishCardData]) => fishCardData.scoreChanged === 1);
-      
+
       // 如果没有需要更新的鱼，跳过
       if (changedFishes.length === 0) continue;
-      
+
       console.log(`开始批量更新${sortType}排行榜中的${changedFishes.length}条鱼的score`);
-      
+
       // 逐条更新
       for (const [fishName, fishCardData] of changedFishes) {
         try {
           // 根据score变化确定action
           const originalScore = fishCardData.originalScore || 0;
           const action = fishCardData.score > originalScore ? 'star' : 'unstar';
-          
+
           // 调用云函数更新
           const result = await wx.cloud.callFunction({
             name: 'updateCommentScore',
@@ -1160,7 +1165,7 @@ class EventHandler {
               openid: this.userOpenid
             }
           });
-          
+
           if (result.result && result.result.success) {
             // 更新成功，重置标志
             fishCardData.scoreChanged = 0;
@@ -1247,7 +1252,8 @@ class EventHandler {
     } else if (this.isDialogVisible) {
       // 对话框界面不需要处理移动
     } else if (this.isSwimInterfaceVisible) {
-      // 游泳界面不需要处理移动
+      // 游泳界面需要处理移动（用于选择器滑动）
+      this.touchHandlers.swim.handleTouchMove(x, y);
     } else if (this.isTeamInterfaceVisible || this.isCollaborativePaintingVisible) {
       // 组队界面和共同绘画界面需要处理移动（传递给组队处理器）
       this.touchHandlers.team.handleTouchMove(x, y);
@@ -1286,6 +1292,7 @@ class EventHandler {
         const x = touch.clientX;
         const y = touch.clientY;
         this.touchHandlers.swim.handleTouch(x, y);
+        this.touchHandlers.swim.handleTouchEnd(x, y);
       }
     } else if (this.isTeamInterfaceVisible || this.isCollaborativePaintingVisible) {
       // 组队界面和共同绘画界面需要处理结束（传递给组队处理器）
@@ -1339,7 +1346,7 @@ class EventHandler {
     }
   }
 
-// 修改 enterFishTank 方法，让首次进入也使用随机模式
+// 修改 enterFishTank 方法，支持所有鱼缸模式
 async enterFishTank(newFishName = null, mode = 'public') {
   this.isSwimInterfaceVisible = true;
   this.swimInterfaceData = { mode: mode };
@@ -1365,7 +1372,19 @@ async enterFishTank(newFishName = null, mode = 'public') {
     }
 
     await this.createFishesFromGlobalList();
-  } else {
+  } else if (mode === 'best') {
+    // 最佳鱼缸：加载评分最高的20条鱼
+    await this.loadBestFishes();
+    await this.createFishesFromBestList();
+  } else if (mode === 'worst') {
+    // 最丑鱼缸：加载评分最低的20条鱼
+    await this.loadWorstFishes();
+    await this.createFishesFromWorstList();
+  } else if (mode === 'latest') {
+    // 最新鱼缸：加载最新加入的20条鱼
+    await this.loadLatestFishes();
+    await this.createFishesFromLatestList();
+  } else if (mode === 'my') {
     // 我的鱼缸逻辑：使用随机模式，让每次进入都看到不同的鱼
     await this.loadMyFishes(true); // true 表示随机模式
   }
@@ -1373,8 +1392,34 @@ async enterFishTank(newFishName = null, mode = 'public') {
   this.fishManager.animator.startAnimationLoop();
 
   // 修改这里：进入鱼缸时显示鱼的数量和模式
-  const fishCount = mode === 'public' ? this.globalFishList.length : this.myFishTankList.length;
-  const tankName = mode === 'public' ? '赛博鱼缸' : '我的鱼缸';
+  let fishCount, tankName;
+  
+  switch (mode) {
+    case 'public':
+      fishCount = this.globalFishList.length;
+      tankName = '赛博鱼缸';
+      break;
+    case 'best':
+      fishCount = this.bestFishesList ? this.bestFishesList.length : 0;
+      tankName = '最佳鱼缸';
+      break;
+    case 'worst':
+      fishCount = this.worstFishesList ? this.worstFishesList.length : 0;
+      tankName = '最丑鱼缸';
+      break;
+    case 'latest':
+      fishCount = this.latestFishesList ? this.latestFishesList.length : 0;
+      tankName = '最新鱼缸';
+      break;
+    case 'my':
+      fishCount = this.myFishTankList.length;
+      tankName = '我的鱼缸';
+      break;
+    default:
+      fishCount = 0;
+      tankName = '未知鱼缸';
+  }
+  
   wx.showToast({
     title: `${tankName}中有${fishCount}条鱼`,
     icon: 'success',
@@ -1442,9 +1487,63 @@ async loadMyFishes(randomMode = false) {
     await this.createFishesFromMyList();
 
     } catch (error) {
-      Utils.handleError(error, '加载我的鱼数据失败');
-      this.myFishTankList = [];
+    Utils.handleError(error, '加载我的鱼数据失败');
+    this.myFishTankList = [];
+  }
+}
+
+// 新增：加载最佳鱼数据（评分最高的20条鱼）
+async loadBestFishes() {
+  try {
+    console.log('加载最佳鱼数据...');
+    
+    if (!Utils.checkDatabaseInitialization(this.databaseManager, '加载最佳鱼数据')) {
+      this.bestFishesList = [];
+      return;
     }
+
+    this.bestFishesList = await this.databaseManager.getBestFishesFromDatabase(20);
+    console.log('最佳鱼数据加载完成，数量:', this.bestFishesList.length);
+  } catch (error) {
+    Utils.handleError(error, '加载最佳鱼数据失败');
+    this.bestFishesList = [];
+  }
+}
+
+// 新增：加载最丑鱼数据（评分最低的20条鱼）
+async loadWorstFishes() {
+  try {
+    console.log('加载最丑鱼数据...');
+    
+    if (!Utils.checkDatabaseInitialization(this.databaseManager, '加载最丑鱼数据')) {
+      this.worstFishesList = [];
+      return;
+    }
+
+    this.worstFishesList = await this.databaseManager.getWorstFishesFromDatabase(20);
+    console.log('最丑鱼数据加载完成，数量:', this.worstFishesList.length);
+  } catch (error) {
+    Utils.handleError(error, '加载最丑鱼数据失败');
+    this.worstFishesList = [];
+  }
+}
+
+// 新增：加载最新鱼数据（最新加入的20条鱼）
+async loadLatestFishes() {
+  try {
+    console.log('加载最新鱼数据...');
+    
+    if (!Utils.checkDatabaseInitialization(this.databaseManager, '加载最新鱼数据')) {
+      this.latestFishesList = [];
+      return;
+    }
+
+    this.latestFishesList = await this.databaseManager.getLatestFishesFromDatabase(20);
+    console.log('最新鱼数据加载完成，数量:', this.latestFishesList.length);
+  } catch (error) {
+    Utils.handleError(error, '加载最新鱼数据失败');
+    this.latestFishesList = [];
+  }
 }
 
   // 新增：通用的鱼列表创建函数 - 合并重复代码
@@ -1474,6 +1573,21 @@ async loadMyFishes(randomMode = false) {
     await this._createFishesFromList(this.myFishTankList, 'my');
   }
 
+  // 新增：从最佳鱼列表创建鱼对象
+  async createFishesFromBestList() {
+    await this._createFishesFromList(this.bestFishesList, 'best');
+  }
+
+  // 新增：从最丑鱼列表创建鱼对象
+  async createFishesFromWorstList() {
+    await this._createFishesFromList(this.worstFishesList, 'worst');
+  }
+
+  // 新增：从最新鱼列表创建鱼对象
+  async createFishesFromLatestList() {
+    await this._createFishesFromList(this.latestFishesList, 'latest');
+  }
+
   // 新增：统一模式切换函数
   async switchMode(modeType, newMode) {
     if (modeType === 'tank') {
@@ -1486,6 +1600,11 @@ async loadMyFishes(randomMode = false) {
   async switchTankMode() {
     const newMode = this.currentTankMode === 'public' ? 'my' : 'public';
     await this.switchMode('tank', newMode);
+  }
+
+  // 新增：切换到指定鱼缸模式
+  async switchToTankMode(mode) {
+    await this.switchMode('tank', mode);
   }
 
 
