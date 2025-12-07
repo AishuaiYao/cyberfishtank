@@ -1357,6 +1357,9 @@ async refreshFishTank() {
       }
 
       // 将新加载的鱼添加到现有数据中
+      if (!this.rankingData) {
+        this.rankingData = { fishes: [], lastUpdate: new Date(), mode: 'cyber' };
+      }
       this.rankingData.fishes = this.rankingData.fishes.concat(newFishes);
 
       console.log(`成功加载 ${newFishes.length} 条新的排行榜数据，当前总数: ${this.rankingData.fishes.length}`);
