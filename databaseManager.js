@@ -1246,7 +1246,7 @@ async getRandomFishesByUserFallback(openid, count = 20) {
 
     try {
       const result = await this.cloudDb.collection('fishes')
-        .orderBy('createTime', 'desc') // 按创建时间降序排列
+        .orderBy('createTimestamp', 'desc') // 按创建时间降序排列
         .limit(limit)
         .get();
 
