@@ -67,7 +67,7 @@ class UIManager {
 
     // 在 drawFishTankInterface() 方法中：
     // 绘制返回按钮
-    Utils.drawModernButton(ctx, 20, 50, 50, 30, '返回', false, true);
+    Utils.drawModernButton(ctx, 20, 40, 50, 30, '返回', false, true);
 
     // 绘制鱼缸切换按钮（现在在第二个位置）
     const switchButtonWidth = 120;
@@ -1116,7 +1116,7 @@ drawMainTitle() {
     }
 
     // 绘制返回按钮
-    Utils.drawModernButton(ctx, 20, 50, 50, 30, '返回', false, true);
+    Utils.drawModernButton(ctx, 20, 40, 50, 30, '返回', false, true);
 
     // 绘制串门标题
     ctx.fillStyle = '#374151'; // 深蓝色

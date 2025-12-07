@@ -11,7 +11,13 @@ class SwimTouchHandler {
   handleTouch(x, y) {
     // 返回按钮
     if (x >= 20 && x <= 70 && y >= 40 && y <= 70) {
-      this.eventHandler.hideSwimInterface();
+      if (this.eventHandler.isOtherFishTankVisible) {
+        // 串门界面：隐藏他人鱼缸
+        this.eventHandler.hideOtherFishTank();
+      } else {
+        // 游泳界面：隐藏游泳界面
+        this.eventHandler.hideSwimInterface();
+      }
       return;
     }
 
