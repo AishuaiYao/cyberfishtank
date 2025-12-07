@@ -17,8 +17,8 @@ const config = {
   buttonWidth: 85,
   buttonHeight: 44,
   colorButtonSize: 34,
-  colors: ['#000000', '#FF3B30', '#4CD964', '#5856D6', '#FFCC00', '#FF9500', '#FFFFFF'],
-  colorNames: ['黑色', '红色', '绿色', '紫色', '黄色', '橙色', '白色'],
+  colors: ['#000000', '#FF3B30', '#4CD964', '#5856D6', '#FFCC00', '#FF9500', '#007AFF'], // 将白色改为蓝色，作为调色板按钮的默认颜色
+  colorNames: ['黑色', '红色', '绿色', '紫色', '黄色', '橙色', '调色板'],
   borderRadius: 12,
   shadowBlur: 8,
   primaryColor: '#007AFF',

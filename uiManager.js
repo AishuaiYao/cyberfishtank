@@ -1400,6 +1400,14 @@ drawMainTitle() {
 
     // 检查特殊界面状态
     if (this.eventHandler) {
+      // 首先检查调色板界面是否可见
+      if (this.eventHandler.touchHandlers && this.eventHandler.touchHandlers.main && 
+          this.eventHandler.touchHandlers.main.paletteHandler && 
+          this.eventHandler.touchHandlers.main.paletteHandler.isVisible) {
+        // 调色板界面由调色板处理器自行绘制，不在此处绘制
+        return;
+      }
+
       if (this.eventHandler.isRankingInterfaceVisible) {
         this.drawRankingInterface();
         return;

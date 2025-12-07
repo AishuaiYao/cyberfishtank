@@ -116,18 +116,24 @@ class InterfaceRenderer {
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 1;
 
-      ctx.beginPath();
-      ctx.arc(x + config.colorButtonSize/2, startY + config.colorButtonSize/2,
-              config.colorButtonSize/2, 0, Math.PI * 2);
-      ctx.fillStyle = config.colors[i];
-      ctx.fill();
+      // 如果是调色板按钮（最后一个按钮），绘制调色板图案
+      if (i === 6) {
+        this.drawPaletteButton(ctx, x, startY, config.colorButtonSize, isSelected);
+      } else {
+        // 普通颜色按钮
+        ctx.beginPath();
+        ctx.arc(x + config.colorButtonSize/2, startY + config.colorButtonSize/2,
+                config.colorButtonSize/2, 0, Math.PI * 2);
+        ctx.fillStyle = config.colors[i];
+        ctx.fill();
 
-      ctx.shadowColor = 'transparent';
-      ctx.shadowBlur = 0;
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
 
-      ctx.strokeStyle = config.colors[i] === '#FFFFFF' ? config.borderColor : 'transparent';
-      ctx.lineWidth = config.colors[i] === '#FFFFFF' ? 1 : 0;
-      ctx.stroke();
+        ctx.strokeStyle = config.colors[i] === '#FFFFFF' ? config.borderColor : 'transparent';
+        ctx.lineWidth = config.colors[i] === '#FFFFFF' ? 1 : 0;
+        ctx.stroke();
+      }
 
       // 选中状态 - 使用更清晰的边框
       if (isSelected) {
@@ -146,6 +152,99 @@ class InterfaceRenderer {
         ctx.stroke();
       }
     }
+  }
+
+  // 绘制调色板按钮 - 专业画图软件风格的调色板图标
+  drawPaletteButton(ctx, x, y, size, isSelected) {
+    const centerX = x + size / 2;
+    const centerY = y + size / 2;
+    const radius = size / 2 - 2; // 稍微小一点，留出边框空间
+    
+    // 绘制调色板基本圆形
+    ctx.fillStyle = '#007AFF'; // 使用蓝色作为调色板背景
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 绘制调色板扇形区域 - 模拟专业软件的调色板样式
+    const sectorColors = ['#FF3B30', '#FF9500', '#FFCC00', '#4CD964', '#5AC8FA', '#5856D6'];
+    const sectorCount = sectorColors.length;
+    const sectorAngle = (Math.PI * 2) / sectorCount;
+    
+    // 绘制扇形区域
+    for (let i = 0; i < sectorCount; i++) {
+      const startAngle = i * sectorAngle - Math.PI / 6; // 偏移角度，让调色板更生动
+      const endAngle = (i + 1) * sectorAngle - Math.PI / 6;
+      
+      ctx.fillStyle = sectorColors[i];
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.arc(centerX, centerY, radius * 0.8, startAngle, endAngle);
+      ctx.closePath();
+      ctx.fill();
+    }
+    
+    // 绘制中心白色圆点
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius * 0.3, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 绘制调色板边框
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // 添加内部细节线条，增强专业感
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+    ctx.lineWidth = 0.8;
+    
+    // 绘制分割线
+    for (let i = 0; i < sectorCount; i++) {
+      const angle = i * sectorAngle - Math.PI / 6;
+      const startX = centerX + Math.cos(angle) * radius * 0.3;
+      const startY = centerY + Math.sin(angle) * radius * 0.3;
+      const endX = centerX + Math.cos(angle) * radius * 0.8;
+      const endY = centerY + Math.sin(angle) * radius * 0.8;
+      
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      ctx.lineTo(endX, endY);
+      ctx.stroke();
+    }
+    
+    // 添加高光效果
+    const highlightGradient = ctx.createRadialGradient(
+      centerX - radius * 0.3, centerY - radius * 0.3, 0,
+      centerX - radius * 0.3, centerY - radius * 0.3, radius * 0.5
+    );
+    highlightGradient.addColorStop(0, 'rgba(255,255,255,0.4)');
+    highlightGradient.addColorStop(1, 'rgba(255,255,255,0)');
+    
+    ctx.fillStyle = highlightGradient;
+    ctx.beginPath();
+    ctx.arc(centerX - radius * 0.2, centerY - radius * 0.2, radius * 0.3, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 如果被选中，添加选中状态边框
+    if (isSelected) {
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius + 3, 0, Math.PI * 2);
+      ctx.strokeStyle = config.primaryColor;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius - 1, 0, Math.PI * 2);
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+    
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
   }
 
 // 绘制画笔大小控制

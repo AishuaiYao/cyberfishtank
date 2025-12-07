@@ -11,6 +11,9 @@ class MainTouchHandler {
     this.isCollaborativeMode = false;
     this.collaborationManager = null;
     this.lastOperationRecorded = 0;
+    
+    // 调色板处理器
+    this.paletteHandler = null;
   }
 
   // 处理主界面触摸开始
@@ -90,6 +93,11 @@ class MainTouchHandler {
 
   // 处理功能区点击
   handleFunctionAreaClick(x, y) {
+    // 首先检查是否在调色板界面中
+    if (this.paletteHandler && this.paletteHandler.isVisible) {
+      if (this.paletteHandler.handlePaletteTouch(x, y)) return;
+    }
+    
     if (this.handleColorButtonClick(x, y)) return;
     if (this.handleBrushSizeClick(x, y)) return;
     if (this.handleToolButtonClick(x, y)) return;
@@ -97,7 +105,7 @@ class MainTouchHandler {
     if (this.handleTeamButtonClick(x, y)) return;
   }
 
-  // 颜色按钮点击 - 修改：不取消评分
+  // 颜色按钮点击 - 修改：调色板按钮特殊处理
   handleColorButtonClick(x, y) {
     const functionAreaY = this.positions.functionAreaY;
     const colorButtonsY = functionAreaY + 10; // 调整为与UI一致
@@ -111,12 +119,30 @@ class MainTouchHandler {
       if (x >= buttonX && x <= buttonX + config.colorButtonSize &&
           y >= buttonY && y <= buttonY + config.colorButtonSize) {
 
+        // 如果是调色板按钮（最后一个按钮），弹出调色板界面
+        if (i === 6) {
+          console.log('调色板按钮被点击');
+          this.showPaletteInterface();
+          return true;
+        }
+
+        // 普通颜色按钮
         this.eventHandler.gameState.setColor(config.colors[i]);
         this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
         return true;
       }
     }
     return false;
+  }
+
+  // 显示调色板界面
+  showPaletteInterface() {
+    if (!this.paletteHandler) {
+      const PaletteHandler = require('./paletteHandler.js');
+      this.paletteHandler = new PaletteHandler(this.eventHandler);
+    }
+    
+    this.paletteHandler.showPaletteInterface();
   }
 
   // 画笔大小点击 - 修改：不取消评分
@@ -745,30 +771,6 @@ class MainTouchHandler {
     console.log('撤销操作后画布已重绘（备用方案）');
   }
 
-  // 修改：颜色按钮点击 - 修改：不取消评分，添加协作操作记录
-  handleColorButtonClick(x, y) {
-    const functionAreaY = this.positions.functionAreaY;
-    const colorButtonsY = functionAreaY + 10; // 调整为与UI一致
-    const totalWidth = config.colorButtonSize * 7 + 18 * 6;
-    const startX = (config.screenWidth - totalWidth) / 2;
-
-    for (let i = 0; i < 7; i++) {
-      const buttonX = startX + i * (config.colorButtonSize + 18);
-      const buttonY = colorButtonsY;
-
-      if (x >= buttonX && x <= buttonX + config.colorButtonSize &&
-          y >= buttonY && y <= buttonY + config.colorButtonSize) {
-
-        const previousColor = this.eventHandler.gameState.currentColor;
-        this.eventHandler.gameState.setColor(config.colors[i]);
-
-        this.eventHandler.uiManager.drawGameUI(this.eventHandler.gameState);
-        return true;
-      }
-    }
-    return false;
-  }
-
   // 修改：画笔大小点击 - 修改：不取消评分，添加协作操作记录
   handleBrushSizeClick(x, y) {
     const functionAreaY = this.positions.functionAreaY;
@@ -796,6 +798,11 @@ class MainTouchHandler {
   cleanup() {
     this.cancelPendingScoring();
     this.stopCollaboration();
+    
+    // 清理调色板处理器
+    if (this.paletteHandler) {
+      this.paletteHandler.cleanup();
+    }
   }
 }
 
