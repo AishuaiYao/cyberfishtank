@@ -428,14 +428,21 @@ class EventHandler {
       return;
     }
 
-    // 2. 检查是否已存在相同交互记录
+    // 2. 检查是否已存在交互记录，处理三种状态
     const existingInteraction = await this.databaseManager.getUserInteraction(fishName, this.userOpenid);
     
     if (existingInteraction) {
-      // 如果已存在记录，执行取消操作而不是重复插入
-      console.log(`检测到已存在交互记录，执行取消操作`);
-      await this.cancelInteractionAction(fishData, existingInteraction, originalState, isRanking);
-      return;
+      // 状态二：点击相同操作（取消）
+      if (existingInteraction.action === action) {
+        console.log(`检测到已存在相同交互记录，执行取消操作`);
+        await this.cancelInteractionAction(fishData, existingInteraction, originalState, isRanking);
+        return;
+      } else {
+        // 状态三：点击不同操作（跨类型切换）
+        console.log(`检测到跨类型切换操作：从${existingInteraction.action}切换到${action}`);
+        await this.switchInteractionAction(fishData, existingInteraction.action, action, originalState, isRanking);
+        return;
+      }
     }
 
     // 3. 立即更新本地状态
@@ -462,8 +469,9 @@ class EventHandler {
         // 更新交互状态
         await this.updateInteractionState(fishName, action, isRanking);
         
-        // 异步更新comment集合的score
-        this.updateCommentScoreAsync(fishName, action, sortType);
+        // 异步更新comment集合的score（状态一：无历史操作 → 点赞/点踩：变化量+1/-1）
+        const scoreChange = action === 'star' ? 1 : -1;
+        this.updateCommentScoreAsync(fishName, action, sortType, scoreChange);
       } else {
         // 插入失败，回滚状态
         this.rollbackInteractionState(fishData, originalState, isRanking, fishName);
@@ -529,8 +537,9 @@ class EventHandler {
         // 清除交互状态
         this.clearInteractionState(fishName, isRanking);
         
-        // 异步更新comment集合的score
-        this.updateCommentScoreAsync(fishName, userInteraction.action, sortType);
+        // 异步更新comment集合的score（状态二：取消点赞/点踩：变化量-1/+1）
+        const scoreChange = userInteraction.action === 'star' ? -1 : 1;
+        this.updateCommentScoreAsync(fishName, userInteraction.action, sortType, scoreChange);
       } else {
         // 删除失败，回滚状态
         this.rollbackInteractionState(fishData, originalState, isRanking, fishName);
@@ -551,6 +560,7 @@ class EventHandler {
   async switchInteractionAction(fishData, currentAction, newAction, originalState, isRanking = false) {
     const fishName = fishData.fishName;
     const isStar = newAction === 'star';
+    const sortType = isRanking ? this.rankingSortType : null;
 
     // 1. 验证用户信息
     if (!this.userOpenid) {
@@ -597,6 +607,10 @@ class EventHandler {
 
         // 更新交互状态
         await this.updateInteractionState(fishName, newAction, isRanking);
+        
+        // 异步更新comment集合的score（状态三：跨类型切换，变化量+2/-2）
+        const scoreChange = newAction === 'star' ? 2 : -2;
+        this.updateCommentScoreAsync(fishName, newAction, sortType, scoreChange);
       } else {
         throw new Error('插入新记录失败');
       }
@@ -1079,11 +1093,11 @@ class EventHandler {
   }
   
   // 异步更新comment集合的score
-  updateCommentScoreAsync(fishName, action, sortType) {
+  updateCommentScoreAsync(fishName, action, sortType, scoreChange = 1) {
     // 异步执行，不阻塞主流程
     setTimeout(async () => {
       try {
-        console.log(`异步更新comment集合score: ${fishName}, ${action}`);
+        console.log(`异步更新comment集合score: ${fishName}, ${action}, 变化量: ${scoreChange}`);
         
         // 调用云函数更新comment集合的score
         const result = await wx.cloud.callFunction({
@@ -1091,7 +1105,8 @@ class EventHandler {
           data: {
             fishName: fishName,
             action: action, // 'star' or 'unstar'
-            openid: this.userOpenid
+            openid: this.userOpenid,
+            scoreChange: scoreChange // 传递正确的变化量
           }
         });
         
