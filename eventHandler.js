@@ -1554,7 +1554,7 @@ async refreshFishTank() {
         sortTypeText = '点赞最多（最佳榜）';
         break;
       case 'worst':
-        sortTypeText = '点踩最多（最丑榜）';
+        sortTypeText = '评分最低（最丑榜）';
         break;
       case 'latest':
       default:

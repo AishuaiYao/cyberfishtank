@@ -274,15 +274,42 @@ class DatabaseManager {
             }
             break;
             
-          case 'worst': // 点踩最多（最丑榜）
-            query = query.orderBy('unstar', 'desc').orderBy('createTimestamp', 'desc');
-            const worstResult = await query
-              .skip(skip)
-              .limit(batchSize)
+          case 'worst': // 从comment集合读取score，按从小到大排序（最丑榜）
+            // 先获取所有有评论的鱼，按score升序排列
+            const worstCommentResult = await this.cloudDb.collection('comment')
+              .orderBy('score', 'asc')
+              .limit(limit)
               .get();
-            if (worstResult.data.length === 0) break;
-            allData = allData.concat(worstResult.data);
-            skip += batchSize;
+            
+            // 提取鱼名列表
+            const worstFishNames = worstCommentResult.data.map(comment => comment.fishName);
+            
+            // 根据鱼名查询对应的鱼数据
+            if (worstFishNames.length > 0) {
+              const worstFishResult = await this.cloudDb.collection('fishes')
+                .where({
+                  fishName: this.cloudDb.command.in(worstFishNames)
+                })
+                .get();
+              
+              // 按照comment中的score排序鱼数据
+              const worstFishMap = {};
+              worstFishResult.data.forEach(fish => {
+                worstFishMap[fish.fishName] = fish;
+              });
+              
+              const sortedWorstFishes = [];
+              worstCommentResult.data.forEach(comment => {
+                if (worstFishMap[comment.fishName]) {
+                  sortedWorstFishes.push({
+                    ...worstFishMap[comment.fishName],
+                    score: comment.score // 使用comment集合中的score
+                  });
+                }
+              });
+              
+              allData = sortedWorstFishes;
+            }
             break;
             
           case 'latest': // 创作时间最新（最新榜）
@@ -328,10 +355,15 @@ class DatabaseManager {
       let result;
       
       // 根据排序类型使用不同的查询逻辑
-      if (sortType === 'best') {
-        // 最佳榜：从comment集合读取score，按从大到小排序
+      if (sortType === 'best' || sortType === 'worst') {
+        // 最佳榜或最丑榜：从comment集合读取score
+        const order = sortType === 'best' ? 'desc' : 'asc';
+        const orderText = sortType === 'best' ? '从大到小' : '从小到大';
+        
+        console.log(`从comment集合按score ${orderText}排序获取数据`);
+        
         const commentResult = await this.cloudDb.collection('comment')
-          .orderBy('score', 'desc')
+          .orderBy('score', order)
           .skip(page * pageSize)
           .limit(pageSize)
           .get();
@@ -372,9 +404,6 @@ class DatabaseManager {
         let query = this.cloudDb.collection('fishes');
         
         switch (sortType) {
-          case 'worst': // 点踩最多（最丑榜）
-            query = query.orderBy('unstar', 'desc').orderBy('createTimestamp', 'desc');
-            break;
           case 'latest': // 创作时间最新（最新榜）
           default:
             query = query.orderBy('createTimestamp', 'desc');
