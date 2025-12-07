@@ -1391,37 +1391,43 @@ async enterFishTank(newFishName = null, mode = 'public') {
 
   this.fishManager.animator.startAnimationLoop();
 
-  // 修改这里：进入鱼缸时显示鱼的数量和模式
-  let fishCount, tankName;
+  // 修改这里：进入鱼缸时显示对应的加载说明
+  let fishCount, message, tankName;
   
   switch (mode) {
     case 'public':
       fishCount = this.globalFishList.length;
       tankName = '赛博鱼缸';
+      message = '随机20条鱼';
       break;
     case 'best':
       fishCount = this.bestFishesList ? this.bestFishesList.length : 0;
       tankName = '最佳鱼缸';
+      message = 'top20评分最高';
       break;
     case 'worst':
       fishCount = this.worstFishesList ? this.worstFishesList.length : 0;
       tankName = '最丑鱼缸';
+      message = 'top20评分最低';
       break;
     case 'latest':
       fishCount = this.latestFishesList ? this.latestFishesList.length : 0;
       tankName = '最新鱼缸';
+      message = 'top20最新';
       break;
     case 'my':
       fishCount = this.myFishTankList.length;
       tankName = '我的鱼缸';
+      message = '随机20条鱼';
       break;
     default:
       fishCount = 0;
       tankName = '未知鱼缸';
+      message = '未知模式';
   }
   
   wx.showToast({
-    title: `${tankName}中有${fishCount}条鱼`,
+    title: message,
     icon: 'success',
     duration: 2000
   });

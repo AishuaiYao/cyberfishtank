@@ -86,12 +86,37 @@ class UIManager {
     ctx.font = 'bold 14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'center';
 
-    if (this.eventHandler.currentTankMode === 'my') {
-      const fishCount = this.eventHandler.getCurrentTankFishCount();
+    const fishCount = this.eventHandler.getCurrentTankFishCount();
+    
+    if (this.eventHandler.currentTankMode === 'public') {
+      if (fishCount === 0) {
+        ctx.fillText('赛博鱼缸：随机加载20条鱼', Math.round(config.screenWidth / 2), config.screenHeight - 30);
+      } else {
+        ctx.fillText(`赛博鱼缸：随机加载20条鱼，双击屏幕投放鱼粮`, Math.round(config.screenWidth / 2), config.screenHeight - 30);
+      }
+    } else if (this.eventHandler.currentTankMode === 'best') {
+      if (fishCount === 0) {
+        ctx.fillText('最佳鱼缸：加载了top20', Math.round(config.screenWidth / 2), config.screenHeight - 30);
+      } else {
+        ctx.fillText(`最佳鱼缸：加载了top20，双击屏幕投放鱼粮`, Math.round(config.screenWidth / 2), config.screenHeight - 30);
+      }
+    } else if (this.eventHandler.currentTankMode === 'worst') {
+      if (fishCount === 0) {
+        ctx.fillText('最丑鱼缸：加载了top20', Math.round(config.screenWidth / 2), config.screenHeight - 30);
+      } else {
+        ctx.fillText(`最丑鱼缸：加载了top20，双击屏幕投放鱼粮`, Math.round(config.screenWidth / 2), config.screenHeight - 30);
+      }
+    } else if (this.eventHandler.currentTankMode === 'latest') {
+      if (fishCount === 0) {
+        ctx.fillText('最新鱼缸：加载了top20', Math.round(config.screenWidth / 2), config.screenHeight - 30);
+      } else {
+        ctx.fillText(`最新鱼缸：加载了top20，双击屏幕投放鱼粮`, Math.round(config.screenWidth / 2), config.screenHeight - 30);
+      }
+    } else if (this.eventHandler.currentTankMode === 'my') {
       if (fishCount === 0) {
         ctx.fillText('你还没有鱼，快去画一条吧！', Math.round(config.screenWidth / 2), config.screenHeight - 30);
       } else {
-        ctx.fillText(`你有 ${fishCount} 条鱼，双击屏幕投放鱼粮`, Math.round(config.screenWidth / 2), config.screenHeight - 30);
+        ctx.fillText(`我的鱼缸：随机加载20条鱼，双击屏幕投放鱼粮`, Math.round(config.screenWidth / 2), config.screenHeight - 30);
       }
     } else {
       ctx.fillText('双击屏幕投放鱼粮', Math.round(config.screenWidth / 2), config.screenHeight - 30);
