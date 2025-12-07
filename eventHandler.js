@@ -1667,32 +1667,66 @@ async refreshFishTank() {
   wx.showLoading({ title: '刷新中...', mask: true });
 
   try {
-    if (this.currentTankMode === 'public') {
-      // 公共鱼缸逻辑：使用赛博鱼缸的随机逻辑
-      const newFishes = await this.databaseManager.getRandomFishesFromDatabase(20);
-      this.globalFishList = newFishes;
+    // 清空鱼缸和缓存
+    this.fishTank.fishes = [];
+    this.addedUserFishNames.clear();
 
-      // 清空并重新创建鱼对象
-      this.fishTank.fishes = [];
-      this.addedUserFishNames.clear();
-      await this.createFishesFromGlobalList();
+    switch (this.currentTankMode) {
+      case 'public':
+        // 赛博鱼缸：真随机刷新
+        console.log('刷新赛博鱼缸：随机获取20条鱼');
+        this.globalFishList = await this.databaseManager.getRandomFishesFromDatabase(20);
+        await this.createFishesFromGlobalList();
+        break;
 
-      wx.showToast({
-        title: `刷新完成，${newFishes.length}条鱼`,
-        icon: 'success',
-        duration: 1500
-      });
-    } else {
-      // 我的鱼缸逻辑：使用新的随机查询（限制在当前用户的鱼中）
-      console.log('刷新我的鱼缸，使用随机查询...');
-      await this.loadMyFishes(true); // true 表示随机模式
+      case 'best':
+        // 最佳鱼缸：重新加载评分最高的鱼
+        console.log('刷新最佳鱼缸：重新加载评分最高的鱼');
+        await this.loadBestFishes();
+        await this.createFishesFromBestList();
+        break;
 
-      wx.showToast({
-        title: `刷新完成，${this.myFishTankList.length}条鱼`,
-        icon: 'success',
-        duration: 1500
-      });
+      case 'worst':
+        // 最丑鱼缸：重新加载评分最低的鱼
+        console.log('刷新最丑鱼缸：重新加载评分最低的鱼');
+        await this.loadWorstFishes();
+        await this.createFishesFromWorstList();
+        break;
+
+      case 'latest':
+        // 最新鱼缸：重新加载最新的鱼
+        console.log('刷新最新鱼缸：重新加载最新的鱼');
+        await this.loadLatestFishes();
+        await this.createFishesFromLatestList();
+        break;
+
+      case 'my':
+        // 我的鱼缸：随机刷新
+        console.log('刷新我的鱼缸：随机获取20条鱼');
+        await this.loadMyFishes(true); // true 表示随机模式
+        break;
+
+      default:
+        console.warn('未知的鱼缸模式:', this.currentTankMode);
+        break;
     }
+
+    // 显示刷新结果
+    let fishCount = 0;
+    switch (this.currentTankMode) {
+      case 'public': fishCount = this.globalFishList.length; break;
+      case 'best': fishCount = this.bestFishesList ? this.bestFishesList.length : 0; break;
+      case 'worst': fishCount = this.worstFishesList ? this.worstFishesList.length : 0; break;
+      case 'latest': fishCount = this.latestFishesList ? this.latestFishesList.length : 0; break;
+      case 'my': fishCount = this.myFishTankList.length; break;
+    }
+
+    wx.showToast({
+      title: `刷新完成，${fishCount}条鱼`,
+      icon: 'success',
+      duration: 1500
+    });
+    
     } catch (error) {
       Utils.handleError(error, '刷新鱼缸失败');
       Utils.showError('刷新失败');

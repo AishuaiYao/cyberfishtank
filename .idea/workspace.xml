@@ -4,11 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="鱼缸button滑动选择-基础OK">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/touchHandlers/swimTouchHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/swimTouchHandler.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uiManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/uiManager.js" afterDir="false" />
-    </list>
+    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="鱼缸选择" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -72,14 +68,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00137" summary="共同绘画-实现了基础的操作互传，不过还有些小bug-返回操作">
-      <option name="closed" value="true" />
-      <created>1764951530080</created>
-      <option name="number" value="00137" />
-      <option name="presentableId" value="LOCAL-00137" />
-      <option name="project" value="LOCAL" />
-      <updated>1764951530080</updated>
     </task>
     <task id="LOCAL-00138" summary="共同绘画-实现了基础的操作互传，不过还有些小bug-返回操作">
       <option name="closed" value="true" />
@@ -465,11 +453,18 @@
       <option name="project" value="LOCAL" />
       <updated>1765114529539</updated>
     </task>
-    <option name="localTasksCounter" value="186" />
+    <task id="LOCAL-00186" summary="鱼缸选择">
+      <option name="closed" value="true" />
+      <created>1765115164815</created>
+      <option name="number" value="00186" />
+      <option name="presentableId" value="LOCAL-00186" />
+      <option name="project" value="LOCAL" />
+      <updated>1765115164815</updated>
+    </task>
+    <option name="localTasksCounter" value="187" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="共同绘画-基本比较流畅-退出后清空画布" />
     <MESSAGE value="共同绘画-翻转操作修复" />
     <MESSAGE value="共同绘画-所有button功能同步基本完成-ai评分有问题" />
     <MESSAGE value="共同绘画-所有button功能同步基本完成-ai评分有问题-只能评房主侧" />
@@ -494,6 +489,7 @@
     <MESSAGE value="鱼缸button位移" />
     <MESSAGE value="鱼缸button滑动选择" />
     <MESSAGE value="鱼缸button滑动选择-基础OK" />
-    <option name="LAST_COMMIT_MESSAGE" value="鱼缸button滑动选择-基础OK" />
+    <MESSAGE value="鱼缸选择" />
+    <option name="LAST_COMMIT_MESSAGE" value="鱼缸选择" />
   </component>
 </project>
