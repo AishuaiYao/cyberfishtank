@@ -1146,7 +1146,7 @@ async getRandomFishesByUserFallback(openid, count = 20) {
       // 先获取所有有评论的鱼，按score降序排列
       const commentResult = await this.cloudDb.collection('comment')
         .orderBy('score', 'desc')
-        .limit(limit)
+        .limit(limit * 2) // 多获取一些，避免数据不完整
         .get();
       
       // 提取鱼名列表
@@ -1160,15 +1160,17 @@ async getRandomFishesByUserFallback(openid, count = 20) {
           })
           .get();
         
-        // 按照comment中的score排序鱼数据
+        // 按照comment中的score排序鱼数据，并过滤无效数据
         const fishMap = {};
         fishResult.data.forEach(fish => {
-          fishMap[fish.fishName] = fish;
+          if (fish.base64 && fish.base64.length > 0) { // 确保有有效的base64数据
+            fishMap[fish.fishName] = fish;
+          }
         });
         
         const sortedFishes = [];
         commentResult.data.forEach(comment => {
-          if (fishMap[comment.fishName]) {
+          if (fishMap[comment.fishName] && sortedFishes.length < limit) {
             sortedFishes.push({
               ...fishMap[comment.fishName],
               score: comment.score // 使用comment集合中的score
@@ -1176,9 +1178,11 @@ async getRandomFishesByUserFallback(openid, count = 20) {
           }
         });
         
-        return sortedFishes.slice(0, limit);
+        console.log(`最佳鱼缸：从${commentResult.data.length}条评论中获取了${sortedFishes.length}条有效鱼数据`);
+        return sortedFishes;
       }
       
+      console.warn('最佳鱼缸：未找到有效的评论数据');
       return [];
     } catch (error) {
       return Utils.handleDatabaseError(error, '获取最佳鱼数据', []);
@@ -1193,7 +1197,7 @@ async getRandomFishesByUserFallback(openid, count = 20) {
       // 先获取所有有评论的鱼，按score升序排列
       const commentResult = await this.cloudDb.collection('comment')
         .orderBy('score', 'asc')
-        .limit(limit)
+        .limit(limit * 2) // 多获取一些，避免数据不完整
         .get();
       
       // 提取鱼名列表
@@ -1207,15 +1211,17 @@ async getRandomFishesByUserFallback(openid, count = 20) {
           })
           .get();
         
-        // 按照comment中的score排序鱼数据
+        // 按照comment中的score排序鱼数据，并过滤无效数据
         const fishMap = {};
         fishResult.data.forEach(fish => {
-          fishMap[fish.fishName] = fish;
+          if (fish.base64 && fish.base64.length > 0) { // 确保有有效的base64数据
+            fishMap[fish.fishName] = fish;
+          }
         });
         
         const sortedFishes = [];
         commentResult.data.forEach(comment => {
-          if (fishMap[comment.fishName]) {
+          if (fishMap[comment.fishName] && sortedFishes.length < limit) {
             sortedFishes.push({
               ...fishMap[comment.fishName],
               score: comment.score // 使用comment集合中的score
@@ -1223,9 +1229,11 @@ async getRandomFishesByUserFallback(openid, count = 20) {
           }
         });
         
-        return sortedFishes.slice(0, limit);
+        console.log(`最丑鱼缸：从${commentResult.data.length}条评论中获取了${sortedFishes.length}条有效鱼数据`);
+        return sortedFishes;
       }
       
+      console.warn('最丑鱼缸：未找到有效的评论数据');
       return [];
     } catch (error) {
       return Utils.handleDatabaseError(error, '获取最丑鱼数据', []);
