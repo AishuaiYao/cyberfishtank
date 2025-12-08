@@ -1414,7 +1414,7 @@ drawMainTitle() {
 
   // 现代黑体字体栈，优先使用系统黑体
   const title = '赛博鱼缸DrawAFish';
-  const x = 120; // 向右移动，为搜索按钮留出空间
+  const x = 110; // 调整位置，与搜索按钮保持合适间距
   const y = 50;
 
   // 保存当前文本基线设置

@@ -4,8 +4,18 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="调色板">
+    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="搜索">
+      <change afterPath="$PROJECT_DIR$/touchHandlers/searchDialogTouchHandler.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/databaseManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/databaseManager.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/eventHandler.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fishCore.js" beforeDir="false" afterPath="$PROJECT_DIR$/fishCore.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fishManager/fishAnimator.js" beforeDir="false" afterPath="$PROJECT_DIR$/fishManager/fishAnimator.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fishManager/fishDataManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/fishManager/fishDataManager.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/interfaceRenderer.js" beforeDir="false" afterPath="$PROJECT_DIR$/interfaceRenderer.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/touchHandlers/mainTouchHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/mainTouchHandler.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/touchHandlers/swimTouchHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/swimTouchHandler.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uiManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/uiManager.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -70,14 +80,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00146" summary="共同绘画-基本比较流畅">
-      <option name="closed" value="true" />
-      <created>1765014693129</created>
-      <option name="number" value="00146" />
-      <option name="presentableId" value="LOCAL-00146" />
-      <option name="project" value="LOCAL" />
-      <updated>1765014693129</updated>
     </task>
     <task id="LOCAL-00147" summary="共同绘画-基本比较流畅-退出后清空画布">
       <option name="closed" value="true" />
@@ -463,11 +465,18 @@
       <option name="project" value="LOCAL" />
       <updated>1765120148869</updated>
     </task>
-    <option name="localTasksCounter" value="195" />
+    <task id="LOCAL-00195" summary="搜索">
+      <option name="closed" value="true" />
+      <created>1765155596768</created>
+      <option name="number" value="00195" />
+      <option name="presentableId" value="LOCAL-00195" />
+      <option name="project" value="LOCAL" />
+      <updated>1765155596768</updated>
+    </task>
+    <option name="localTasksCounter" value="196" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="主要功能基本完成" />
     <MESSAGE value="细微优化-排行榜删除button" />
     <MESSAGE value="细微优化-下移返回" />
     <MESSAGE value="细微优化-三个button" />
@@ -492,6 +501,7 @@
     <MESSAGE value="最佳鱼缸刷新OK" />
     <MESSAGE value="调色板-可以选颜色" />
     <MESSAGE value="调色板" />
-    <option name="LAST_COMMIT_MESSAGE" value="调色板" />
+    <MESSAGE value="搜索" />
+    <option name="LAST_COMMIT_MESSAGE" value="搜索" />
   </component>
 </project>
