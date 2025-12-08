@@ -9,6 +9,7 @@ const MainTouchHandler = require('./touchHandlers/mainTouchHandler.js');
 const RankingTouchHandler = require('./touchHandlers/rankingTouchHandler.js');
 const FishDetailTouchHandler = require('./touchHandlers/fishDetailTouchHandler.js');
 const DialogTouchHandler = require('./touchHandlers/dialogTouchHandler.js');
+const SearchDialogTouchHandler = require('./touchHandlers/searchDialogTouchHandler.js'); // 新增：搜索对话框触摸处理器
 const SwimTouchHandler = require('./touchHandlers/swimTouchHandler.js');
 const TeamTouchHandler = require('./touchHandlers/teamTouchHandler.js'); // 新增：组队触摸处理器
 const FishProcessor = require('./fishManager/fishProcessor.js');
@@ -33,6 +34,7 @@ class EventHandler {
       ranking: new RankingTouchHandler(this),
       fishDetail: new FishDetailTouchHandler(this),
       dialog: new DialogTouchHandler(this),
+      searchDialog: new SearchDialogTouchHandler(this), // 新增：搜索对话框触摸处理器
       swim: new SwimTouchHandler(this),
       team: new TeamTouchHandler(this) // 新增：组队触摸处理器
     };
@@ -48,6 +50,7 @@ class EventHandler {
     this.isRankingInterfaceVisible = false;
     this.isFishDetailVisible = false;
     this.isDialogVisible = false;
+    this.isSearchDialogVisible = false; // 新增：搜索对话框状态
     this.isTeamInterfaceVisible = false; // 新增：组队界面状态
     this.isCollaborativePaintingVisible = false; // 新增：共同绘画界面状态
     this.isOtherFishTankVisible = false; // 新增：串门界面状态
@@ -58,6 +61,7 @@ class EventHandler {
     this.selectedFishData = null;
     this.dialogData = null;
     this.fishNameInput = '';
+    this.fishSearchInput = ''; // 新增：搜索输入内容
     this.teamInterfaceData = null; // 新增：组队界面数据
     this.otherFishTankData = null; // 新增：串门界面数据
 
@@ -1223,6 +1227,8 @@ class EventHandler {
       this.touchHandlers.fishDetail.handleTouch(x, y);
     } else if (this.isDialogVisible) {
       this.touchHandlers.dialog.handleTouch(x, y);
+    } else if (this.isSearchDialogVisible) {
+      this.touchHandlers.searchDialog.handleTouch(x, y);
     } else if (this.isSwimInterfaceVisible) {
       this.touchHandlers.swim.handleTouch(x, y);
     } else if (this.isTeamInterfaceVisible || this.isCollaborativePaintingVisible) {
@@ -1771,6 +1777,160 @@ async refreshFishTank() {
     this.isTeamInterfaceVisible = false;
     this.uiManager.drawGameUI(this.gameState);
     console.log('组队界面已隐藏');
+  }
+
+  // 显示搜索对话框
+  handleSearch() {
+    this.isSearchDialogVisible = true;
+    this.fishSearchInput = ''; // 清空搜索输入
+    this.uiManager.drawGameUI(this.gameState);
+    console.log('搜索对话框已显示');
+  }
+
+  // 隐藏搜索对话框
+  hideSearchDialog() {
+    this.isSearchDialogVisible = false;
+    this.fishSearchInput = ''; // 清空搜索输入
+
+    wx.offKeyboardInput();
+    wx.offKeyboardConfirm();
+    wx.offKeyboardComplete();
+    wx.hideKeyboard();
+
+    this.uiManager.drawGameUI(this.gameState);
+    console.log('搜索对话框已隐藏');
+  }
+
+  // 执行搜索功能
+  async performSearch() {
+    if (!this.fishSearchInput || this.fishSearchInput.trim() === '') {
+      Utils.showError('请输入要搜索的小鱼名称');
+      return;
+    }
+
+    const searchName = this.fishSearchInput.trim();
+    console.log(`搜索小鱼: ${searchName}`);
+
+    try {
+      wx.showLoading({ title: '搜索中...', mask: true });
+
+      // 查询数据库中是否有匹配的鱼
+      const result = await this.databaseManager.searchFishByName(searchName);
+      
+      wx.hideLoading();
+
+      if (result && result.length > 0) {
+        // 找到匹配的鱼，显示第一个结果
+        const fishData = result[0];
+        console.log(`找到小鱼: ${fishData.fishName}`);
+        
+        // 隐藏搜索对话框
+        this.hideSearchDialog();
+        
+        // 复用小鱼详情页逻辑，显示搜索结果
+        this.showFishDetail(fishData);
+      } else {
+        Utils.showError(`未找到名为"${searchName}"的小鱼`);
+      }
+    } catch (error) {
+      wx.hideLoading();
+      Utils.handleError(error, '搜索小鱼失败');
+      Utils.showError('搜索失败，请重试');
+    }
+  }
+
+  // 显示小鱼详情（复用现有逻辑）
+  showFishDetail(fishData) {
+    // 加载鱼的图片
+    this.loadFishImage(fishData).then(() => {
+      this.selectedFishData = {
+        fish: fishData,
+        fishImage: fishData.image,
+        fishData: fishData,
+        userInteraction: null // 初始化用户交互状态
+      };
+      
+      // 获取用户对这条鱼的交互记录
+      this.getUserInteractionForFish(fishData.fishName).then(userInteraction => {
+        // 更新用户交互状态
+        this.selectedFishData.userInteraction = userInteraction;
+        
+        this.isFishDetailVisible = true;
+        this.uiManager.drawGameUI(this.gameState);
+        console.log('小鱼详情页已显示');
+      }).catch(error => {
+        // 即使获取交互记录失败，也显示详情页
+        console.warn('获取用户交互记录失败:', error);
+        this.isFishDetailVisible = true;
+        this.uiManager.drawGameUI(this.gameState);
+        console.log('小鱼详情页已显示（无交互记录）');
+      });
+    }).catch(error => {
+      Utils.handleError(error, '加载小鱼图片失败');
+      Utils.showError('加载小鱼图片失败');
+    });
+  }
+
+  // 获取用户对鱼的交互记录
+  async getUserInteractionForFish(fishName) {
+    if (!this.userOpenid) {
+      console.warn('用户openid未初始化，无法获取交互记录');
+      return null;
+    }
+
+    try {
+      const userInteraction = await this.databaseManager.getUserInteraction(fishName, this.userOpenid);
+      return userInteraction;
+    } catch (error) {
+      console.error('获取用户交互记录失败:', error);
+      return null;
+    }
+  }
+
+  // 加载小鱼图片（复用现有逻辑）
+  async loadFishImage(fishData) {
+    return new Promise((resolve, reject) => {
+      if (fishData.image) {
+        // 如果图片已存在，直接返回
+        resolve();
+        return;
+      }
+
+      // 检查图片数据是否存在
+      const imageData = fishData.base64 || fishData.base64Data || fishData.imageData || fishData.imageSrc;
+      if (!imageData) {
+        console.error('图片数据不存在:', fishData);
+        console.log('可用的字段:', Object.keys(fishData));
+        reject(new Error('图片数据不存在'));
+        return;
+      }
+
+      // 创建图片对象
+      const image = wx.createImage();
+      image.onload = () => {
+        fishData.image = image;
+        resolve();
+      };
+      image.onerror = (error) => {
+        console.error('图片加载失败:', error);
+        console.log('尝试加载的图片数据类型:', typeof imageData);
+        console.log('图片数据前50个字符:', imageData.substring(0, 50));
+        reject(error);
+      };
+      // 确保图片数据格式正确
+      if (typeof imageData === 'string' && imageData.trim() !== '') {
+        // 如果是base64数据，确保有正确的前缀
+        if (!imageData.startsWith('data:image/') && !imageData.startsWith('http')) {
+          image.src = `data:image/png;base64,${imageData}`;
+        } else {
+          image.src = imageData;
+        }
+      } else {
+        console.error('无效的图片数据格式:', imageData);
+        reject(new Error('无效的图片数据格式'));
+        return;
+      }
+    });
   }
 
   // 在eventHandler.js的showRankingInterface方法中确保正确调用：
@@ -2367,6 +2527,42 @@ async refreshFishTank() {
     this.uiManager.drawGameUI(this.gameState);
   }
 
+  // 显示搜索键盘输入
+  showSearchKeyboardInput() {
+    // 先取消旧的键盘监听器，避免重复绑定
+    wx.offKeyboardInput();
+    wx.offKeyboardConfirm();
+    wx.offKeyboardComplete();
+    
+    wx.showKeyboard({
+      defaultValue: this.fishSearchInput,
+      maxLength: 20,
+      multiple: false,
+      confirmHold: false,
+      confirmType: 'search',
+      success: () => console.log('搜索键盘显示成功'),
+      fail: (err) => {
+        Utils.handleError(err, '搜索键盘显示失败');
+        this.performSearch();
+      }
+    });
+
+    wx.onKeyboardInput((res) => {
+      this.fishSearchInput = res.value;
+      this.uiManager.drawGameUI(this.gameState);
+    });
+
+    wx.onKeyboardConfirm((res) => {
+      this.fishSearchInput = res.value;
+      this.performSearch();  // 在这里调用搜索方法
+    });
+
+    wx.onKeyboardComplete(() => {
+      console.log('搜索键盘输入完成');
+      this.hideSearchDialog();
+    });
+  }
+
   // 检查鱼名是否重复
   async checkFishNameExists(fishName) {
     if (!this.databaseManager.isCloudDbInitialized || !this.databaseManager.cloudDb) {
@@ -2551,7 +2747,7 @@ async refreshFishTank() {
   }
 
   // 鱼详情功能 - 修改：增加用户交互状态检查
-  async showFishDetail(fish) {
+  async showFishDetailFromTank(fish) {
     this.isFishDetailVisible = true;
     this.selectedFishData = {
       fish: fish,
@@ -2771,11 +2967,16 @@ async refreshFishTank() {
     this.isOtherFishTankVisible = true;
     this.isFishDetailVisible = false; // 隐藏详情页
     
-    // 清空当前鱼缸显示
-    if (this.fishTank) {
-      this.fishTank.fishes = [];
-      this.addedUserFishNames.clear();
+    // 初始化fishTank（如果尚未初始化）
+    if (!this.fishTank) {
+      this.fishTank = new FishTank(this.ctx, config.screenWidth, config.screenHeight);
     }
+    
+    // 清空当前鱼缸显示
+    this.fishTank.fishes = [];
+    this.fishTank.fishFoods = []; // 清空鱼粮
+    this.fishTank.bubbles = []; // 清空气泡
+    this.addedUserFishNames.clear();
     
     // 创建随机鱼对象并显示
     this.createFishesForVisit();
@@ -2804,9 +3005,9 @@ async refreshFishTank() {
       const createdFishes = await Promise.all(fishCreationPromises);
       const validFishes = createdFishes.filter(fish => fish !== null);
       
-      // 添加到鱼缸显示
+      // 添加到鱼缸显示（串门模式下允许同名鱼）
       validFishes.forEach(fish => {
-        this.fishTank.addFish(fish);
+        this.fishTank.addFish(fish, true); // 允许重复
         this.addedUserFishNames.add(fish.name);
       });
       

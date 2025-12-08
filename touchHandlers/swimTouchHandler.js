@@ -186,7 +186,7 @@ class SwimTouchHandler {
         if (x >= fishLeft && x <= fishRight &&
             y >= fishTop && y <= fishBottom) {
           console.log('点击了鱼:', fish.name);
-          this.eventHandler.showFishDetail(fish);
+          this.eventHandler.showFishDetailFromTank(fish);
           return;
         }
       }

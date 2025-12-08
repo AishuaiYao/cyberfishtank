@@ -103,6 +103,7 @@ class MainTouchHandler {
     if (this.handleToolButtonClick(x, y)) return;
     if (this.handleJumpButtonClick(x, y)) return;
     if (this.handleTeamButtonClick(x, y)) return;
+    if (this.handleSearchButtonClick(x, y)) return;
   }
 
   // 颜色按钮点击 - 修改：调色板按钮特殊处理
@@ -293,6 +294,33 @@ class MainTouchHandler {
       // 显示组队界面
       if (this.eventHandler.handleTeam) {
         this.eventHandler.handleTeam();
+      }
+
+      return true;
+    }
+
+    return false;
+  }
+
+  // 搜索按钮点击
+  handleSearchButtonClick(x, y) {
+    const functionAreaY = this.positions.functionAreaY;
+    const buttonSize = config.team.buttonSize;
+    const buttonMargin = config.team.buttonMargin;
+    const buttonY = functionAreaY - buttonSize - buttonMargin;
+
+    // 搜索按钮位置（组队按钮右侧）
+    const buttonX = buttonMargin + buttonSize + 10;
+
+    // 检查是否点击了搜索按钮
+    if (x >= buttonX && x <= buttonX + buttonSize &&
+        y >= buttonY && y <= buttonY + buttonSize) {
+
+      console.log('搜索按钮被点击');
+
+      // 显示搜索对话框
+      if (this.eventHandler.handleSearch) {
+        this.eventHandler.handleSearch();
       }
 
       return true;

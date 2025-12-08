@@ -18,12 +18,13 @@ class FishDataManager {
 
       const fishImage = await this.base64ToCanvas(fishData.base64);
 
-      // 新增：检查鱼缸中是否已存在同名鱼
+      // 检查鱼缸中是否已存在同名鱼（串门模式下允许重复）
       const fishName = fishData.fishName || fishData.fishid || `数据库鱼_${Date.now()}`;
-      if (this.eventHandler.isFishAlreadyInTank(fishName)) {
-        console.log(`鱼 "${fishName}" 已存在于鱼缸中，跳过创建`);
-        return null;
-      }
+      // 在串门模式下不检查重复，因为串门是独立的鱼缸
+      // if (this.eventHandler.isFishAlreadyInTank(fishName)) {
+      //   console.log(`鱼 "${fishName}" 已存在于鱼缸中，跳过创建`);
+      //   return null;
+      // }
 
       // 使用导入的 Fish 类
       const fish = new Fish(

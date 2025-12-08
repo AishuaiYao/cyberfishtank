@@ -1325,13 +1325,96 @@ class UIManager {
     ctx.textAlign = 'left';
   }
 
+  // 绘制搜索对话框
+  drawSearchDialog() {
+    const ctx = this.ctx;
+    const eventHandler = this.eventHandler;
+
+    // 清除画布并绘制背景
+    this.interfaceRenderer.drawBackground();
+
+    const dialogWidth = config.screenWidth - 80;
+    const dialogHeight = 220;
+    const dialogX = 40;
+    const dialogY = (config.screenHeight - dialogHeight) / 2 - 100; // 向上移动100像素
+
+    // 绘制半透明背景遮罩
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+    ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
+
+    // 绘制对话框卡片
+    Utils.drawCard(ctx, dialogX, dialogY, dialogWidth, dialogHeight);
+
+    // 绘制标题
+    ctx.fillStyle = config.textColor;
+    ctx.font = 'bold 18px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('搜索小鱼', dialogX + dialogWidth / 2, dialogY + 40);
+
+    // 绘制输入框背景
+    ctx.fillStyle = '#F8F9FA';
+    Utils.drawRoundedRect(ctx, dialogX + 20, dialogY + 70, dialogWidth - 40, 40, 8, true, false);
+    ctx.strokeStyle = config.borderColor;
+    ctx.lineWidth = 1;
+    Utils.drawRoundedRect(ctx, dialogX + 20, dialogY + 70, dialogWidth - 40, 40, 8, false, true);
+
+    // 绘制输入文本
+    ctx.fillStyle = config.textColor;
+    ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+    ctx.textAlign = 'left';
+    const text = eventHandler.fishSearchInput || '';
+
+    // 文本过长时截断显示
+    let displayText = Utils.truncateText(text, 20);
+    ctx.fillText(displayText, dialogX + 30, dialogY + 95);
+
+    // 绘制光标（如果文本为空）
+    if (!text) {
+      ctx.fillStyle = config.primaryColor;
+      ctx.fillRect(dialogX + 30, dialogY + 80, 2, 20);
+    }
+
+    // 绘制提示文字
+    if (!text) {
+      ctx.fillStyle = '#8E8E93'; // 浅灰色提示文字
+      ctx.font = '16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+      ctx.fillText('请输入小鱼名称', dialogX + 30, dialogY + 95);
+    }
+
+    // 绘制取消按钮
+    Utils.drawModernButton(
+      ctx,
+      dialogX + 20,
+      dialogY + dialogHeight - 110,
+      dialogWidth - 40,
+      40,
+      '取消',
+      false,
+      false
+    );
+
+    // 绘制搜索按钮
+    Utils.drawModernButton(
+      ctx,
+      dialogX + 20,
+      dialogY + dialogHeight - 60,
+      dialogWidth - 40,
+      40,
+      '搜索',
+      false,
+      true
+    );
+
+    ctx.textAlign = 'left';
+  }
+
 // 绘制主界面底部标题 - 现代黑体斜体
 drawMainTitle() {
   const ctx = this.ctx;
 
   // 现代黑体字体栈，优先使用系统黑体
   const title = '赛博鱼缸DrawAFish';
-  const x = 60;
+  const x = 120; // 向右移动，为搜索按钮留出空间
   const y = 50;
 
   // 保存当前文本基线设置
@@ -1420,6 +1503,11 @@ drawMainTitle() {
 
       if (this.eventHandler.isDialogVisible) {
         this.drawNameInputDialog();
+        return;
+      }
+
+      if (this.eventHandler.isSearchDialogVisible) {
+        this.drawSearchDialog();
         return;
       }
 

@@ -533,12 +533,14 @@ class FishTank {
     console.log(`生成了 ${this.seaweeds.length} 簇水草`);
   }
 
-  addFish(fish) {
-    // 检查名称重复
-    const existingFishByName = this.fishes.find(f => f.name === fish.name);
-    if (existingFishByName) {
-      console.warn(`鱼名称 "${fish.name}" 已存在，跳过添加`);
-      return false;
+  addFish(fish, allowDuplicate = false) {
+    // 检查名称重复（可根据参数允许重复）
+    if (!allowDuplicate) {
+      const existingFishByName = this.fishes.find(f => f.name === fish.name);
+      if (existingFishByName) {
+        console.warn(`鱼名称 "${fish.name}" 已存在，跳过添加`);
+        return false;
+      }
     }
 
     fish.setCanvasSize(this.width, this.height);

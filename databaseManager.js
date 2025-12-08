@@ -119,6 +119,56 @@ class DatabaseManager {
     }, null);
   }
 
+  // 新增：按名称搜索鱼数据
+  async searchFishByName(fishName) {
+    return this._executeDatabaseOperation('按名称搜索鱼数据', async () => {
+      if (!fishName) {
+        Utils.handleWarning('', '鱼名称为空，无法搜索');
+        return [];
+      }
+
+      console.log(`搜索鱼名称: ${fishName}`);
+
+      // 微信小程序云数据库使用 db.command 进行高级查询
+      const db = this.cloudDb;
+      const _ = db.command;
+
+      // 使用模糊查询匹配鱼名称 - 使用微信小程序支持的API
+      try {
+        // 首先尝试精确匹配
+        const exactResult = await db.collection('fishes')
+          .where({
+            fishName: fishName
+          })
+          .limit(20)
+          .get();
+
+        if (exactResult.data.length > 0) {
+          console.log(`精确匹配找到 ${exactResult.data.length} 条结果`);
+          return exactResult.data;
+        }
+
+        // 如果没有精确匹配结果，尝试模糊查询
+        // 微信小程序云数据库不支持正则表达式，我们使用其他方法
+        const allResult = await db.collection('fishes')
+          .limit(100) // 获取更多数据以便筛选
+          .get();
+
+        // 在客户端进行模糊匹配
+        const filteredResults = allResult.data.filter(fish => {
+          return fish.fishName && fish.fishName.toLowerCase().includes(fishName.toLowerCase());
+        }).slice(0, 20); // 限制返回结果数量
+
+        console.log(`模糊匹配找到 ${filteredResults.length} 条结果`);
+        return filteredResults;
+      } catch (error) {
+        console.error('搜索查询失败:', error);
+        Utils.handleDatabaseError(error, '搜索鱼数据');
+        return [];
+      }
+    }, []);
+  }
+
   // 优化：插入用户交互记录 - 先检查是否已存在
   async insertUserInteraction(fishName, action, userOpenid) {
     return this._executeDatabaseOperation('插入交互记录', async () => {
