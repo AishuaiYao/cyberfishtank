@@ -77,7 +77,9 @@ class PaletteHandler {
       // 青铜色
       '#B87333', '#CD7F32', '#E6BE8A', '#F0D9B5',
       // 铜色
-      '#B87333', '#D2691E', '#CD853F', '#DEB887'
+      '#B87333', '#D2691E', '#CD853F', '#DEB887',
+      // 铂金色
+      '#E5E4E2', '#F1F0E6'  // 新增两个颜色，使总数为9的倍数
     ];
 
     // 组合所有颜色
@@ -117,7 +119,7 @@ class PaletteHandler {
 
     // 绘制调色板面板 - 增大高度以适应更多颜色
     const panelWidth = config.screenWidth - 60;
-    const panelHeight = Math.min(config.screenHeight - 80, 545); // 增大高度到545px（再增加10%）
+    const panelHeight = Math.min(config.screenHeight - 80, 599.5); // 增大高度到599.5px（增加10%）
     const panelX = 30;
     const panelY = (config.screenHeight - panelHeight) / 2;
 
@@ -150,7 +152,7 @@ class PaletteHandler {
 
     // 绘制颜色网格
     const colorSize = 24;
-    const colorsPerRow = Math.floor((panelWidth - 40) / (colorSize + 8));
+    const colorsPerRow = 9; // 确保每行显示9个色块
     const startX = panelX + 20;
     const startY = panelY + 60;
 
@@ -234,7 +236,7 @@ class PaletteHandler {
     if (!this.isVisible) return false;
 
     const panelWidth = config.screenWidth - 60;
-    const panelHeight = Math.min(config.screenHeight - 80, 545); // 增大高度到545px（再增加10%）
+    const panelHeight = Math.min(config.screenHeight - 80, 599.5); // 增大高度到599.5px（增加10%）
     const panelX = 30;
     const panelY = (config.screenHeight - panelHeight) / 2;
     
@@ -246,7 +248,7 @@ class PaletteHandler {
     
     // 检查颜色选择
     const colorSize = 24;
-    const colorsPerRow = Math.floor((panelWidth - 40) / (colorSize + 8));
+    const colorsPerRow = 9; // 确保每行显示9个色块
     const startX = panelX + 20;
     const startY = panelY + 60;
     
