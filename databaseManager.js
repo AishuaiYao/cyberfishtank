@@ -293,10 +293,10 @@ class DatabaseManager {
               .orderBy('score', 'desc')
               .limit(limit)
               .get();
-            
+
             // 提取鱼名列表
             const fishNames = commentResult.data.map(comment => comment.fishName);
-            
+
             // 根据鱼名查询对应的鱼数据
             if (fishNames.length > 0) {
               const fishResult = await this.cloudDb.collection('fishes')
@@ -304,13 +304,13 @@ class DatabaseManager {
                   fishName: this.cloudDb.command.in(fishNames)
                 })
                 .get();
-              
+
               // 按照comment中的score排序鱼数据
               const fishMap = {};
               fishResult.data.forEach(fish => {
                 fishMap[fish.fishName] = fish;
               });
-              
+
               const sortedFishes = [];
               commentResult.data.forEach(comment => {
                 if (fishMap[comment.fishName]) {
@@ -320,21 +320,21 @@ class DatabaseManager {
                   });
                 }
               });
-              
+
               allData = sortedFishes;
             }
             break;
-            
+
           case 'worst': // 从comment集合读取score，按从小到大排序（最丑榜）
             // 先获取所有有评论的鱼，按score升序排列
             const worstCommentResult = await this.cloudDb.collection('comment')
               .orderBy('score', 'asc')
               .limit(limit)
               .get();
-            
+
             // 提取鱼名列表
             const worstFishNames = worstCommentResult.data.map(comment => comment.fishName);
-            
+
             // 根据鱼名查询对应的鱼数据
             if (worstFishNames.length > 0) {
               const worstFishResult = await this.cloudDb.collection('fishes')
@@ -342,13 +342,13 @@ class DatabaseManager {
                   fishName: this.cloudDb.command.in(worstFishNames)
                 })
                 .get();
-              
+
               // 按照comment中的score排序鱼数据
               const worstFishMap = {};
               worstFishResult.data.forEach(fish => {
                 worstFishMap[fish.fishName] = fish;
               });
-              
+
               const sortedWorstFishes = [];
               worstCommentResult.data.forEach(comment => {
                 if (worstFishMap[comment.fishName]) {
@@ -358,11 +358,11 @@ class DatabaseManager {
                   });
                 }
               });
-              
+
               allData = sortedWorstFishes;
             }
             break;
-            
+
           case 'latest': // 创作时间最新（最新榜）
           default:
             query = query.orderBy('createTimestamp', 'desc');
@@ -381,7 +381,7 @@ class DatabaseManager {
         }
 
         console.log(`已获取 ${allData.length} 条数据`);
-        
+
         if (allData.length >= limit) break;
       }
 
@@ -404,41 +404,41 @@ class DatabaseManager {
       console.log(`获取排行榜第${page+1}页，每页${pageSize}条，排序类型: ${sortType}`);
 
       let result;
-      
+
       // 根据排序类型使用不同的查询逻辑
       if (sortType === 'best' || sortType === 'worst') {
         // 最佳榜或最丑榜：从comment集合读取score
         const order = sortType === 'best' ? 'desc' : 'asc';
         const orderText = sortType === 'best' ? '从大到小' : '从小到大';
-        
+
         console.log(`从comment集合按score ${orderText}排序获取数据`);
-        
+
         const commentResult = await this.cloudDb.collection('comment')
           .orderBy('score', order)
           .skip(page * pageSize)
           .limit(pageSize)
           .get();
-        
+
         // 提取鱼名列表
         const fishNames = commentResult.data.map(comment => comment.fishName);
-        
+
         if (fishNames.length === 0) {
           return { data: [], hasMore: false };
         }
-        
+
         // 根据鱼名查询对应的鱼数据
         const fishResult = await this.cloudDb.collection('fishes')
           .where({
             fishName: this.cloudDb.command.in(fishNames)
           })
           .get();
-        
+
         // 按照comment中的score排序鱼数据
         const fishMap = {};
         fishResult.data.forEach(fish => {
           fishMap[fish.fishName] = fish;
         });
-        
+
         const sortedFishes = [];
         commentResult.data.forEach(comment => {
           if (fishMap[comment.fishName]) {
@@ -448,19 +448,19 @@ class DatabaseManager {
             });
           }
         });
-        
+
         result = { data: sortedFishes };
       } else {
         // 其他排序类型：使用原有逻辑
         let query = this.cloudDb.collection('fishes');
-        
+
         switch (sortType) {
           case 'latest': // 创作时间最新（最新榜）
           default:
             query = query.orderBy('createTimestamp', 'desc');
             break;
         }
-        
+
         result = await query
           .skip(page * pageSize)
           .limit(pageSize)

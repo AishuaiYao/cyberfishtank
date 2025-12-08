@@ -142,7 +142,7 @@ class MainTouchHandler {
       const PaletteHandler = require('./paletteHandler.js');
       this.paletteHandler = new PaletteHandler(this.eventHandler);
     }
-    
+
     this.paletteHandler.showPaletteInterface();
   }
 

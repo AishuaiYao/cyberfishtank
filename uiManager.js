@@ -1462,9 +1462,9 @@ drawMainTitle() {
     ctx.fillStyle = '#374151'; // 深蓝色
     ctx.font = 'bold 18px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'center';
-    
+
     if (this.eventHandler.otherFishTankData && this.eventHandler.otherFishTankData.originalFishName) {
-      ctx.fillText(`正在参观 ${this.eventHandler.otherFishTankData.originalFishName} 主人的鱼缸`, 
+      ctx.fillText(`正在参观 ${this.eventHandler.otherFishTankData.originalFishName} 主人的鱼缸`,
                    Math.round(config.screenWidth / 2), 70);
     } else {
       ctx.fillText('正在参观他人的鱼缸', Math.round(config.screenWidth / 2), 70);
@@ -1484,8 +1484,8 @@ drawMainTitle() {
     // 检查特殊界面状态
     if (this.eventHandler) {
       // 首先检查调色板界面是否可见
-      if (this.eventHandler.touchHandlers && this.eventHandler.touchHandlers.main && 
-          this.eventHandler.touchHandlers.main.paletteHandler && 
+      if (this.eventHandler.touchHandlers && this.eventHandler.touchHandlers.main &&
+          this.eventHandler.touchHandlers.main.paletteHandler &&
           this.eventHandler.touchHandlers.main.paletteHandler.isVisible) {
         // 调色板界面由调色板处理器自行绘制，不在此处绘制
         return;

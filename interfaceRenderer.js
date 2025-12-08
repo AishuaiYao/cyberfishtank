@@ -66,39 +66,39 @@ class InterfaceRenderer {
     const ctx = this.ctx;
     const buttonSize = config.team.buttonSize;
     const x = config.team.buttonMargin; // 改为左上角位置
-    
+
     // 确保坐标为整数
     const buttonX = Math.round(x);
     const buttonY = Math.round(y);
-    
+
     // 绘制按钮背景
     ctx.fillStyle = '#FFFFFF';
     ctx.shadowColor = 'rgba(0,0,0,0.1)';
     ctx.shadowBlur = 3;
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 1;
-    
+
     ctx.beginPath();
     ctx.arc(buttonX + buttonSize/2, buttonY + buttonSize/2, buttonSize/2, 0, Math.PI * 2);
     ctx.fill();
-    
+
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
-    
+
     // 绘制按钮边框
     ctx.strokeStyle = config.primaryColor;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(buttonX + buttonSize/2, buttonY + buttonSize/2, buttonSize/2, 0, Math.PI * 2);
     ctx.stroke();
-    
+
     // 绘制图标
     ctx.fillStyle = config.primaryColor;
     ctx.font = 'bold 18px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(config.team.buttonIcon, buttonX + buttonSize/2, buttonY + buttonSize/2);
-    
+
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
   }
@@ -108,32 +108,32 @@ class InterfaceRenderer {
     const ctx = this.ctx;
     const buttonSize = config.team.buttonSize;
     const x = config.team.buttonMargin + buttonSize + 10; // 放在组队按钮右侧
-    
+
     // 确保坐标为整数
     const buttonX = Math.round(x);
     const buttonY = Math.round(y);
-    
+
     // 绘制按钮背景
     ctx.fillStyle = '#FFFFFF';
     ctx.shadowColor = 'rgba(0,0,0,0.1)';
     ctx.shadowBlur = 3;
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 1;
-    
+
     ctx.beginPath();
     ctx.arc(buttonX + buttonSize/2, buttonY + buttonSize/2, buttonSize/2, 0, Math.PI * 2);
     ctx.fill();
-    
+
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
-    
+
     // 绘制按钮边框
     ctx.strokeStyle = config.primaryColor;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(buttonX + buttonSize/2, buttonY + buttonSize/2, buttonSize/2, 0, Math.PI * 2);
     ctx.stroke();
-    
+
     // 绘制搜索图标
     ctx.fillStyle = config.primaryColor;
     ctx.font = 'bold 18px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';

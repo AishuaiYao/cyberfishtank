@@ -91,7 +91,7 @@ class EventHandler {
 
     // 新增：我的鱼缸相关
     this.myFishTankList = []; // 用户自己的鱼列表
-    
+
     // 新增：特殊鱼缸列表
     this.bestFishesList = []; // 最佳鱼列表（评分最高的20条鱼）
     this.worstFishesList = []; // 最丑鱼列表（评分最低的20条鱼）
@@ -1403,7 +1403,7 @@ async enterFishTank(newFishName = null, mode = 'public') {
 
   // 修改这里：进入鱼缸时显示对应的加载说明
   let fishCount, message, tankName;
-  
+
   switch (mode) {
     case 'public':
       fishCount = this.globalFishList.length;
@@ -1435,7 +1435,7 @@ async enterFishTank(newFishName = null, mode = 'public') {
       tankName = '未知鱼缸';
       message = '未知模式';
   }
-  
+
   wx.showToast({
     title: message,
     icon: 'success',
@@ -1512,7 +1512,7 @@ async loadMyFishes(randomMode = false) {
 async loadBestFishes() {
   try {
     console.log('加载最佳鱼数据...');
-    
+
     if (!Utils.checkDatabaseInitialization(this.databaseManager, '加载最佳鱼数据')) {
       this.bestFishesList = [];
       return;
@@ -1530,7 +1530,7 @@ async loadBestFishes() {
 async loadWorstFishes() {
   try {
     console.log('加载最丑鱼数据...');
-    
+
     if (!Utils.checkDatabaseInitialization(this.databaseManager, '加载最丑鱼数据')) {
       this.worstFishesList = [];
       return;
@@ -1548,7 +1548,7 @@ async loadWorstFishes() {
 async loadLatestFishes() {
   try {
     console.log('加载最新鱼数据...');
-    
+
     if (!Utils.checkDatabaseInitialization(this.databaseManager, '加载最新鱼数据')) {
       this.latestFishesList = [];
       return;
@@ -1742,7 +1742,7 @@ async refreshFishTank() {
       icon: 'success',
       duration: 1500
     });
-    
+
     } catch (error) {
       Utils.handleError(error, '刷新鱼缸失败');
       Utils.showError('刷新失败');
@@ -1816,17 +1816,17 @@ async refreshFishTank() {
 
       // 查询数据库中是否有匹配的鱼
       const result = await this.databaseManager.searchFishByName(searchName);
-      
+
       wx.hideLoading();
 
       if (result && result.length > 0) {
         // 找到匹配的鱼，显示第一个结果
         const fishData = result[0];
         console.log(`找到小鱼: ${fishData.fishName}`);
-        
+
         // 隐藏搜索对话框
         this.hideSearchDialog();
-        
+
         // 复用小鱼详情页逻辑，显示搜索结果
         this.showFishDetail(fishData);
       } else {
@@ -1849,12 +1849,12 @@ async refreshFishTank() {
         fishData: fishData,
         userInteraction: null // 初始化用户交互状态
       };
-      
+
       // 获取用户对这条鱼的交互记录
       this.getUserInteractionForFish(fishData.fishName).then(userInteraction => {
         // 更新用户交互状态
         this.selectedFishData.userInteraction = userInteraction;
-        
+
         this.isFishDetailVisible = true;
         this.uiManager.drawGameUI(this.gameState);
         console.log('小鱼详情页已显示');
@@ -1953,23 +1953,23 @@ async refreshFishTank() {
 
     try {
       console.log('加载排行榜初始数据...');
-      
+
       // 一次性加载用户的所有交互记录（新逻辑）
       await this.loadAllUserInteractions();
-      
+
       // 使用支持缓存的方法加载第一页数据
       const result = await this.databaseManager.getRankingDataPageWithCache(
-        0, 
-        this.rankingIncrementalData.cyber.pageSize, 
+        0,
+        this.rankingIncrementalData.cyber.pageSize,
         this.rankingSortType,
         this.rankingCache,
         this.rankingPages,
         this.userInteractionCache
       );
-      
+
       // 更新增量加载状态
       this.rankingIncrementalData.cyber.hasMore = result.hasMore;
-      
+
       // 更新缓存的分页信息
       this.rankingPages[this.rankingSortType].currentPage = 0;
       this.rankingPages[this.rankingSortType].hasMore = result.hasMore;
@@ -1983,7 +1983,7 @@ async refreshFishTank() {
             fishCardData.fishImage = await this.fishManager.data.base64ToCanvas(fishCardData.base64);
             fishCardData.imageLoadStatus = 'loaded';
           }
-          
+
           rankingFishesWithImages.push({
             fishData: {
               _id: fishCardData._id, // 添加_id字段
@@ -2108,7 +2108,7 @@ async refreshFishTank() {
 
       // 更新是否有更多数据的标志
       incrementalData.hasMore = nextPageResult.hasMore;
-      
+
       // 更新分页信息
       this.rankingPages[this.rankingSortType].currentPage = incrementalData.currentPage;
       this.rankingPages[this.rankingSortType].hasMore = nextPageResult.hasMore;
@@ -2132,7 +2132,7 @@ async refreshFishTank() {
             fishCardData.fishImage = await this.fishManager.data.base64ToCanvas(fishCardData.base64);
             fishCardData.imageLoadStatus = 'loaded';
           }
-          
+
           const fishItem = {
             fishData: {
               _id: fishCardData._id, // 添加_id字段
@@ -2161,7 +2161,7 @@ async refreshFishTank() {
       this.rankingData.fishes = this.rankingData.fishes.concat(newFishes);
 
       console.log(`成功加载 ${newFishes.length} 条新的排行榜数据，当前总数: ${this.rankingData.fishes.length}`);
-      
+
       // 为新加载的小鱼设置临时score
       this.setRankingFishesInteractionsFromCache(newFishes, this.rankingSortType);
 
@@ -2305,12 +2305,12 @@ async refreshFishTank() {
     this.rankingData = null;
     // 清除所有排行榜相关的本地缓存
     this.localInteractionCache.clear();
-    
+
     // 清除临时score对象
     // 不再需要清理tempScores
-    
+
     // 注意：不清除全局用户交互缓存，保留供下次使用
-    // this.userInteractionCache.clear(); 
+    // this.userInteractionCache.clear();
     // 重置滚动位置
     this.touchHandlers.ranking.resetScroll();
     this.uiManager.drawGameUI(this.gameState);
@@ -2341,26 +2341,26 @@ async refreshFishTank() {
       this.loadRankingWithCache(oldSortType, sortType);
     }
   }
-  
+
   // 新增：利用缓存加载排行榜数据
   async loadRankingWithCache(oldSortType, newSortType) {
     wx.showLoading({ title: '切换榜单...', mask: true });
-    
+
     try {
       // 检查新榜单的缓存情况
       const newCache = this.rankingCache[newSortType];
       const newPageInfo = this.rankingPages[newSortType];
-      
+
       let rankingFishesWithImages = [];
-      
+
       if (newCache.size > 0) {
         // 从缓存获取数据
         console.log(`从${newSortType}榜缓存获取数据，缓存大小: ${newCache.size}`);
-        
+
         // 获取第一页数据（pageSize条）
         const pageSize = this.rankingIncrementalData.cyber.pageSize;
         const cachedFishNames = Array.from(newCache.keys()).slice(0, pageSize);
-        
+
         for (const fishName of cachedFishNames) {
           const fishCardData = newCache.get(fishName);
           if (fishCardData) {
@@ -2374,7 +2374,7 @@ async refreshFishTank() {
                 fishCardData.imageLoadStatus = 'failed';
               }
             }
-            
+
             rankingFishesWithImages.push({
               fishData: {
                 fishName: fishCardData.fishName,
@@ -2388,18 +2388,18 @@ async refreshFishTank() {
             });
           }
         }
-        
+
         // 更新排行榜数据
         this.rankingData = {
           fishes: rankingFishesWithImages,
           lastUpdate: new Date(),
           mode: newSortType
         };
-        
+
         // 更新增量加载状态
         this.rankingIncrementalData.cyber.currentPage = newPageInfo.currentPage;
         this.rankingIncrementalData.cyber.hasMore = newPageInfo.hasMore;
-        
+
         // 保持兼容性的缓存数据
         this.rankingIncrementalData.cyber.cachedData = rankingFishesWithImages.map(item => ({
           fishName: item.fishData.fishName,
@@ -2408,24 +2408,24 @@ async refreshFishTank() {
           createTimestamp: item.fishData.createTimestamp,
           score: item.fishData.score
         }));
-        
+
         // 清除新榜单的临时score，重新初始化
         // 不再需要初始化tempScores
         this.setRankingFishesInteractionsFromCache(rankingFishesWithImages, newSortType);
-        
+
       } else {
         // 缓存为空，重新从数据库加载
         console.log(`${newSortType}榜缓存为空，从数据库加载`);
         this.rankingData = null;
         await this.showRankingInterface();
       }
-      
+
       // 重置滚动位置
       this.touchHandlers.ranking.resetScroll();
-      
+
       // 更新UI
       this.uiManager.drawGameUI(this.gameState);
-      
+
     } catch (error) {
       Utils.handleError(error, '切换榜单失败');
     } finally {
@@ -2533,7 +2533,7 @@ async refreshFishTank() {
     wx.offKeyboardInput();
     wx.offKeyboardConfirm();
     wx.offKeyboardComplete();
-    
+
     wx.showKeyboard({
       defaultValue: this.fishSearchInput,
       maxLength: 20,
@@ -2785,7 +2785,7 @@ async refreshFishTank() {
           interaction.liked = interaction.action === 'star';
           interaction.disliked = interaction.action === 'unstar';
         }
-        
+
         this.selectedFishData.userInteraction = interaction;
         console.log(`用户对鱼 ${fishName} 的交互状态:`, interaction.action);
       } else {
@@ -2836,7 +2836,7 @@ async refreshFishTank() {
       const originalState = {
         userInteraction: userInteraction ? {...userInteraction} : null
       };
-      
+
       // 保存原始状态
       originalState.originalStarCount = fishData.starCount || 0;
       originalState.originalUnstarCount = fishData.unstarCount || 0;
@@ -2881,12 +2881,12 @@ async refreshFishTank() {
   // 新增：串门操作
   async handleVisitAction() {
     if (!this.selectedFishData) return;
-    
+
     try {
       // 获取鱼的创作者信息
       const fishData = this.selectedFishData.fishData;
       const creatorOpenId = fishData._openid;
-      
+
       if (!creatorOpenId) {
         console.log('无法获取创作者信息，无法串门');
         return;
@@ -2894,17 +2894,17 @@ async refreshFishTank() {
 
       // 生成随机鱼数据
       const randomFishes = await this.generateRandomFishesForVisit(20, creatorOpenId);
-      
+
       // 设置串门界面数据
       this.otherFishTankData = {
         creatorOpenId: creatorOpenId,
         fishes: randomFishes,
         originalFishName: fishData.fishName
       };
-      
+
       // 显示串门界面
       this.showOtherFishTank();
-      
+
     } catch (error) {
       console.error('串门操作失败:', error);
       Utils.handleError(error, '串门');
@@ -2915,13 +2915,13 @@ async refreshFishTank() {
   async generateRandomFishesForVisit(count, creatorOpenId) {
     try {
       console.log(`开始为创作者 ${creatorOpenId} 生成 ${count} 条随机鱼数据`);
-      
+
       // 调用数据库管理器获取随机鱼数据
       const randomFishes = await this.databaseManager.getRandomFishesByUserOpenid(creatorOpenId, count);
-      
+
       console.log(`成功生成 ${randomFishes.length} 条随机鱼数据`);
       return randomFishes;
-      
+
     } catch (error) {
       Utils.handleError(error, '生成随机鱼数据');
       // 如果获取失败，返回空数组
@@ -2932,12 +2932,12 @@ async refreshFishTank() {
   // 新增：串门操作
   async handleVisitAction() {
     if (!this.selectedFishData) return;
-    
+
     try {
       // 获取鱼的创作者信息
       const fishData = this.selectedFishData.fishData;
       const creatorOpenId = fishData._openid;
-      
+
       if (!creatorOpenId) {
         console.log('无法获取创作者信息，无法串门');
         return;
@@ -2945,17 +2945,17 @@ async refreshFishTank() {
 
       // 生成随机鱼数据
       const randomFishes = await this.generateRandomFishesForVisit(20, creatorOpenId);
-      
+
       // 设置串门界面数据
       this.otherFishTankData = {
         creatorOpenId: creatorOpenId,
         fishes: randomFishes,
         originalFishName: fishData.fishName
       };
-      
+
       // 显示串门界面
       this.showOtherFishTank();
-      
+
     } catch (error) {
       console.error('串门操作失败:', error);
       Utils.handleError(error, '串门');
@@ -2966,27 +2966,27 @@ async refreshFishTank() {
   showOtherFishTank() {
     this.isOtherFishTankVisible = true;
     this.isFishDetailVisible = false; // 隐藏详情页
-    
+
     // 初始化fishTank（如果尚未初始化）
     if (!this.fishTank) {
       this.fishTank = new FishTank(this.ctx, config.screenWidth, config.screenHeight);
     }
-    
+
     // 清空当前鱼缸显示
     this.fishTank.fishes = [];
     this.fishTank.fishFoods = []; // 清空鱼粮
     this.fishTank.bubbles = []; // 清空气泡
     this.addedUserFishNames.clear();
-    
+
     // 创建随机鱼对象并显示
     this.createFishesForVisit();
-    
+
     // 启动动画
     this.fishManager.animator.startAnimationLoop();
-    
+
     // 更新UI
     this.uiManager.drawGameUI(this.gameState);
-    
+
     console.log('进入他人鱼缸界面');
   }
 
@@ -2996,15 +2996,15 @@ async refreshFishTank() {
       console.log('没有串门鱼数据');
       return;
     }
-    
+
     try {
       const fishCreationPromises = this.otherFishTankData.fishes.map(fishData =>
         this.fishManager.data.createFishFromDatabaseData(fishData)
       );
-      
+
       const createdFishes = await Promise.all(fishCreationPromises);
       const validFishes = createdFishes.filter(fish => fish !== null);
-      
+
       // 添加到鱼缸显示（串门模式下允许同名鱼）
       validFishes.forEach(fish => {
         this.fishTank.addFish(fish, true); // 允许重复

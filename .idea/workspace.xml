@@ -5,16 +5,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="搜索">
-      <change afterPath="$PROJECT_DIR$/touchHandlers/searchDialogTouchHandler.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/databaseManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/databaseManager.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/eventHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/eventHandler.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fishCore.js" beforeDir="false" afterPath="$PROJECT_DIR$/fishCore.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/fishManager/fishAnimator.js" beforeDir="false" afterPath="$PROJECT_DIR$/fishManager/fishAnimator.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fishManager/fishDataManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/fishManager/fishDataManager.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/interfaceRenderer.js" beforeDir="false" afterPath="$PROJECT_DIR$/interfaceRenderer.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/touchHandlers/mainTouchHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/mainTouchHandler.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/touchHandlers/swimTouchHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/swimTouchHandler.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/touchHandlers/paletteHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/paletteHandler.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/touchHandlers/searchDialogTouchHandler.js" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/uiManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/uiManager.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -80,14 +78,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00147" summary="共同绘画-基本比较流畅-退出后清空画布">
-      <option name="closed" value="true" />
-      <created>1765016096340</created>
-      <option name="number" value="00147" />
-      <option name="presentableId" value="LOCAL-00147" />
-      <option name="project" value="LOCAL" />
-      <updated>1765016096340</updated>
     </task>
     <task id="LOCAL-00148" summary="共同绘画-翻转操作修复">
       <option name="closed" value="true" />
@@ -473,7 +463,15 @@
       <option name="project" value="LOCAL" />
       <updated>1765155596768</updated>
     </task>
-    <option name="localTasksCounter" value="196" />
+    <task id="LOCAL-00196" summary="搜索">
+      <option name="closed" value="true" />
+      <created>1765155798301</created>
+      <option name="number" value="00196" />
+      <option name="presentableId" value="LOCAL-00196" />
+      <option name="project" value="LOCAL" />
+      <updated>1765155798301</updated>
+    </task>
+    <option name="localTasksCounter" value="197" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
