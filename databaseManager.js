@@ -485,8 +485,8 @@ class DatabaseManager {
 
 
 
-  // 向数据库插入鱼数据
-  async insertFishToDatabase(fishData) {
+  // 向数据库插入鱼数据，可选择同时插入评论数据
+  async insertFishToDatabase(fishData, insertComment = false) {
     if (!Utils.checkDatabaseInitialization(this, '插入鱼数据')) return false;
 
     try {
@@ -500,18 +500,49 @@ class DatabaseManager {
       });
 
       console.log('鱼数据插入成功');
+
+      // 如果需要同时插入评论数据
+      if (insertComment) {
+        await this.insertFishComment(fishData.fishName);
+      }
+
       return true;
     } catch (error) {
       if (error.errCode === -502005) {
         console.log('检测到集合不存在，尝试使用备用方案...');
-        return await this.insertWithBackupMethod(fishData);
+        return await this.insertWithBackupMethod(fishData, insertComment);
       }
       return Utils.handleDatabaseError(error, '数据库插入', false);
     }
   }
 
+  // 新增：向comment集合插入鱼的初始评分数据
+  async insertFishComment(fishName) {
+    if (!Utils.checkDatabaseInitialization(this, '插入鱼的评论数据')) return false;
+
+    try {
+      console.log(`准备插入鱼 ${fishName} 的初始评论数据`);
+
+      const commentData = {
+        fishName: fishName,
+        score: 0,  // 初始评分为0
+        createdAt: new Date(),
+        createTimestamp: Date.now()
+      };
+
+      await this.cloudDb.collection('comment').add({
+        data: commentData
+      });
+
+      console.log(`鱼 ${fishName} 的评论数据插入成功`);
+      return true;
+    } catch (error) {
+      return Utils.handleDatabaseError(error, '插入鱼的评论数据', false);
+    }
+  }
+
   // 备用插入方法
-  async insertWithBackupMethod(fishData) {
+  async insertWithBackupMethod(fishData, insertComment = false) {
     try {
       const simpleFishData = {
         fish_name: fishData.fishName,
@@ -530,6 +561,12 @@ class DatabaseManager {
       });
 
       console.log('备用方案插入成功:', result);
+
+      // 如果需要同时插入评论数据
+      if (insertComment) {
+        await this.insertFishComment(fishData.fishName);
+      }
+
       return true;
     } catch (backupError) {
       console.error('备用方案也失败了:', backupError);

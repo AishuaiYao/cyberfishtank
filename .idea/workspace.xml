@@ -4,16 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="搜索">
+    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="搜索-可能有问题">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/databaseManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/databaseManager.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/eventHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/eventHandler.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fishManager/fishAnimator.js" beforeDir="false" afterPath="$PROJECT_DIR$/fishManager/fishAnimator.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/interfaceRenderer.js" beforeDir="false" afterPath="$PROJECT_DIR$/interfaceRenderer.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/touchHandlers/mainTouchHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/mainTouchHandler.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/touchHandlers/paletteHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/paletteHandler.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/touchHandlers/searchDialogTouchHandler.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/uiManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/uiManager.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -78,14 +72,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00148" summary="共同绘画-翻转操作修复">
-      <option name="closed" value="true" />
-      <created>1765019184744</created>
-      <option name="number" value="00148" />
-      <option name="presentableId" value="LOCAL-00148" />
-      <option name="project" value="LOCAL" />
-      <updated>1765019184744</updated>
     </task>
     <task id="LOCAL-00149" summary="共同绘画-翻转操作修复">
       <option name="closed" value="true" />
@@ -471,11 +457,18 @@
       <option name="project" value="LOCAL" />
       <updated>1765155798301</updated>
     </task>
-    <option name="localTasksCounter" value="197" />
+    <task id="LOCAL-00197" summary="搜索-可能有问题">
+      <option name="closed" value="true" />
+      <created>1765203732502</created>
+      <option name="number" value="00197" />
+      <option name="presentableId" value="LOCAL-00197" />
+      <option name="project" value="LOCAL" />
+      <updated>1765203732502</updated>
+    </task>
+    <option name="localTasksCounter" value="198" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="细微优化-排行榜删除button" />
     <MESSAGE value="细微优化-下移返回" />
     <MESSAGE value="细微优化-三个button" />
     <MESSAGE value="细微优化-去掉旧数据结构" />
@@ -500,6 +493,7 @@
     <MESSAGE value="调色板-可以选颜色" />
     <MESSAGE value="调色板" />
     <MESSAGE value="搜索" />
-    <option name="LAST_COMMIT_MESSAGE" value="搜索" />
+    <MESSAGE value="搜索-可能有问题" />
+    <option name="LAST_COMMIT_MESSAGE" value="搜索-可能有问题" />
   </component>
 </project>

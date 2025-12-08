@@ -2650,7 +2650,7 @@ async refreshFishTank() {
         createTimestamp: Date.now(),
       };
 
-      const insertSuccess = await this.databaseManager.insertFishToDatabase(fishData);
+      const insertSuccess = await this.databaseManager.insertFishToDatabase(fishData, true);
       wx.hideLoading();
 
       if (insertSuccess) {
