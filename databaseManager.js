@@ -1342,6 +1342,68 @@ async getRandomFishesByUserFallback(openid, count = 20) {
       return Utils.handleDatabaseError(error, '获取最新鱼数据', []);
     }
   }
+
+  // 新增：从comment集合中删除鱼的评论数据
+  async deleteFishComment(fishName) {
+    if (!Utils.checkDatabaseInitialization(this, '删除鱼的评论数据')) return false;
+
+    try {
+      console.log(`删除鱼 ${fishName} 的评论数据`);
+
+      // 优先使用云函数删除，避免权限问题
+      try {
+        console.log(`使用云函数删除评论: ${fishName}`);
+        const cloudResult = await wx.cloud.callFunction({
+          name: 'deleteFishComment',
+          data: {
+            fishName: fishName
+          }
+        });
+        
+        if (cloudResult.result && cloudResult.result.success) {
+          console.log(`云函数删除评论成功: ${fishName}`);
+          return true;
+        }
+        console.warn(`云函数删除评论失败，尝试直接删除: ${fishName}`);
+      } catch (cloudError) {
+        console.warn(`调用云函数失败，尝试直接删除: ${cloudError.message || cloudError}`);
+      }
+
+      // 云函数失败或不可用时，尝试直接删除
+      // 查询comment集合中该鱼的记录
+      const result = await this.cloudDb.collection('comment')
+        .where({
+          fishName: fishName
+        })
+        .get();
+
+      console.log(`查询到 ${result.data.length} 条评论记录，详情:`, result.data);
+
+      if (result.data.length === 0) {
+        console.log(`鱼 ${fishName} 没有评论数据，无需删除`);
+        return true;
+      }
+
+      // 删除所有找到的评论记录
+      let successCount = 0;
+      for (const comment of result.data) {
+        try {
+          console.log(`正在删除评论记录: ${comment._id}`, comment);
+          await this.cloudDb.collection('comment').doc(comment._id).remove();
+          successCount++;
+          console.log(`成功删除评论记录: ${comment._id}`);
+        } catch (deleteError) {
+          console.error(`删除评论记录 ${comment._id} 失败:`, deleteError);
+        }
+      }
+
+      console.log(`鱼 ${fishName} 的评论记录删除完成: 成功 ${successCount}/${result.data.length} 条`);
+      return successCount === result.data.length;
+    } catch (error) {
+      console.error('删除评论数据出错:', error);
+      return Utils.handleDatabaseError(error, '删除鱼的评论数据', false);
+    }
+  }
 }
 
 module.exports = DatabaseManager;

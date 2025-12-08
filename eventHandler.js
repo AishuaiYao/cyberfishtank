@@ -220,26 +220,31 @@ class EventHandler {
       if (deleteFishSuccess) {
         // 2. 从interaction集合中删除相关的交互记录
         const deleteInteractionSuccess = await this.deleteFishInteractions(fishData.fishName);
+        
+        // 3. 从comment集合中删除评论数据
+        console.log(`开始删除鱼 ${fishData.fishName} 的评论数据...`);
+        const deleteCommentSuccess = await this.deleteFishComment(fishData.fishName);
+        console.log(`删除鱼 ${fishData.fishName} 的评论数据结果: ${deleteCommentSuccess ? '成功' : '失败'}`);
 
-        if (deleteInteractionSuccess) {
-          console.log(`成功删除鱼 ${fishData.fishName} 及相关交互记录`);
+        if (deleteInteractionSuccess && deleteCommentSuccess) {
+          console.log(`成功删除鱼 ${fishData.fishName} 及所有相关数据`);
         } else {
-          console.warn(`鱼 ${fishData.fishName} 删除成功，但清理交互记录时出现问题`);
+          console.warn(`鱼 ${fishData.fishName} 删除成功，但清理相关数据时出现问题: interaction=${deleteInteractionSuccess}, comment=${deleteCommentSuccess}`);
         }
 
-        // 3. 从本地列表中移除
+        // 4. 从本地列表中移除
         this.removeFishFromLocalLists(fishData.fishName);
 
-        // 4. 从鱼缸显示中移除
+        // 5. 从鱼缸显示中移除
         this.removeFishFromTank(fishData.fishName);
 
         wx.hideLoading();
         Utils.showSuccess('删除成功');
 
-        // 5. 关闭详情界面
+        // 6. 关闭详情界面
         this.hideFishDetail();
 
-        // 6. 刷新鱼缸显示
+        // 7. 刷新鱼缸显示
         await this.refreshFishTank();
       } else {
       wx.hideLoading();
@@ -293,6 +298,18 @@ class EventHandler {
       }
     } catch (error) {
       console.error('删除交互记录失败:', error);
+      return false;
+    }
+  }
+
+  // 新增：从comment集合中删除鱼的评论数据
+  async deleteFishComment(fishName) {
+    if (!Utils.checkDatabaseInitialization(this.databaseManager, '删除鱼的评论数据')) return false;
+
+    try {
+      return await this.databaseManager.deleteFishComment(fishName);
+    } catch (error) {
+      console.error('删除鱼的评论数据失败:', error);
       return false;
     }
   }
