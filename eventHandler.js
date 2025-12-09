@@ -220,7 +220,7 @@ class EventHandler {
       if (deleteFishSuccess) {
         // 2. 从interaction集合中删除相关的交互记录
         const deleteInteractionSuccess = await this.deleteFishInteractions(fishData.fishName);
-        
+
         // 3. 从comment集合中删除评论数据
         console.log(`开始删除鱼 ${fishData.fishName} 的评论数据...`);
         const deleteCommentSuccess = await this.deleteFishComment(fishData.fishName);

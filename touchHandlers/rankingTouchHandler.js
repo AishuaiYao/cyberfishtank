@@ -349,8 +349,8 @@ class RankingTouchHandler {
     }
 
     // 获取当前排行榜中的最后一条鱼的排名（当前缓存中的最后排名）
-    const currentLastRank = incrementalData.cachedData.length > 0 ? 
-      incrementalData.cachedData.length : 
+    const currentLastRank = incrementalData.cachedData.length > 0 ?
+      incrementalData.cachedData.length :
       this.eventHandler.rankingData.fishes.length;
 
     // 计算当前可见的最后一条鱼的排名
@@ -360,7 +360,7 @@ class RankingTouchHandler {
     const visibleHeight = config.screenHeight - startY;
     const visibleRows = Math.ceil(visibleHeight / rowHeight);
     const visibleFishCount = Math.ceil((this.currentScrollY + visibleHeight) / rowHeight) * 2; // 2列
-    
+
     // 当前可见的最后一条鱼的排名（最小为1）
     const currentVisibleLastRank = Math.max(1, Math.min(visibleFishCount, currentLastRank));
 
