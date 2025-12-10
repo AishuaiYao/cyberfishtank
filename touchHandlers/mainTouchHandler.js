@@ -354,6 +354,18 @@ class MainTouchHandler {
     const currentX = x;
     const currentY = y;
 
+    // 对所有绘制操作添加裁剪区域限制，确保不会超出边界
+    ctx.save();
+    
+    // 设置裁剪区域为绘画区域内部（稍微缩小一点，确保不会擦到边框）
+    const drawingAreaY = this.positions.drawingAreaY;
+    const padding = gameState.brushSize / 2 + 1; // 根据笔刷大小动态调整边距
+    ctx.beginPath();
+    ctx.rect(12 + padding, drawingAreaY + padding, 
+             config.screenWidth - 24 - padding * 2, 
+             config.drawingAreaHeight - padding * 2);
+    ctx.clip();
+
     ctx.beginPath();
     ctx.moveTo(gameState.lastX, gameState.lastY);
     ctx.lineTo(currentX, currentY);
@@ -366,6 +378,9 @@ class MainTouchHandler {
     gameState.addPointToPath(currentX, currentY);
     gameState.lastX = currentX;
     gameState.lastY = currentY;
+
+    // 恢复画布状态
+    ctx.restore();
   }
 
   // 新增：初始化协作模式
@@ -503,6 +518,18 @@ class MainTouchHandler {
     const currentX = x;
     const currentY = y;
 
+    // 对所有绘制操作添加裁剪区域限制，确保不会超出边界
+    ctx.save();
+    
+    // 设置裁剪区域为绘画区域内部（稍微缩小一点，确保不会擦到边框）
+    const drawingAreaY = this.positions.drawingAreaY;
+    const padding = gameState.brushSize / 2 + 1; // 根据笔刷大小动态调整边距
+    ctx.beginPath();
+    ctx.rect(12 + padding, drawingAreaY + padding, 
+             config.screenWidth - 24 - padding * 2, 
+             config.drawingAreaHeight - padding * 2);
+    ctx.clip();
+
     ctx.beginPath();
     ctx.moveTo(gameState.lastX, gameState.lastY);
     ctx.lineTo(currentX, currentY);
@@ -515,6 +542,9 @@ class MainTouchHandler {
     gameState.addPointToPath(currentX, currentY);
     gameState.lastX = currentX;
     gameState.lastY = currentY;
+
+    // 恢复画布状态
+    ctx.restore();
   }
 
   // 修改：finishDrawing 方法，修复版：确保操作正确记录到角色历史
@@ -758,6 +788,18 @@ class MainTouchHandler {
     // 重新绘制所有路径
     gameState.drawingPaths.forEach(path => {
       if (path.points && path.points.length > 0) {
+        // 对所有路径添加裁剪区域限制，确保不会超出边界
+        ctx.save();
+        
+        // 设置裁剪区域为绘画区域内部（稍微缩小一点，确保不会擦到边框）
+        const drawingAreaY = positions.drawingAreaY;
+        const padding = path.size / 2 + 1; // 根据笔刷大小动态调整边距
+        ctx.beginPath();
+        ctx.rect(12 + padding, drawingAreaY + padding, 
+                 config.screenWidth - 24 - padding * 2, 
+                 config.drawingAreaHeight - padding * 2);
+        ctx.clip();
+
         // 修复：确保绘制状态一致，避免加黑加粗问题
         ctx.beginPath();
 
@@ -784,6 +826,9 @@ class MainTouchHandler {
         // 修复：重置合成模式，确保不会使用destination-out
         ctx.globalCompositeOperation = 'source-over';
         ctx.stroke();
+        
+        // 恢复画布状态
+        ctx.restore();
         
         // 调试输出：显示绘制的路径信息
         if (path.role) {

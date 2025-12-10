@@ -417,6 +417,17 @@ drawBrushSizeControl(startY, gameState) {
 
     gameState.drawingPaths.forEach(path => {
       if (path.points.length > 0) {
+        // 对所有路径添加裁剪区域限制，确保不会超出边界
+        ctx.save();
+        
+        // 设置裁剪区域为绘画区域内部（稍微缩小一点，确保不会擦到边框）
+        const padding = path.size / 2 + 1; // 根据笔刷大小动态调整边距
+        ctx.beginPath();
+        ctx.rect(12 + padding, drawingAreaY + padding, 
+                 config.screenWidth - 24 - padding * 2, 
+                 config.drawingAreaHeight - padding * 2);
+        ctx.clip();
+
         ctx.beginPath();
         ctx.moveTo(path.points[0].x, path.points[0].y);
 
@@ -429,6 +440,9 @@ drawBrushSizeControl(startY, gameState) {
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.stroke();
+        
+        // 恢复画布状态
+        ctx.restore();
       }
     });
 

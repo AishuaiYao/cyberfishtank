@@ -489,6 +489,14 @@ class CollaborationManager {
 
     // 保存当前绘图状态
     ctx.save();
+    
+    // 设置裁剪区域为绘画区域内部（稍微缩小一点，确保不会超出边界）
+    const padding = lineWidth / 2 + 1; // 根据笔刷大小动态调整边距
+    ctx.beginPath();
+    ctx.rect(12 + padding, drawingAreaY + padding, 
+             config.screenWidth - 24 - padding * 2, 
+             config.drawingAreaHeight - padding * 2);
+    ctx.clip();
 
     // 开始绘制路径
     ctx.beginPath();
@@ -542,6 +550,14 @@ class CollaborationManager {
 
     // 保存当前绘图状态
     ctx.save();
+    
+    // 设置裁剪区域为绘画区域内部（稍微缩小一点，确保不会擦到边框）
+    const padding = lineWidth + 1; // 根据笔刷大小动态调整边距
+    ctx.beginPath();
+    ctx.rect(12 + padding, drawingAreaY + padding, 
+             config.screenWidth - 24 - padding * 2, 
+             config.drawingAreaHeight - padding * 2);
+    ctx.clip();
 
     // 开始擦除路径
     ctx.beginPath();
