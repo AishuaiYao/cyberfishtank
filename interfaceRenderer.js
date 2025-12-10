@@ -382,23 +382,23 @@ drawBrushSizeControl(startY, gameState) {
     ctx.lineWidth = 1;
     Utils.drawRoundedRect(ctx, 12, startY, config.screenWidth - 24, config.drawingAreaHeight, config.borderRadius, false, true);
 
-    // 网格背景 - 使用更清晰的线条
-    ctx.strokeStyle = '#F8F9FA';
-    ctx.lineWidth = 1;
+    // 移除了网格背景
+    // ctx.strokeStyle = '#F8F9FA';
+    // ctx.lineWidth = 1;
 
-    for (let i = 1; i < 4; i++) {
-      ctx.beginPath();
-      ctx.moveTo(12, Math.round(startY + i * (config.drawingAreaHeight / 4)));
-      ctx.lineTo(config.screenWidth - 12, Math.round(startY + i * (config.drawingAreaHeight / 4)));
-      ctx.stroke();
-    }
+    // for (let i = 1; i < 4; i++) {
+    //   ctx.beginPath();
+    //   ctx.moveTo(12, Math.round(startY + i * (config.drawingAreaHeight / 4)));
+    //   ctx.lineTo(config.screenWidth - 12, Math.round(startY + i * (config.drawingAreaHeight / 4)));
+    //   ctx.stroke();
+    // }
 
-    for (let i = 1; i < 4; i++) {
-      ctx.beginPath();
-      ctx.moveTo(Math.round(12 + i * ((config.screenWidth - 24) / 4)), startY);
-      ctx.lineTo(Math.round(12 + i * ((config.screenWidth - 24) / 4)), startY + config.drawingAreaHeight);
-      ctx.stroke();
-    }
+    // for (let i = 1; i < 4; i++) {
+    //   ctx.beginPath();
+    //   ctx.moveTo(Math.round(12 + i * ((config.screenWidth - 24) / 4)), startY);
+    //   ctx.lineTo(Math.round(12 + i * ((config.screenWidth - 24) / 4)), startY + config.drawingAreaHeight);
+    //   ctx.stroke();
+    // }
 
     // 绘制路径
     this.redrawAllPaths(gameState, startY);
