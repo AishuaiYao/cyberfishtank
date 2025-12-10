@@ -420,8 +420,8 @@ drawBrushSizeControl(startY, gameState) {
         // 对所有路径添加裁剪区域限制，确保不会超出边界
         ctx.save();
         
-        // 设置裁剪区域为绘画区域内部（稍微缩小一点，确保不会擦到边框）
-        const padding = path.size / 2 + 1; // 根据笔刷大小动态调整边距
+        // 设置裁剪区域为绘画区域内部（固定边距，与笔刷大小无关）
+        const padding = 2; // 固定边距，确保不会擦到边框
         ctx.beginPath();
         ctx.rect(12 + padding, drawingAreaY + padding, 
                  config.screenWidth - 24 - padding * 2, 
