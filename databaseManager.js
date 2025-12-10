@@ -440,15 +440,25 @@ class DatabaseManager {
         });
 
         const sortedFishes = [];
+        const skippedFishNames = []; // 记录被跳过的fishName，便于调试
+        
         commentResult.data.forEach(comment => {
           if (fishMap[comment.fishName]) {
             sortedFishes.push({
               ...fishMap[comment.fishName],
               score: comment.score // 使用comment集合中的score
             });
+          } else {
+            // 跳过在fishes集合中不存在的鱼
+            skippedFishNames.push(comment.fishName);
           }
         });
 
+        if (skippedFishNames.length > 0) {
+          console.log(`跳过了 ${skippedFishNames.length} 条在fishes集合中不存在的鱼:`, skippedFishNames);
+        }
+        
+        console.log(`从comment集合获取了 ${commentResult.data.length} 条评论，从fishes集合匹配了 ${sortedFishes.length} 条鱼数据`);
         result = { data: sortedFishes };
       } else {
         // 其他排序类型：使用原有逻辑
@@ -472,10 +482,25 @@ class DatabaseManager {
 
       console.log(`第${page+1}页获取了 ${validRankingData.length} 条有效数据`);
 
-      return {
-        data: validRankingData,
-        hasMore: result.data.length === pageSize // 如果返回的数据量等于请求量，说明可能还有更多
-      };
+      // 对于最佳榜和最丑榜，需要特殊判断是否还有更多数据
+      if (sortType === 'best' || sortType === 'worst') {
+        // 查询下一页是否存在更多评论数据
+        const nextCommentResult = await this.cloudDb.collection('comment')
+          .orderBy('score', sortType === 'best' ? 'desc' : 'asc')
+          .skip((page + 1) * pageSize)
+          .limit(1)
+          .get();
+        
+        return {
+          data: validRankingData,
+          hasMore: nextCommentResult.data.length > 0
+        };
+      } else {
+        return {
+          data: validRankingData,
+          hasMore: result.data.length === pageSize // 如果返回的数据量等于请求量，说明可能还有更多
+        };
+      }
     } catch (error) {
       return Utils.handleDatabaseError(error, '获取排行榜分页数据', { data: [], hasMore: false });
     }

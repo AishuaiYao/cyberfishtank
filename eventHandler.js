@@ -2107,7 +2107,7 @@ async refreshFishTank() {
       return;
     }
 
-    console.log(`开始加载更多排行榜数据，当前页: ${incrementalData.currentPage + 1}`);
+    console.log(`开始加载更多排行榜数据，当前页: ${incrementalData.currentPage + 1}, 总数据量: ${incrementalData.cachedData.length}`);
 
     incrementalData.isLoading = true;
     incrementalData.currentPage++;
@@ -2178,6 +2178,7 @@ async refreshFishTank() {
       this.rankingData.fishes = this.rankingData.fishes.concat(newFishes);
 
       console.log(`成功加载 ${newFishes.length} 条新的排行榜数据，当前总数: ${this.rankingData.fishes.length}`);
+      console.log(`增量加载状态: hasMore=${incrementalData.hasMore}, currentPage=${incrementalData.currentPage}`);
 
       // 为新加载的小鱼设置临时score
       this.setRankingFishesInteractionsFromCache(newFishes, this.rankingSortType);

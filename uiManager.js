@@ -1413,7 +1413,7 @@ drawMainTitle() {
   const ctx = this.ctx;
 
   // 现代黑体字体栈，优先使用系统黑体
-  const title = '赛博鱼缸DrawAFish';
+  const title = '赛博鱼缸-共绘奇鱼';
   const x = 110; // 调整位置，与搜索按钮保持合适间距
   const y = 50;
 

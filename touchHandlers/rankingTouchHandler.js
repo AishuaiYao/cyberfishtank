@@ -375,6 +375,7 @@ class RankingTouchHandler {
 
     if (rankDistance <= preloadThreshold && incrementalData.hasMore && !incrementalData.isLoading) {
       console.log(`当前排名距离: ${rankDistance}（阈值: ${preloadThreshold}），当前可见排名: ${currentVisibleLastRank}，缓存最后排名: ${currentLastRank}，触发异步预加载`);
+      console.log(`预加载详情: 当前页=${incrementalData.currentPage}, hasMore=${incrementalData.hasMore}, isLoading=${incrementalData.isLoading}`);
       
       // 确保 loadNextRankingPage 方法存在
       if (typeof this.eventHandler.loadNextRankingPage === 'function') {
