@@ -2375,14 +2375,15 @@ async refreshFishTank() {
         // 从缓存获取数据
         console.log(`从${newSortType}榜缓存获取数据，缓存大小: ${newCache.size}`);
 
-        // 获取第一页数据（pageSize条）
-        const pageSize = this.rankingIncrementalData.cyber.pageSize;
-        const cachedFishNames = Array.from(newCache.keys()).slice(0, pageSize);
+        // 获取所有缓存数据，按顺序排列
+        const cachedFishNames = Array.from(newCache.keys());
+        console.log(`准备加载 ${cachedFishNames.length} 条缓存数据`);
 
+        // 处理所有缓存数据，创建显示列表
         for (const fishName of cachedFishNames) {
           const fishCardData = newCache.get(fishName);
           if (fishCardData) {
-            // 创建图像对象
+            // 创建图像对象（如果还没有）
             if (!fishCardData.fishImage) {
               try {
                 fishCardData.fishImage = await this.fishManager.data.base64ToCanvas(fishCardData.base64);
@@ -2407,25 +2408,30 @@ async refreshFishTank() {
           }
         }
 
-        // 更新排行榜数据
+        // 更新排行榜数据 - 包含所有缓存数据
         this.rankingData = {
           fishes: rankingFishesWithImages,
           lastUpdate: new Date(),
           mode: newSortType
         };
 
-        // 更新增量加载状态
+        // 更新增量加载状态 - 设置为缓存中的状态
         this.rankingIncrementalData.cyber.currentPage = newPageInfo.currentPage;
         this.rankingIncrementalData.cyber.hasMore = newPageInfo.hasMore;
 
-        // 保持兼容性的缓存数据
-        this.rankingIncrementalData.cyber.cachedData = rankingFishesWithImages.map(item => ({
-          fishName: item.fishData.fishName,
-          base64: item.fishData.base64,
-          createdAt: item.fishData.createdAt,
-          createTimestamp: item.fishData.createTimestamp,
-          score: item.fishData.score
-        }));
+        // 更新兼容性的缓存数据，包含所有缓存数据
+        this.rankingIncrementalData.cyber.cachedData = cachedFishNames.map(fishName => {
+          const fishCardData = newCache.get(fishName);
+          return {
+            fishName: fishCardData.fishName,
+            base64: fishCardData.base64,
+            createdAt: fishCardData.createdAt,
+            createTimestamp: fishCardData.createTimestamp,
+            score: fishCardData.score
+          };
+        });
+        
+        console.log(`已加载所有 ${rankingFishesWithImages.length} 条缓存数据，当前页面: ${newPageInfo.currentPage}, 是否有更多: ${newPageInfo.hasMore}`);
 
         // 清除新榜单的临时score，重新初始化
         // 不再需要初始化tempScores
