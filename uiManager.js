@@ -779,14 +779,14 @@ class UIManager {
     const startY = 110 - scrollOffset; // 下移10像素，与返回按钮位置保持一致
     const visibleAreaHeight = config.screenHeight - 110; // 调整可见区域高度，与下移的起始位置保持一致
 
-    // 只清除卡片区域（避免重绘整个界面）
+    // 清除整个底部区域到屏幕底部，避免残影
     ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 110, config.screenWidth, visibleAreaHeight - 10);
+    ctx.fillRect(0, 110, config.screenWidth, config.screenHeight - 110);
 
-    // 设置裁剪区域
+    // 设置裁剪区域，扩展到屏幕底部
     ctx.save();
     ctx.beginPath();
-    ctx.rect(0, 110, config.screenWidth, visibleAreaHeight - 10);
+    ctx.rect(0, 110, config.screenWidth, config.screenHeight - 110);
     ctx.clip();
 
     // 虚拟滚动优化：只渲染可见区域的卡片
@@ -846,7 +846,7 @@ class UIManager {
     const indicatorWidth = 4;
     const indicatorRight = config.screenWidth - 10;
     const indicatorTop = 110; // 下移10像素，与卡片区域对齐
-    const indicatorHeight = config.screenHeight - 110 - 20; // 调整高度，与下移的起始位置保持一致
+    const indicatorHeight = (config.screenHeight - 110) - 40; // 调整高度，确保在裁剪区域内
 
     // 计算滑块位置和大小
     const scrollRatio = scrollOffset / maxScrollY;
