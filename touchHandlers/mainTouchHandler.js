@@ -548,13 +548,39 @@ class MainTouchHandler {
     return false;
   }
 
-  // 跳转操作 - 修改：不取消评分
-  handleJumpAction(buttonIndex) {
+  // 跳转操作 - 修改：不取消评分，添加缩放重置逻辑
+  async handleJumpAction(buttonIndex) {
     switch (buttonIndex) {
       case 0: // 鱼缸
+        // 检查是否处于缩放状态，如果是则先重置缩放
+        const gameState = this.eventHandler.gameState;
+        const zoomState = gameState.zoomState;
+        if (zoomState.isZooming || zoomState.zoomScale !== 1.0) {
+          console.log('检测到缩放状态，先重置缩放再进入鱼缸');
+          gameState.resetZoom();
+          
+          // 重绘界面以显示缩放重置效果
+          this.eventHandler.uiManager.drawGameUI(gameState);
+          
+          // 短暂延迟让用户看到重置效果
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
         this.eventHandler.handleFishTank();
         break;
       case 1: // 让它游起来！
+        // 检查是否处于缩放状态，如果是则先重置缩放
+        const gameStateForSwim = this.eventHandler.gameState;
+        const zoomStateForSwim = gameStateForSwim.zoomState;
+        if (zoomStateForSwim.isZooming || zoomStateForSwim.zoomScale !== 1.0) {
+          console.log('检测到缩放状态，先重置缩放再让它游起来');
+          gameStateForSwim.resetZoom();
+          
+          // 重绘界面以显示缩放重置效果
+          this.eventHandler.uiManager.drawGameUI(gameStateForSwim);
+          
+          // 短暂延迟让用户看到重置效果
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
         this.eventHandler.handleMakeItSwim();
         break;
       case 2: // 排行榜
@@ -621,30 +647,30 @@ class MainTouchHandler {
   handleZoomResetClick(x, y) {
     const gameState = this.eventHandler.gameState;
     const zoomState = gameState.zoomState;
-    
+
     // 只有在缩放状态下才显示重置按钮
     if (!zoomState.isZooming && zoomState.zoomScale === 1.0) return false;
-    
+
     // 获取绘画区域位置
     const drawingAreaY = this.positions.drawingAreaY;
     const resetButtonX = 60; // 与放大倍数提示对称，放在指示区左边
     const indicatorY = drawingAreaY - 25;
-    
+
     // 检查是否点击了重置按钮（按钮区域为80x20像素）
     if (x >= resetButtonX - 40 && x <= resetButtonX + 40 &&
         y >= indicatorY - 10 && y <= indicatorY + 10) {
 
       console.log('重置缩放按钮被点击');
-      
+
       // 重置缩放状态
       gameState.resetZoom();
-      
+
       // 重绘界面
       this.eventHandler.uiManager.drawGameUI(gameState);
-      
+
       return true;
     }
-    
+
     return false;
   }
 
@@ -663,17 +689,17 @@ class MainTouchHandler {
     // 直接使用原始坐标进行绘制
     gameState.lastX = x;
     gameState.lastY = y;
-    
+
     // 关键修复：在缩放模式下，将坐标转换为未缩放的坐标存储
     let storedX = x;
     let storedY = y;
-    
+
     if (zoomState.isZooming || zoomState.zoomScale !== 1.0) {
       // 将坐标转换为相对于未缩放画布的坐标
       storedX = (x - zoomState.zoomCenterX) / zoomState.zoomScale + zoomState.zoomCenterX;
       storedY = (y - zoomState.zoomCenterY) / zoomState.zoomScale + zoomState.zoomCenterY;
     }
-    
+
     gameState.startNewPath(storedX, storedY);
   }
 
@@ -710,12 +736,12 @@ class MainTouchHandler {
     // 关键修复：在缩放模式下，将坐标转换为未缩放的坐标存储
     let storedX = currentX;
     let storedY = currentY;
-    
+
     if (zoomState.isZooming || zoomState.zoomScale !== 1.0) {
       // 获取绘画区域左上角作为参考点
       const drawingAreaLeft = 12;
       const drawingAreaTop = drawingAreaY;
-      
+
       // 将坐标转换为相对于未缩放画布的坐标
       storedX = (currentX - zoomState.zoomCenterX) / zoomState.zoomScale + zoomState.zoomCenterX;
       storedY = (currentY - zoomState.zoomCenterY) / zoomState.zoomScale + zoomState.zoomCenterY;

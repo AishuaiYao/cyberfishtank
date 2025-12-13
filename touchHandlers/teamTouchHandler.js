@@ -564,6 +564,20 @@ class TeamTouchHandler {
   async handleMakeItSwimInRoom() {
     console.log('房间内处理"让它游起来"');
 
+    // 检查是否处于缩放状态，如果是则先重置缩放
+    const gameState = this.eventHandler.gameState;
+    const zoomState = gameState.zoomState;
+    if (zoomState.isZooming || zoomState.zoomScale !== 1.0) {
+      console.log('协作模式检测到缩放状态，先重置缩放再让它游起来');
+      gameState.resetZoom();
+      
+      // 重绘界面以显示缩放重置效果
+      this.eventHandler.uiManager.drawGameUI(gameState);
+      
+      // 短暂延迟让用户看到重置效果
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+
     // 调用主界面的让它游起来逻辑
     await this.eventHandler.handleMakeItSwim();
   }
