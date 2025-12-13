@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="缩放-每次都有反应-缩放基本可用，但是还是存在部分时候误识别。">
+    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="比较好了，放大后绘画也不会偏移。">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -70,14 +70,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00170" summary="细微优化-排行榜 三个对象缓存">
-      <option name="closed" value="true" />
-      <created>1765087228601</created>
-      <option name="number" value="00170" />
-      <option name="presentableId" value="LOCAL-00170" />
-      <option name="project" value="LOCAL" />
-      <updated>1765087228601</updated>
     </task>
     <task id="LOCAL-00171" summary="细微优化-排行榜点赞ok，点踩有问题">
       <option name="closed" value="true" />
@@ -463,11 +455,18 @@
       <option name="project" value="LOCAL" />
       <updated>1765618047365</updated>
     </task>
-    <option name="localTasksCounter" value="219" />
+    <task id="LOCAL-00219" summary="比较好了，放大后绘画也不会偏移。">
+      <option name="closed" value="true" />
+      <created>1765621604452</created>
+      <option name="number" value="00219" />
+      <option name="presentableId" value="LOCAL-00219" />
+      <option name="project" value="LOCAL" />
+      <updated>1765621604452</updated>
+    </task>
+    <option name="localTasksCounter" value="220" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="鱼缸button滑动选择-基础OK" />
     <MESSAGE value="鱼缸选择" />
     <MESSAGE value="最佳鱼缸刷新" />
     <MESSAGE value="最佳鱼缸刷新OK" />
@@ -492,6 +491,7 @@
     <MESSAGE value="缩放-每次都有反应-放大缩小还有问题" />
     <MESSAGE value="缩放-每次都有反应-放大缩小还有问题-增加重置button" />
     <MESSAGE value="缩放-每次都有反应-缩放基本可用，但是还是存在部分时候误识别。" />
-    <option name="LAST_COMMIT_MESSAGE" value="缩放-每次都有反应-缩放基本可用，但是还是存在部分时候误识别。" />
+    <MESSAGE value="比较好了，放大后绘画也不会偏移。" />
+    <option name="LAST_COMMIT_MESSAGE" value="比较好了，放大后绘画也不会偏移。" />
   </component>
 </project>

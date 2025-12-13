@@ -25,8 +25,7 @@ class GameState {
       initialDistance: 0,                  // 初始双指距离
       initialScale: 1.0,                   // 初始缩放比例
       zoomTimer: null,                     // 缩放计时器
-      zoomStartTime: 0,                    // 缩放开始时间
-      zoomThreshold: 200                   // 缩放触发阈值（毫秒）
+      zoomStartTime: 0                     // 缩放开始时间
     };
 
 

@@ -63,7 +63,7 @@ class MainTouchHandler {
       clearTimeout(this.singleTouchTimer);
     }
 
-    // 设置200ms后开始绘画（避免误触）
+    // 设置150ms后开始绘画（避免误触）
     this.singleTouchTimer = setTimeout(() => {
       if (this.touches.length === 1 && this.touchMode === 'none') {
         this.touchMode = 'single';
@@ -71,7 +71,7 @@ class MainTouchHandler {
         this.startDrawing(x, y);
         console.log('单指绘画模式激活');
       }
-    }, 200);
+    }, 150);
   }
 
   // 新增：进入双指触摸模式
