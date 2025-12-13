@@ -363,21 +363,58 @@ class DatabaseManager {
             }
             break;
 
-          case 'latest': // 创作时间最新（最新榜）
+          case 'latest': // 创作时间最新（最新榜）- 修改：先从comment集合读取数据
+            // 从comment集合读取数据，按createTimestamp降序排序
+            const latestCommentResult = await this.cloudDb.collection('comment')
+              .orderBy('createTimestamp', 'desc')
+              .limit(limit)
+              .get();
+
+            // 提取鱼名列表
+            const latestFishNames = latestCommentResult.data.map(comment => comment.fishName);
+
+            // 根据鱼名查询对应的鱼数据
+            if (latestFishNames.length > 0) {
+              const latestFishResult = await this.cloudDb.collection('fishes')
+                .where({
+                  fishName: this.cloudDb.command.in(latestFishNames)
+                })
+                .get();
+
+              // 按照comment中的createTimestamp排序鱼数据
+              const latestFishMap = {};
+              latestFishResult.data.forEach(fish => {
+                latestFishMap[fish.fishName] = fish;
+              });
+
+              const sortedLatestFishes = [];
+              latestCommentResult.data.forEach(comment => {
+                if (latestFishMap[comment.fishName]) {
+                  sortedLatestFishes.push({
+                    ...latestFishMap[comment.fishName],
+                    score: comment.score, // 使用comment集合中的score
+                    createTimestamp: comment.createTimestamp // 使用comment集合中的createTimestamp
+                  });
+                }
+              });
+
+              allData = sortedLatestFishes;
+            }
+            break;
           default:
             query = query.orderBy('createTimestamp', 'desc');
-            const latestResult = await query
+            const defaultResult = await query
               .skip(skip)
               .limit(batchSize)
               .get();
-            if (latestResult.data.length === 0) break;
-            allData = allData.concat(latestResult.data);
+            if (defaultResult.data.length === 0) break;
+            allData = allData.concat(defaultResult.data);
             skip += batchSize;
             break;
         }
 
-        if (sortType === 'best' && allData.length > 0) {
-          break; // 最佳榜已经通过一次性查询获取了所有数据
+        if ((sortType === 'best' || sortType === 'latest') && allData.length > 0) {
+          break; // 最佳榜和最新榜已经通过一次性查询获取了所有数据
         }
 
         console.log(`已获取 ${allData.length} 条数据`);
@@ -460,16 +497,62 @@ class DatabaseManager {
 
         console.log(`从comment集合获取了 ${commentResult.data.length} 条评论，从fishes集合匹配了 ${sortedFishes.length} 条鱼数据`);
         result = { data: sortedFishes };
+      } else if (sortType === 'latest') {
+        // 最新榜：从comment集合读取createTimestamp
+        console.log(`从comment集合按createTimestamp降序排序获取最新榜数据`);
+
+        const latestCommentResult = await this.cloudDb.collection('comment')
+          .orderBy('createTimestamp', 'desc')
+          .skip(page * pageSize)
+          .limit(pageSize)
+          .get();
+
+        // 提取鱼名列表
+        const latestFishNames = latestCommentResult.data.map(comment => comment.fishName);
+
+        if (latestFishNames.length === 0) {
+          return { data: [], hasMore: false };
+        }
+
+        // 根据鱼名查询对应的鱼数据
+        const latestFishResult = await this.cloudDb.collection('fishes')
+          .where({
+            fishName: this.cloudDb.command.in(latestFishNames)
+          })
+          .get();
+
+        // 按照comment中的createTimestamp排序鱼数据
+        const latestFishMap = {};
+        latestFishResult.data.forEach(fish => {
+          latestFishMap[fish.fishName] = fish;
+        });
+
+        const sortedLatestFishes = [];
+        const skippedLatestFishNames = []; // 记录被跳过的fishName，便于调试
+
+        latestCommentResult.data.forEach(comment => {
+          if (latestFishMap[comment.fishName]) {
+            sortedLatestFishes.push({
+              ...latestFishMap[comment.fishName],
+              score: comment.score, // 使用comment集合中的score
+              createTimestamp: comment.createTimestamp // 使用comment集合中的createTimestamp
+            });
+          } else {
+            // 跳过在fishes集合中不存在的鱼
+            skippedLatestFishNames.push(comment.fishName);
+          }
+        });
+
+        if (skippedLatestFishNames.length > 0) {
+          console.log(`最新榜跳过了 ${skippedLatestFishNames.length} 条在fishes集合中不存在的鱼:`, skippedLatestFishNames);
+        }
+
+        console.log(`最新榜从comment集合获取了 ${latestCommentResult.data.length} 条评论，从fishes集合匹配了 ${sortedLatestFishes.length} 条鱼数据`);
+        result = { data: sortedLatestFishes };
       } else {
         // 其他排序类型：使用原有逻辑
         let query = this.cloudDb.collection('fishes');
-
-        switch (sortType) {
-          case 'latest': // 创作时间最新（最新榜）
-          default:
-            query = query.orderBy('createTimestamp', 'desc');
-            break;
-        }
+        query = query.orderBy('createTimestamp', 'desc');
 
         result = await query
           .skip(page * pageSize)
@@ -482,11 +565,20 @@ class DatabaseManager {
 
       console.log(`第${page+1}页获取了 ${validRankingData.length} 条有效数据`);
 
-      // 对于最佳榜和最丑榜，需要特殊判断是否还有更多数据
-      if (sortType === 'best' || sortType === 'worst') {
+      // 对于最佳榜、最丑榜和最新榜，需要特殊判断是否还有更多数据
+      if (sortType === 'best' || sortType === 'worst' || sortType === 'latest') {
         // 查询下一页是否存在更多评论数据
-        const nextCommentResult = await this.cloudDb.collection('comment')
-          .orderBy('score', sortType === 'best' ? 'desc' : 'asc')
+        let query = this.cloudDb.collection('comment');
+        
+        if (sortType === 'best') {
+          query = query.orderBy('score', 'desc');
+        } else if (sortType === 'worst') {
+          query = query.orderBy('score', 'asc');
+        } else if (sortType === 'latest') {
+          query = query.orderBy('createTimestamp', 'desc');
+        }
+        
+        const nextCommentResult = await query
           .skip((page + 1) * pageSize)
           .limit(1)
           .get();
@@ -1352,17 +1444,53 @@ async getRandomFishesByUserFallback(openid, count = 20) {
     }
   }
 
-  // 新增：获取最新鱼数据（最新加入的20条鱼）
+  // 新增：获取最新鱼数据（最新加入的20条鱼）- 修改：从comment集合读取数据
   async getLatestFishesFromDatabase(limit = 20) {
     if (!Utils.checkDatabaseInitialization(this, '获取最新鱼数据')) return [];
 
     try {
-      const result = await this.cloudDb.collection('fishes')
-        .orderBy('createTimestamp', 'desc') // 按创建时间降序排列
-        .limit(limit)
+      // 先从comment集合获取数据，按createTimestamp降序排列
+      const commentResult = await this.cloudDb.collection('comment')
+        .orderBy('createTimestamp', 'desc')
+        .limit(limit * 2) // 多获取一些，避免数据不完整
         .get();
 
-      return result.data || [];
+      // 提取鱼名列表
+      const fishNames = commentResult.data.map(comment => comment.fishName);
+
+      // 根据鱼名查询对应的鱼数据
+      if (fishNames.length > 0) {
+        const fishResult = await this.cloudDb.collection('fishes')
+          .where({
+            fishName: this.cloudDb.command.in(fishNames)
+          })
+          .get();
+
+        // 按照comment中的createTimestamp排序鱼数据，并过滤无效数据
+        const fishMap = {};
+        fishResult.data.forEach(fish => {
+          if (fish.base64 && fish.base64.length > 0) { // 确保有有效的base64数据
+            fishMap[fish.fishName] = fish;
+          }
+        });
+
+        const sortedFishes = [];
+        commentResult.data.forEach(comment => {
+          if (fishMap[comment.fishName] && sortedFishes.length < limit) {
+            sortedFishes.push({
+              ...fishMap[comment.fishName],
+              score: comment.score, // 使用comment集合中的score
+              createTimestamp: comment.createTimestamp // 使用comment集合中的createTimestamp
+            });
+          }
+        });
+
+        console.log(`最新鱼缸：从${commentResult.data.length}条评论中获取了${sortedFishes.length}条有效鱼数据`);
+        return sortedFishes;
+      }
+
+      console.warn('最新鱼缸：未找到有效的评论数据');
+      return [];
     } catch (error) {
       return Utils.handleDatabaseError(error, '获取最新鱼数据', []);
     }
