@@ -415,9 +415,17 @@ drawBrushSizeControl(startY, gameState) {
     // 保存画布状态
     ctx.save();
 
+    // 首先设置全局裁剪区域，确保所有内容都在绘画区域内
+    const padding = 2;
+    ctx.beginPath();
+    ctx.rect(12 + padding, drawingAreaY + padding,
+             config.screenWidth - 24 - padding * 2,
+             config.drawingAreaHeight - padding * 2);
+    ctx.clip();
+
     // 如果处于缩放状态，应用缩放变换
     if (zoomState.isZooming || zoomState.zoomScale !== 1.0) {
-      this.applyZoomTransform(ctx, zoomState);
+      this.applyZoomTransform(ctx, zoomState, drawingAreaY);
     }
 
     // 如果处于翻转状态，应用翻转变换
@@ -428,16 +436,8 @@ drawBrushSizeControl(startY, gameState) {
 
     gameState.drawingPaths.forEach(path => {
       if (path.points.length > 0) {
-        // 对所有路径添加裁剪区域限制，确保不会超出边界
+        // 为每条路径单独保存画布状态
         ctx.save();
-
-        // 设置裁剪区域为绘画区域内部（固定边距，与笔刷大小无关）
-        const padding = 2; // 固定边距，确保不会擦到边框
-        ctx.beginPath();
-        ctx.rect(12 + padding, drawingAreaY + padding,
-                 config.screenWidth - 24 - padding * 2,
-                 config.drawingAreaHeight - padding * 2);
-        ctx.clip();
 
         ctx.beginPath();
         ctx.moveTo(path.points[0].x, path.points[0].y);
@@ -471,7 +471,7 @@ drawBrushSizeControl(startY, gameState) {
   }
 
   // 新增：应用缩放变换
-  applyZoomTransform(ctx, zoomState) {
+  applyZoomTransform(ctx, zoomState, drawingAreaY) {
     const { zoomScale, zoomCenterX, zoomCenterY } = zoomState;
     
     // 应用缩放变换：以双指中心点为缩放中心

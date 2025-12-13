@@ -15,78 +15,150 @@ class MainTouchHandler {
     // 调色板处理器
     this.paletteHandler = null;
 
-    // 新增：双指缩放相关
+    // 新增：双指缩放相关（重新设计）
     this.touches = []; // 存储当前触摸点
     this.isTwoFingerTouch = false; // 是否双指触摸
     this.zoomActive = false; // 缩放是否激活
+    this.singleTouchTimer = null; // 单指触摸计时器
+    this.touchMode = 'none'; // 触摸模式：'none', 'single', 'two_finger'
   }
 
-  // 处理主界面触摸开始
+  // 处理主界面触摸开始（重新设计）
   handleTouchStart(x, y) {
-    // 新增：双指触摸检测
     if (this.isInDrawingArea(x, y)) {
-      // 检查当前触摸点数量
-      if (this.touches.length === 0) {
-        // 单指触摸：开始绘画
-        this.cancelPendingScoring();
-        this.startDrawing(x, y);
-      } else if (this.touches.length === 1) {
-        // 双指触摸：开始检测缩放
-        this.handleTwoFingerStart(this.touches[0], {x, y});
-      }
       // 添加当前触摸点
-      this.touches.push({x, y});
+      const newTouch = {x, y, id: Date.now() + Math.random()}; // 唯一ID
+      this.touches.push(newTouch);
+      
+      // 根据触摸点数量切换模式
+      if (this.touches.length === 1) {
+        // 第一个触摸点：进入单指预备状态
+        this.enterSingleTouchMode(x, y);
+      } else if (this.touches.length === 2) {
+        // 第二个触摸点：立即进入双指模式
+        this.enterTwoFingerMode();
+      } else if (this.touches.length > 2) {
+        // 超过两指：重置状态
+        this.resetTouchState();
+      }
     } else {
       // 非绘画区域的触摸
       this.handleFunctionAreaClick(x, y);
     }
   }
 
-  // 新增：处理双指触摸开始
+  // 新增：进入单指触摸模式
+  enterSingleTouchMode(x, y) {
+    // 清除之前的计时器
+    if (this.singleTouchTimer) {
+      clearTimeout(this.singleTouchTimer);
+    }
+    
+    // 设置200ms后开始绘画（避免误触）
+    this.singleTouchTimer = setTimeout(() => {
+      if (this.touches.length === 1 && this.touchMode === 'none') {
+        this.touchMode = 'single';
+        this.cancelPendingScoring();
+        this.startDrawing(x, y);
+        console.log('单指绘画模式激活');
+      }
+    }, 200);
+  }
+
+  // 新增：进入双指触摸模式
+  enterTwoFingerMode() {
+    // 清除单指计时器
+    if (this.singleTouchTimer) {
+      clearTimeout(this.singleTouchTimer);
+      this.singleTouchTimer = null;
+    }
+    
+    // 立即切换到双指模式
+    this.touchMode = 'two_finger';
+    this.isTwoFingerTouch = true;
+    
+    // 开始缩放检测
+    this.handleTwoFingerStart(this.touches[0], this.touches[1]);
+    console.log('双指模式激活，等待缩放计时器');
+  }
+
+  // 新增：处理双指触摸开始（重新设计）
   handleTwoFingerStart(touch1, touch2) {
     const gameState = this.eventHandler.gameState;
     
     // 重置缩放状态
     gameState.resetZoom();
     
-    // 开始缩放检测
+    // 开始缩放检测（保持200ms延迟）
     gameState.startZooming(touch1.x, touch1.y, touch2.x, touch2.y);
-    this.isTwoFingerTouch = true;
     
-    console.log('双指触摸开始，等待缩放激活');
+    console.log('双指缩放检测已启动，等待200ms激活');
   }
 
-  // 处理主界面触摸移动
+  // 新增：重置触摸状态
+  resetTouchState() {
+    this.touches = [];
+    this.isTwoFingerTouch = false;
+    this.touchMode = 'none';
+    
+    if (this.singleTouchTimer) {
+      clearTimeout(this.singleTouchTimer);
+      this.singleTouchTimer = null;
+    }
+    
+    // 重置缩放状态
+    this.eventHandler.gameState.resetZoom();
+  }
+
+  // 处理主界面触摸移动（重新设计）
   handleTouchMove(x, y) {
     const gameState = this.eventHandler.gameState;
     
-    // 新增：双指移动处理
-    if (this.touches.length >= 2 && this.isTwoFingerTouch) {
-      // 更新触摸点位置
-      this.updateTouchPosition(x, y);
-      
+    // 更新触摸点位置（简化逻辑）
+    this.updateTouchPositionSimple(x, y);
+    
+    // 双指缩放模式处理
+    if (this.touchMode === 'two_finger' && this.touches.length >= 2) {
       // 处理双指缩放
-      if (gameState.zoomState.isZooming) {
-        this.handleZoomMove();
-        return; // 缩放模式中不进行绘画
-      }
+      this.handleZoomMove();
+      return; // 缩放模式中不进行绘画
     }
-
-    // 原有绘画逻辑
-    if (!gameState.isDrawing) return;
-
-    if (this.isInDrawingArea(x, y)) {
-      this.continueDrawing(x, y);
-      this.lastDrawTime = Date.now();
-
-      // 优化：只在绘画移动时取消评分
-      this.cancelPendingScoring();
+    
+    // 单指绘画模式处理
+    if (this.touchMode === 'single' && gameState.isDrawing) {
+      if (this.isInDrawingArea(x, y)) {
+        this.continueDrawing(x, y);
+        this.lastDrawTime = Date.now();
+        this.cancelPendingScoring();
+      }
     }
   }
 
-  // 新增：更新触摸点位置
+  // 新增：简化版触摸点更新逻辑
+  updateTouchPositionSimple(x, y) {
+    if (this.touches.length === 0) return;
+    
+    // 如果只有1个触摸点，直接更新
+    if (this.touches.length === 1) {
+      this.touches[0] = {x, y, id: this.touches[0].id};
+      return;
+    }
+    
+    // 如果有2个触摸点，找到距离最近的一个更新
+    let minDistance1 = Math.sqrt(Math.pow(x - this.touches[0].x, 2) + Math.pow(y - this.touches[0].y, 2));
+    let minDistance2 = Math.sqrt(Math.pow(x - this.touches[1].x, 2) + Math.pow(y - this.touches[1].y, 2));
+    
+    // 更新距离更近的触摸点
+    if (minDistance1 < minDistance2) {
+      this.touches[0] = {x, y, id: this.touches[0].id};
+    } else {
+      this.touches[1] = {x, y, id: this.touches[1].id};
+    }
+  }
+
+  // 新增：更新触摸点位置（优化灵敏度）
   updateTouchPosition(x, y) {
-    // 找到距离最近的触摸点并更新位置
+    // 找到距离最近的触摸点并更新位置（大幅降低阈值提高灵敏度）
     let minDistance = Infinity;
     let closestTouch = null;
     
@@ -100,8 +172,14 @@ class MainTouchHandler {
       }
     }
     
-    if (closestTouch !== null) {
-      this.touches[closestTouch] = {x, y};
+    // 大幅降低匹配阈值，提高灵敏度（从30降低到10像素）
+    if (closestTouch !== null && minDistance < 10) {
+      this.touches[closestTouch] = {x, y, timestamp: Date.now()};
+      
+      // 立即更新缩放状态（提高响应速度）
+      if (this.touches.length >= 2 && this.isTwoFingerTouch) {
+        this.handleZoomMove();
+      }
     }
   }
 
@@ -113,6 +191,25 @@ class MainTouchHandler {
     const touch1 = this.touches[0];
     const touch2 = this.touches[1];
     
+    // 如果缩放模式还没激活，但双指已经移动，检查是否需要立即激活
+    if (!gameState.zoomState.isZooming) {
+      const currentDistance = Math.sqrt(
+        Math.pow(touch2.x - touch1.x, 2) + Math.pow(touch2.y - touch1.y, 2)
+      );
+      
+      // 如果双指距离明显变化，立即激活缩放（提高响应性）
+      if (gameState.zoomState.initialDistance > 0 && 
+          Math.abs(currentDistance - gameState.zoomState.initialDistance) > 15) {
+        // 清除计时器，立即激活缩放
+        if (gameState.zoomState.zoomTimer) {
+          clearTimeout(gameState.zoomState.zoomTimer);
+          gameState.zoomState.zoomTimer = null;
+        }
+        gameState.zoomState.isZooming = true;
+        console.log('缩放模式立即激活（检测到明显移动）');
+      }
+    }
+    
     // 更新缩放状态
     gameState.updateZooming(touch1.x, touch1.y, touch2.x, touch2.y);
     
@@ -120,31 +217,55 @@ class MainTouchHandler {
     this.eventHandler.uiManager.drawGameUI(gameState);
   }
 
-  // 处理主界面触摸结束
+  // 处理主界面触摸结束（重新设计）
   handleTouchEnd(x, y) {
     const gameState = this.eventHandler.gameState;
     
-    // 新增：处理触摸结束
-    this.removeTouch(x, y);
+    // 移除对应的触摸点
+    this.removeTouchSimple(x, y);
     
-    // 如果只剩一个触摸点，结束缩放模式
-    if (this.touches.length <= 1 && this.isTwoFingerTouch) {
+    // 根据剩余触摸点数量更新模式
+    if (this.touches.length === 0) {
+      // 所有触摸点都移除了
+      if (this.touchMode === 'two_finger') {
+        this.handleZoomEnd();
+      } else if (this.touchMode === 'single' && gameState.isDrawing) {
+        this.finishDrawing();
+        this.scheduleSmartScoring();
+      }
+      this.resetTouchState();
+    } else if (this.touches.length === 1 && this.touchMode === 'two_finger') {
+      // 双指变单指：结束缩放模式
       this.handleZoomEnd();
+      this.touchMode = 'single';
       this.isTwoFingerTouch = false;
-    }
-    
-    // 原有绘画结束逻辑
-    if (gameState.isDrawing) {
-      this.finishDrawing();
-
-      // 优化：延迟触发智能评分
-      this.scheduleSmartScoring();
     }
   }
 
-  // 新增：移除触摸点
+  // 新增：简化版触摸点移除逻辑
+  removeTouchSimple(x, y) {
+    if (this.touches.length === 0) return;
+    
+    // 如果只有1个触摸点，直接移除
+    if (this.touches.length === 1) {
+      this.touches = [];
+      return;
+    }
+    
+    // 如果有2个触摸点，找到距离最近的一个移除
+    let distance1 = Math.sqrt(Math.pow(x - this.touches[0].x, 2) + Math.pow(y - this.touches[0].y, 2));
+    let distance2 = Math.sqrt(Math.pow(x - this.touches[1].x, 2) + Math.pow(y - this.touches[1].y, 2));
+    
+    if (distance1 < distance2) {
+      this.touches.splice(0, 1);
+    } else {
+      this.touches.splice(1, 1);
+    }
+  }
+
+  // 新增：移除触摸点（优化灵敏度）
   removeTouch(x, y) {
-    // 找到距离最近的触摸点并移除
+    // 找到距离最近的触摸点并移除（大幅降低阈值）
     let minDistance = Infinity;
     let closestTouch = null;
     
@@ -158,7 +279,8 @@ class MainTouchHandler {
       }
     }
     
-    if (closestTouch !== null && minDistance < 50) { // 50像素以内的阈值
+    // 大幅降低匹配阈值，提高灵敏度（从50降低到15像素）
+    if (closestTouch !== null && minDistance < 15) {
       this.touches.splice(closestTouch, 1);
     }
   }

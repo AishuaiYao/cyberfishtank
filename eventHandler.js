@@ -1335,13 +1335,7 @@ class EventHandler {
     
     // 重置所有触摸状态
     if (this.touchHandlers.main) {
-      this.touchHandlers.main.touches = [];
-      this.touchHandlers.main.isTwoFingerTouch = false;
-    }
-    
-    // 结束缩放（如果正在进行）
-    if (gameState.zoomState.isZooming || gameState.zoomState.zoomTimer) {
-      gameState.finishZooming();
+      this.touchHandlers.main.resetTouchState();
     }
     
     // 结束绘画
