@@ -1220,9 +1220,10 @@ class EventHandler {
   handleTouchStart(e) {
     if (!e.touches || e.touches.length === 0) return;
 
-    const touch = e.touches[0];
-    const x = touch.clientX;
-    const y = touch.clientY;
+    // 支持多触点：传递所有触摸点信息
+    const touches = e.touches;
+    const x = touches[0].clientX;
+    const y = touches[0].clientY;
 
     console.log('触摸开始:', x, y, '界面状态:', {
       ranking: this.isRankingInterfaceVisible,
@@ -1259,17 +1260,18 @@ class EventHandler {
       // 调色板界面优先处理触摸事件
       this.touchHandlers.main.paletteHandler.handlePaletteTouch(x, y);
     } else {
-      // 主界面
-      this.touchHandlers.main.handleTouchStart(x, y);
+      // 主界面：传递所有触摸点信息以支持双指操作
+      this.touchHandlers.main.handleTouchStart(x, y, touches);
     }
   }
 
   handleTouchMove(e) {
     if (!e.touches || e.touches.length === 0) return;
 
-    const touch = e.touches[0];
-    const x = touch.clientX;
-    const y = touch.clientY;
+    // 支持多触点：传递所有触摸点信息
+    const touches = e.touches;
+    const x = touches[0].clientX;
+    const y = touches[0].clientY;
 
     // 根据界面状态路由
     if (this.isRankingInterfaceVisible) {
@@ -1285,8 +1287,8 @@ class EventHandler {
       // 组队界面和共同绘画界面需要处理移动（传递给组队处理器）
       this.touchHandlers.team.handleTouchMove(x, y);
     } else {
-      // 主界面
-      this.touchHandlers.main.handleTouchMove(x, y);
+      // 主界面：传递所有触摸点信息以支持双指操作
+      this.touchHandlers.main.handleTouchMove(x, y, touches);
     }
   }
 

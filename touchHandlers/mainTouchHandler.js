@@ -23,12 +23,21 @@ class MainTouchHandler {
     this.touchMode = 'none'; // 触摸模式：'none', 'single', 'two_finger'
   }
 
-  // 处理主界面触摸开始（重新设计）
-  handleTouchStart(x, y) {
+  // 处理主界面触摸开始（重新设计）- 支持多触点
+  handleTouchStart(x, y, touches = null) {
     if (this.isInDrawingArea(x, y)) {
-      // 添加当前触摸点
-      const newTouch = {x, y, id: Date.now() + Math.random()}; // 唯一ID
-      this.touches.push(newTouch);
+      // 如果有完整的触摸点信息，使用API提供的数据
+      if (touches && touches.length > 0) {
+        this.touches = touches.map(touch => ({
+          x: touch.clientX,
+          y: touch.clientY,
+          id: touch.identifier || Date.now() + Math.random() // 使用微信API的触摸ID
+        }));
+      } else {
+        // 兼容旧逻辑：添加当前触摸点
+        const newTouch = {x, y, id: Date.now() + Math.random()};
+        this.touches.push(newTouch);
+      }
 
       // 根据触摸点数量切换模式
       if (this.touches.length === 1) {
@@ -119,12 +128,21 @@ class MainTouchHandler {
     gameState.zoomState.isZooming = false;
   }
 
-  // 处理主界面触摸移动（重新设计）
-  handleTouchMove(x, y) {
+  // 处理主界面触摸移动（重新设计）- 支持多触点
+  handleTouchMove(x, y, touches = null) {
     const gameState = this.eventHandler.gameState;
 
-    // 更新触摸点位置（简化逻辑）
-    this.updateTouchPositionSimple(x, y);
+    // 如果有完整的触摸点信息，使用API提供的数据更新所有触摸点
+    if (touches && touches.length > 0) {
+      this.touches = touches.map(touch => ({
+        x: touch.clientX,
+        y: touch.clientY,
+        id: touch.identifier || Date.now() + Math.random()
+      }));
+    } else {
+      // 兼容旧逻辑：更新触摸点位置
+      this.updateTouchPositionSimple(x, y);
+    }
 
     // 双指缩放模式处理
     if (this.touchMode === 'two_finger' && this.touches.length >= 2) {
@@ -143,25 +161,35 @@ class MainTouchHandler {
     }
   }
 
-  // 新增：简化版触摸点更新逻辑
+  // 优化：改进触摸点更新逻辑，支持双指同时追踪
   updateTouchPositionSimple(x, y) {
     if (this.touches.length === 0) return;
 
-    // 如果只有1个触摸点，直接更新
+    // 单指模式：直接更新唯一触摸点
     if (this.touches.length === 1) {
       this.touches[0] = {x, y, id: this.touches[0].id};
       return;
     }
 
-    // 如果有2个触摸点，找到距离最近的一个更新
-    let minDistance1 = Math.sqrt(Math.pow(x - this.touches[0].x, 2) + Math.pow(y - this.touches[0].y, 2));
-    let minDistance2 = Math.sqrt(Math.pow(x - this.touches[1].x, 2) + Math.pow(y - this.touches[1].y, 2));
-
-    // 更新距离更近的触摸点
-    if (minDistance1 < minDistance2) {
+    // 双指模式：需要同时追踪两个触摸点
+    // 由于微信小游戏API可能不支持多触点精确追踪，我们采用智能匹配策略
+    
+    // 计算与两个触摸点的距离
+    const distance1 = Math.sqrt(Math.pow(x - this.touches[0].x, 2) + Math.pow(y - this.touches[0].y, 2));
+    const distance2 = Math.sqrt(Math.pow(x - this.touches[1].x, 2) + Math.pow(y - this.touches[1].y, 2));
+    
+    // 如果两个距离都很小（< 10像素），说明可能是触摸点重叠或系统无法区分
+    // 这种情况下，我们同时更新两个触摸点，让系统自行处理
+    if (distance1 < 10 && distance2 < 10) {
       this.touches[0] = {x, y, id: this.touches[0].id};
-    } else {
       this.touches[1] = {x, y, id: this.touches[1].id};
+    } else {
+      // 正常情况：更新距离更近的触摸点
+      if (distance1 < distance2) {
+        this.touches[0] = {x, y, id: this.touches[0].id};
+      } else {
+        this.touches[1] = {x, y, id: this.touches[1].id};
+      }
     }
   }
 

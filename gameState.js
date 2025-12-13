@@ -388,7 +388,7 @@ class GameState {
     zoomState.initialScale = zoomState.zoomScale;
     zoomState.zoomStartTime = Date.now();
 
-    // 设置缩放计时器（200ms后开始缩放）
+    // 设置缩放计时器（50ms后开始缩放，防止误触但响应更快）
     zoomState.zoomTimer = setTimeout(() => {
       zoomState.isZooming = true;
       console.log(`缩放模式已激活，当前缩放比例: ${zoomState.zoomScale.toFixed(2)}`);
@@ -402,7 +402,7 @@ class GameState {
           }
         });
       }
-    }, zoomState.zoomThreshold);
+    }, 50); // 阈值改为50ms
   }
 
   // 更新缩放（双指移动）
