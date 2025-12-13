@@ -446,17 +446,10 @@ drawBrushSizeControl(startY, gameState) {
           ctx.lineTo(path.points[i].x, path.points[i].y);
         }
 
-        // 在缩放模式下保持画笔粗细不变
-        const originalLineWidth = path.size;
-        let actualLineWidth = originalLineWidth;
-        
-        // 如果处于缩放状态，根据缩放比例调整线宽（保持视觉一致性）
-        if (zoomState.isZooming || zoomState.zoomScale !== 1.0) {
-          actualLineWidth = originalLineWidth / zoomState.zoomScale;
-        }
-
+        // 修复：由于我们现在存储的坐标是未缩放的坐标，所以线宽不再需要额外调整
+        // 在缩放模式下，线宽会随着画布一起缩放
         ctx.strokeStyle = path.color;
-        ctx.lineWidth = Math.max(0.5, actualLineWidth); // 最小线宽为0.5
+        ctx.lineWidth = path.size; // 直接使用原始线宽
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.stroke();
@@ -475,6 +468,7 @@ drawBrushSizeControl(startY, gameState) {
     const { zoomScale, zoomCenterX, zoomCenterY } = zoomState;
     
     // 应用缩放变换：以双指中心点为缩放中心
+    // 这个变换会将存储的未缩放坐标正确地显示在缩放后的画布上
     ctx.translate(zoomCenterX, zoomCenterY);
     ctx.scale(zoomScale, zoomScale);
     ctx.translate(-zoomCenterX, -zoomCenterY);

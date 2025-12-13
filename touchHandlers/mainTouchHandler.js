@@ -657,19 +657,32 @@ class MainTouchHandler {
 
   startDrawing(x, y) {
     const gameState = this.eventHandler.gameState;
+    const zoomState = gameState.zoomState;
     gameState.isDrawing = true;
 
-    // 直接使用原始坐标（不再应用动态翻转）
+    // 直接使用原始坐标进行绘制
     gameState.lastX = x;
     gameState.lastY = y;
-    gameState.startNewPath(x, y);
+    
+    // 关键修复：在缩放模式下，将坐标转换为未缩放的坐标存储
+    let storedX = x;
+    let storedY = y;
+    
+    if (zoomState.isZooming || zoomState.zoomScale !== 1.0) {
+      // 将坐标转换为相对于未缩放画布的坐标
+      storedX = (x - zoomState.zoomCenterX) / zoomState.zoomScale + zoomState.zoomCenterX;
+      storedY = (y - zoomState.zoomCenterY) / zoomState.zoomScale + zoomState.zoomCenterY;
+    }
+    
+    gameState.startNewPath(storedX, storedY);
   }
 
   continueDrawing(x, y) {
     const ctx = this.eventHandler.canvas.getContext('2d');
     const gameState = this.eventHandler.gameState;
+    const zoomState = gameState.zoomState;
 
-    // 直接使用原始坐标（不再应用动态翻转）
+    // 直接使用原始坐标进行绘制（在缩放模式下保持视觉一致性）
     const currentX = x;
     const currentY = y;
 
@@ -694,8 +707,22 @@ class MainTouchHandler {
     ctx.lineJoin = 'round';
     ctx.stroke();
 
-    gameState.addPointToPath(currentX, currentY);
-    gameState.lastX = currentX;
+    // 关键修复：在缩放模式下，将坐标转换为未缩放的坐标存储
+    let storedX = currentX;
+    let storedY = currentY;
+    
+    if (zoomState.isZooming || zoomState.zoomScale !== 1.0) {
+      // 获取绘画区域左上角作为参考点
+      const drawingAreaLeft = 12;
+      const drawingAreaTop = drawingAreaY;
+      
+      // 将坐标转换为相对于未缩放画布的坐标
+      storedX = (currentX - zoomState.zoomCenterX) / zoomState.zoomScale + zoomState.zoomCenterX;
+      storedY = (currentY - zoomState.zoomCenterY) / zoomState.zoomScale + zoomState.zoomCenterY;
+    }
+
+    gameState.addPointToPath(storedX, storedY);
+    gameState.lastX = currentX; // 保持实际绘制坐标
     gameState.lastY = currentY;
 
     // 恢复画布状态
@@ -817,54 +844,7 @@ class MainTouchHandler {
     return success;
   }
 
-  // 修改：startDrawing 方法，移除协作操作记录
-  startDrawing(x, y) {
-    const gameState = this.eventHandler.gameState;
-    gameState.isDrawing = true;
 
-    // 直接使用原始坐标（不再应用动态翻转）
-    gameState.lastX = x;
-    gameState.lastY = y;
-    gameState.startNewPath(x, y);
-  }
-
-  // 修改：continueDrawing 方法，移除协作操作记录
-  continueDrawing(x, y) {
-    const ctx = this.eventHandler.canvas.getContext('2d');
-    const gameState = this.eventHandler.gameState;
-
-    // 直接使用原始坐标（不再应用动态翻转）
-    const currentX = x;
-    const currentY = y;
-
-    // 对所有绘制操作添加裁剪区域限制，确保不会超出边界
-    ctx.save();
-
-    // 设置裁剪区域为绘画区域内部（固定边距，与笔刷大小无关）
-    const drawingAreaY = this.positions.drawingAreaY;
-    const padding = 2; // 固定边距，确保不会擦到边框
-    ctx.beginPath();
-    ctx.rect(12 + padding, drawingAreaY + padding,
-             config.screenWidth - 24 - padding * 2,
-             config.drawingAreaHeight - padding * 2);
-    ctx.clip();
-
-    ctx.beginPath();
-    ctx.moveTo(gameState.lastX, gameState.lastY);
-    ctx.lineTo(currentX, currentY);
-    ctx.strokeStyle = gameState.isEraser ? '#FFFFFF' : gameState.currentColor;
-    ctx.lineWidth = gameState.brushSize;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.stroke();
-
-    gameState.addPointToPath(currentX, currentY);
-    gameState.lastX = currentX;
-    gameState.lastY = currentY;
-
-    // 恢复画布状态
-    ctx.restore();
-  }
 
   // 修改：finishDrawing 方法，修复版：确保操作正确记录到角色历史
   async finishDrawing() {
