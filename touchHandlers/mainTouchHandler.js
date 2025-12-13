@@ -76,6 +76,13 @@ class MainTouchHandler {
 
   // 新增：进入双指触摸模式
   enterTwoFingerMode() {
+    // 检查是否在共同绘画场景中，如果是则禁用缩放功能
+    if (this.eventHandler.isCollaborativePaintingVisible) {
+      console.log('共同绘画场景中，缩放功能已禁用');
+      this.resetTouchState();
+      return;
+    }
+
     // 清除单指计时器
     if (this.singleTouchTimer) {
       clearTimeout(this.singleTouchTimer);
@@ -146,6 +153,12 @@ class MainTouchHandler {
 
     // 双指缩放模式处理
     if (this.touchMode === 'two_finger' && this.touches.length >= 2) {
+      // 检查是否在共同绘画场景中，如果是则禁用缩放功能
+      if (this.eventHandler.isCollaborativePaintingVisible) {
+        console.log('共同绘画场景中，缩放功能已禁用');
+        return; // 在共同绘画场景中，双指移动不触发缩放，但仍允许单指绘画
+      }
+      
       // 处理双指缩放
       this.handleZoomMove();
       return; // 缩放模式中不进行绘画
