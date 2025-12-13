@@ -364,35 +364,35 @@ class GameState {
   }
 
   // 新增：缩放相关方法
-  
+
   // 开始缩放（双指触摸开始）
   startZooming(touch1X, touch1Y, touch2X, touch2Y) {
     const zoomState = this.zoomState;
-    
+
     // 清除之前的计时器
     if (zoomState.zoomTimer) {
       clearTimeout(zoomState.zoomTimer);
       zoomState.zoomTimer = null;
     }
-    
+
     // 计算双指中心点
     zoomState.zoomCenterX = (touch1X + touch2X) / 2;
     zoomState.zoomCenterY = (touch1Y + touch2Y) / 2;
-    
+
     // 计算初始距离（确保不小于最小距离）
     const distance = Math.sqrt(
       Math.pow(touch2X - touch1X, 2) + Math.pow(touch2Y - touch1Y, 2)
     );
     zoomState.initialDistance = Math.max(10, distance); // 最小距离10像素
-    
+
     zoomState.initialScale = zoomState.zoomScale;
     zoomState.zoomStartTime = Date.now();
-    
+
     // 设置缩放计时器（200ms后开始缩放）
     zoomState.zoomTimer = setTimeout(() => {
       zoomState.isZooming = true;
       console.log(`缩放模式已激活，当前缩放比例: ${zoomState.zoomScale.toFixed(2)}`);
-      
+
       // 缩放激活后立即重绘画布
       if (typeof wx !== 'undefined' && wx.requestAnimationFrame) {
         wx.requestAnimationFrame(() => {
@@ -408,36 +408,36 @@ class GameState {
   // 更新缩放（双指移动）
   updateZooming(touch1X, touch1Y, touch2X, touch2Y) {
     const zoomState = this.zoomState;
-    
+
     if (!zoomState.isZooming) return;
-    
+
     // 计算当前距离
     const currentDistance = Math.sqrt(
       Math.pow(touch2X - touch1X, 2) + Math.pow(touch2Y - touch1Y, 2)
     );
-    
+
     // 防止除零错误
     if (zoomState.initialDistance < 10) return;
-    
+
     // 更新缩放中心点
     zoomState.zoomCenterX = (touch1X + touch2X) / 2;
     zoomState.zoomCenterY = (touch1Y + touch2Y) / 2;
-    
+
     // 修复缩放非线性问题：使用增量缩放，而不是基于初始距离的比例
     const scaleRatio = currentDistance / zoomState.initialDistance;
-    
+
     // 计算增量缩放因子，确保缩放操作更线性
     const incrementalFactor = 1 + (scaleRatio - 1) * 0.3; // 降低缩放灵敏度，使操作更平滑
-    
+
     let newScale = zoomState.zoomScale * incrementalFactor;
-    
+
     // 确保缩放比例在有效范围内
     newScale = Math.max(1.0, Math.min(3.0, newScale));
-    
+
     // 只有当缩放比例变化超过阈值时才更新，避免频繁重绘
     if (Math.abs(newScale - zoomState.zoomScale) > 0.01) {
       zoomState.zoomScale = newScale;
-      
+
       // 更新初始距离为当前距离，为下一次增量计算做准备
       zoomState.initialDistance = currentDistance;
     }
@@ -446,13 +446,13 @@ class GameState {
   // 结束缩放
   finishZooming() {
     const zoomState = this.zoomState;
-    
+
     // 清除计时器
     if (zoomState.zoomTimer) {
       clearTimeout(zoomState.zoomTimer);
       zoomState.zoomTimer = null;
     }
-    
+
     zoomState.isZooming = false;
     console.log(`缩放结束，最终缩放比例: ${zoomState.zoomScale.toFixed(2)}`);
   }
@@ -460,13 +460,13 @@ class GameState {
   // 重置缩放状态
   resetZoom() {
     const zoomState = this.zoomState;
-    
+
     // 清除计时器
     if (zoomState.zoomTimer) {
       clearTimeout(zoomState.zoomTimer);
       zoomState.zoomTimer = null;
     }
-    
+
     zoomState.isZooming = false;
     zoomState.zoomScale = 1.0;
     zoomState.zoomCenterX = 0;

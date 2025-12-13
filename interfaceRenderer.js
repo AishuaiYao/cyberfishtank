@@ -487,20 +487,32 @@ drawBrushSizeControl(startY, gameState) {
     
     if (!zoomState.isZooming && zoomState.zoomScale === 1.0) return;
     
-    // 在绘画区域上方显示缩放比例
+    // 在绘画区域上方显示缩放比例和重置按钮
     const indicatorX = config.screenWidth - 60;
+    const resetButtonX = 60; // 与放大倍数提示对称，放在指示区左边
     const indicatorY = drawingAreaY - 25;
     
-    // 绘制背景
+    // 绘制放大倍数提示背景
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
     Utils.drawRoundedRect(ctx, indicatorX - 40, indicatorY - 10, 80, 20, 10, true, false);
     
-    // 绘制文字
+    // 绘制放大倍数文字
     ctx.fillStyle = '#FFFFFF';
     ctx.font = 'bold 12px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(`${zoomState.zoomScale.toFixed(1)}x`, indicatorX, indicatorY);
+    
+    // 绘制重置按钮背景
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    Utils.drawRoundedRect(ctx, resetButtonX - 40, indicatorY - 10, 80, 20, 10, true, false);
+    
+    // 绘制重置按钮文字
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 12px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('重置', resetButtonX, indicatorY);
     
     // 重置文本对齐
     ctx.textAlign = 'left';
