@@ -24,7 +24,7 @@ class GameState {
       isRequesting: false, // 新增：标记是否正在请求AI
       lastScoreTime: 0,    // 新增：上次评分时间
       scoreQueue: [],      // 新增：评分队列，用于防抖
-      
+
       // 协同模式特有状态
       collaborativeMode: false, // 是否处于协同模式
       collaborationCheckTime: 0, // 协同操作检查时间
@@ -33,7 +33,7 @@ class GameState {
     };
 
     this.scaledFishImage = null; // 新增：存储缩放后的鱼图像
-    
+
     // 新增：基于角色的操作历史栈
     this.homeownerHistory = []; // 房主操作历史栈
     this.teamworkerHistory = []; // 协作者操作历史栈
@@ -87,7 +87,7 @@ class GameState {
     if (this.drawingPaths.length === 0) {
       return false;
     }
-    
+
     // 一次性翻转所有路径的x坐标
     this.drawingPaths.forEach(path => {
       if (path.points && path.points.length > 0) {
@@ -97,7 +97,7 @@ class GameState {
         });
       }
     });
-    
+
     console.log(`画布已翻转，共翻转了${this.drawingPaths.length}条路径`);
     return true;
   }
@@ -189,7 +189,7 @@ class GameState {
     }
 
     let operationToUndo = null;
-    
+
     // 根据角色获取最后操作
     if (role === 'homeowner' && this.homeownerHistory.length > 0) {
       operationToUndo = this.homeownerHistory.pop();
@@ -206,10 +206,10 @@ class GameState {
     }
 
     // 从全局drawingPaths中移除对应的操作
-    const operationIndex = this.drawingPaths.findIndex(path => 
-      path.id === operationToUndo.id || 
-      (path.points === operationToUndo.points && 
-       path.color === operationToUndo.color && 
+    const operationIndex = this.drawingPaths.findIndex(path =>
+      path.id === operationToUndo.id ||
+      (path.points === operationToUndo.points &&
+       path.color === operationToUndo.color &&
        path.size === operationToUndo.size)
     );
 
@@ -223,14 +223,14 @@ class GameState {
       // 从后往前遍历，找到同类型的最后一个操作
       for (let i = this.drawingPaths.length - 1; i >= 0; i--) {
         const path = this.drawingPaths[i];
-        if ((path.isEraser === operationToUndo.isEraser) && 
+        if ((path.isEraser === operationToUndo.isEraser) &&
             (path.color === operationToUndo.color)) {
           this.drawingPaths.splice(i, 1);
           console.log(`${role}通过位置匹配撤销操作成功，移除索引${i}的操作`);
           return true;
         }
       }
-      
+
       console.error(`${role}撤销操作失败：无法在全局路径中找到匹配的操作`);
       return false;
     }
@@ -269,7 +269,7 @@ class GameState {
     }
 
     const now = Date.now();
-    
+
     // 检查协同评分锁定
     if (this.scoringState.collaborationScoreLock) {
       console.log('协同评分被锁定，等待解锁');

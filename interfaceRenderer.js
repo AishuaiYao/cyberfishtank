@@ -331,7 +331,7 @@ drawBrushSizeControl(startY, gameState) {
         isActive = true;
       }
       // 注意：撤销、清空和翻转按钮不设置激活状态，因为它们是瞬时操作
-      
+
       Utils.drawModernButton(this.ctx, x, startY, toolWidth - 10, config.buttonHeight,
                             `${toolButtons[i].icon} ${toolButtons[i].name}`,
                             isActive, false);
@@ -419,12 +419,12 @@ drawBrushSizeControl(startY, gameState) {
       if (path.points.length > 0) {
         // 对所有路径添加裁剪区域限制，确保不会超出边界
         ctx.save();
-        
+
         // 设置裁剪区域为绘画区域内部（固定边距，与笔刷大小无关）
         const padding = 2; // 固定边距，确保不会擦到边框
         ctx.beginPath();
-        ctx.rect(12 + padding, drawingAreaY + padding, 
-                 config.screenWidth - 24 - padding * 2, 
+        ctx.rect(12 + padding, drawingAreaY + padding,
+                 config.screenWidth - 24 - padding * 2,
                  config.drawingAreaHeight - padding * 2);
         ctx.clip();
 
@@ -440,7 +440,7 @@ drawBrushSizeControl(startY, gameState) {
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.stroke();
-        
+
         // 恢复画布状态
         ctx.restore();
       }

@@ -6,12 +6,12 @@ class MainTouchHandler {
     this.positions = getAreaPositions();
     this.lastDrawTime = 0;
     this.scoringTimer = null;
-    
+
     // 协作绘画相关
     this.isCollaborativeMode = false;
     this.collaborationManager = null;
     this.lastOperationRecorded = 0;
-    
+
     // 调色板处理器
     this.paletteHandler = null;
   }
@@ -97,7 +97,7 @@ class MainTouchHandler {
     if (this.paletteHandler && this.paletteHandler.isVisible) {
       if (this.paletteHandler.handlePaletteTouch(x, y)) return;
     }
-    
+
     if (this.handleColorButtonClick(x, y)) return;
     if (this.handleBrushSizeClick(x, y)) return;
     if (this.handleToolButtonClick(x, y)) return;
@@ -356,13 +356,13 @@ class MainTouchHandler {
 
     // 对所有绘制操作添加裁剪区域限制，确保不会超出边界
     ctx.save();
-    
+
     // 设置裁剪区域为绘画区域内部（固定边距，与笔刷大小无关）
     const drawingAreaY = this.positions.drawingAreaY;
     const padding = 2; // 固定边距，确保不会擦到边框
     ctx.beginPath();
-    ctx.rect(12 + padding, drawingAreaY + padding, 
-             config.screenWidth - 24 - padding * 2, 
+    ctx.rect(12 + padding, drawingAreaY + padding,
+             config.screenWidth - 24 - padding * 2,
              config.drawingAreaHeight - padding * 2);
     ctx.clip();
 
@@ -520,13 +520,13 @@ class MainTouchHandler {
 
     // 对所有绘制操作添加裁剪区域限制，确保不会超出边界
     ctx.save();
-    
+
     // 设置裁剪区域为绘画区域内部（固定边距，与笔刷大小无关）
     const drawingAreaY = this.positions.drawingAreaY;
     const padding = 2; // 固定边距，确保不会擦到边框
     ctx.beginPath();
-    ctx.rect(12 + padding, drawingAreaY + padding, 
-             config.screenWidth - 24 - padding * 2, 
+    ctx.rect(12 + padding, drawingAreaY + padding,
+             config.screenWidth - 24 - padding * 2,
              config.drawingAreaHeight - padding * 2);
     ctx.clip();
 
@@ -790,13 +790,13 @@ class MainTouchHandler {
       if (path.points && path.points.length > 0) {
         // 对所有路径添加裁剪区域限制，确保不会超出边界
         ctx.save();
-        
+
         // 设置裁剪区域为绘画区域内部（固定边距，与笔刷大小无关）
         const drawingAreaY = positions.drawingAreaY;
         const padding = 2; // 固定边距，确保不会擦到边框
         ctx.beginPath();
-        ctx.rect(12 + padding, drawingAreaY + padding, 
-                 config.screenWidth - 24 - padding * 2, 
+        ctx.rect(12 + padding, drawingAreaY + padding,
+                 config.screenWidth - 24 - padding * 2,
                  config.drawingAreaHeight - padding * 2);
         ctx.clip();
 
@@ -826,10 +826,10 @@ class MainTouchHandler {
         // 修复：重置合成模式，确保不会使用destination-out
         ctx.globalCompositeOperation = 'source-over';
         ctx.stroke();
-        
+
         // 恢复画布状态
         ctx.restore();
-        
+
         // 调试输出：显示绘制的路径信息
         if (path.role) {
           console.log(`重绘${path.role}的路径，颜色: ${path.color}, 点数: ${path.points.length}, 操作ID: ${path.id || '无ID'}`);
@@ -840,7 +840,7 @@ class MainTouchHandler {
     if (gameState.isFlipped) {
       ctx.restore();
     }
-    
+
     console.log('撤销操作后画布已重绘（备用方案）');
   }
 
@@ -871,7 +871,7 @@ class MainTouchHandler {
   cleanup() {
     this.cancelPendingScoring();
     this.stopCollaboration();
-    
+
     // 清理调色板处理器
     if (this.paletteHandler) {
       this.paletteHandler.cleanup();

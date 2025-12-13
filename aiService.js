@@ -3,6 +3,37 @@ class AIService {
   constructor() {
     this.currentRequest = null; // 新增：当前请求的引用
     this.requestTimeout = 10000; // 10秒超时
+    this.llmConfig = null; // 缓存配置
+  }
+
+  // 获取云存储中的配置
+  async fetchLLMConfig() {
+    if (this.llmConfig) {
+      return this.llmConfig;
+    }
+
+    wx.cloud.init({
+      env: 'cloudservice-0g27c8ul6804ce3d'
+    });
+
+    const fileID = 'cloud://cloudservice-0g27c8ul6804ce3d.636c-cloudservice-0g27c8ul6804ce3d-1386507046/cyberfishtank/llmConfig.json';
+
+    const downloadResult = await wx.cloud.downloadFile({
+      fileID: fileID
+    });
+
+    const fs = wx.getFileSystemManager();
+    const fileContent = await new Promise((resolve, reject) => {
+      fs.readFile({
+        filePath: downloadResult.tempFilePath,
+        encoding: 'utf8',
+        success: resolve,
+        fail: reject
+      });
+    });
+
+    this.llmConfig = JSON.parse(fileContent.data);
+    return this.llmConfig;
   }
 
   async getAIScore(canvas, gameState, updateUI) {
@@ -28,13 +59,13 @@ class AIService {
     const mainHandler = canvas._touchHandler || null;
     if (mainHandler && mainHandler.isCollaborativeMode) {
       console.log('协同模式：检查协同操作同步状态');
-      
+
       // 记录协同操作开始
       gameState.recordCollaborationOperationStart();
-      
+
       // 等待一小段时间，确保协同操作完成同步
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       // 检查是否有正在进行的协同操作
       const now = Date.now();
       if (mainHandler.lastOperationRecorded && (now - mainHandler.lastOperationRecorded) < 1000) {
@@ -52,10 +83,10 @@ class AIService {
       updateUI();
 
       const base64Data = canvas.toDataURL().split(',')[1];
-      
+
       // 优化：使用可取消的Promise
       const score = await this.callQWenVLModelWithCancel(base64Data, gameState);
-      
+
       // 优化：检查是否在评分过程中用户继续绘画了
       if (!gameState.scoringState.isRequesting) {
         console.log('评分已被取消，忽略结果');
@@ -66,10 +97,10 @@ class AIService {
 
       // 使用协同模式评分完成方法
       gameState.finishCollaborativeScoring(score);
-      
+
     } catch (error) {
       console.error('AI评分失败:', error);
-      
+
       // 优化：只在确实失败时设置随机分数
       if (gameState.scoringState.isRequesting) {
         const randomScore = Math.floor(Math.random() * 100);
@@ -85,7 +116,10 @@ class AIService {
   }
 
   // 优化：添加可取消的API调用
-  callQWenVLModelWithCancel(base64Image, gameState) {
+  async callQWenVLModelWithCancel(base64Image, gameState) {
+    // 获取配置
+    const config = await this.fetchLLMConfig();
+
     return new Promise((resolve, reject) => {
       // 清除之前的请求
       if (this.currentRequest) {
@@ -93,14 +127,14 @@ class AIService {
       }
 
       const requestTask = wx.request({
-        url: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+        url: config.url,
         method: 'POST',
         header: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer sk-4f326a97b68d43568f2bebd21ab0b701'
+          'Authorization': config.Authorization
         },
         data: {
-          model: "qwen3-vl-plus",
+          model: config.model,
           messages: [
             {
               "role": "user",
@@ -109,14 +143,14 @@ class AIService {
                   "type": "image_url",
                   "image_url": {"url": `data:image/png;base64,${base64Image}`}
                 },
-                {"type": "text", "text": "判断这个图上画的像不像鱼，判定严格一点，在0到100范围内打分，精确到小数点后两位，直接返回给我得分就行。如果画的内容你感觉涉及色情、暴力或者像人的私密部位的内容直接打0分。"}
+                {"type": "text", "text": config.prompt}
               ]
             }
           ]
         },
         success: (res) => {
           this.currentRequest = null;
-          
+
           // 检查请求是否已被取消
           if (!gameState.scoringState.isRequesting) {
             reject(new Error('请求已被取消'));

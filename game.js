@@ -4,7 +4,7 @@ const UIManager = require('./uiManager.js');
 const EventHandler = require('./eventHandler.js');
 
 // 导入数据库一致性测试脚本
-const DatabaseConsistencyTest = require('./testDatabaseConsistency.js');
+//const DatabaseConsistencyTest = require('./testDatabaseConsistency.js');
 
 class Game {
   constructor() {
@@ -65,10 +65,10 @@ class Game {
 
     // 执行数据库一致性测试
     console.log('开始执行数据库一致性测试...');
-    const dbTest = new DatabaseConsistencyTest();
-    dbTest.runConsistencyTest().catch(error => {
-      console.error('数据库一致性测试执行失败:', error);
-    });
+//    const dbTest = new DatabaseConsistencyTest();
+//    dbTest.runConsistencyTest().catch(error => {
+//      console.error('数据库一致性测试执行失败:', error);
+//    });
 
     console.log('游戏初始化完成，像素比:', pixelRatio);
   }

@@ -1545,13 +1545,13 @@ drawMainTitle() {
   // 绘制共同绘画界面
   drawCollaborativePaintingInterface(gameState) {
     const positions = getAreaPositions();
-    
+
     // 绘制背景（不绘制主标题，避免显示"赛博鱼缸DrawAFish"）
     this.interfaceRenderer.drawBackground();
-    
+
     // 绘制功能区，但隐藏共同绘画按钮
     this.drawCollaborativeFunctionArea(gameState, positions);
-    
+
     // 绘制其他区域
     this.interfaceRenderer.drawIndicatorArea(positions);
     this.interfaceRenderer.drawDrawingArea(gameState, positions);
@@ -1559,7 +1559,7 @@ drawMainTitle() {
 
     // 判断是否为房主，房主显示"让它游起来"按钮，伙伴不显示
     const isRoomOwner = this.eventHandler.touchHandlers.team?.roomNumber === this.eventHandler.touchHandlers.team?.teamInput;
-    
+
     if (isRoomOwner) {
       // 房主侧：显示"让它游起来"按钮
       this.drawCollaborativePaintingJumpArea(positions);
@@ -1569,17 +1569,17 @@ drawMainTitle() {
     // 绘制左上角返回按钮和房间号
     this.drawBackButton();
     this.drawRoomNumberHeader();
-    
+
     // 只在队友未加入时显示等待伙伴提示（仅房主侧显示）
     const isTeammateJoined = this.eventHandler.touchHandlers.team?.isTeammateJoined || false;
-    
+
     console.log('房间状态检查:', {
       isTeammateJoined,
       isRoomOwner,
       roomNumber: this.eventHandler.touchHandlers.team?.roomNumber,
       teamInput: this.eventHandler.touchHandlers.team?.teamInput
     });
-    
+
     // 如果是房主且队友未加入，才显示等待提示
     if (!isTeammateJoined && isRoomOwner) {
       this.drawWaitingPartnerMessage();
@@ -1625,7 +1625,7 @@ drawMainTitle() {
   // 绘制左上角返回按钮
   drawBackButton() {
     const ctx = this.ctx;
-    
+
     // 绘制返回按钮（与其他界面保持一致）
     Utils.drawModernButton(ctx, 20, 40, 50, 30, '返回', false, true);
   }
@@ -1633,57 +1633,57 @@ drawMainTitle() {
   // 绘制等待伙伴进入的提示
   drawWaitingPartnerMessage() {
     const ctx = this.ctx;
-    
+
     // 获取队友加入状态
     const isTeammateJoined = this.eventHandler.touchHandlers.team?.isTeammateJoined || false;
-    
+
     // 如果队友已经加入，则不显示等待提示
     if (isTeammateJoined) {
       console.log('队友已加入，隐藏等待伙伴提示');
       return;
     }
-    
+
     // 绘制半透明提示框
     const messageBoxWidth = 280;
     const messageBoxHeight = 80;
     const messageBoxX = (config.screenWidth - messageBoxWidth) / 2;
     const messageBoxY = config.screenHeight / 2 - 100;
-    
+
     // 背景框
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
     Utils.drawRoundedRect(ctx, messageBoxX, messageBoxY, messageBoxWidth, messageBoxHeight, 10, true, false);
-    
+
     // 显示等待伙伴加入的提示
     ctx.fillStyle = '#FFFFFF';
     ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    
+
     ctx.fillText('等待伙伴加入...', messageBoxX + messageBoxWidth / 2, messageBoxY + messageBoxHeight / 2 - 10);
-    
+
     // 房间号提示
     const roomNumber = this.eventHandler.touchHandlers.team?.roomNumber || '00000000';
     ctx.font = 'bold 14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.fillText(`房间号: ${roomNumber}`, messageBoxX + messageBoxWidth / 2, messageBoxY + messageBoxHeight / 2 + 15);
-    
+
     // 绘制加载动画
     const loadingX = messageBoxX + messageBoxWidth / 2;
     const loadingY = messageBoxY + messageBoxHeight / 2 + 40;
     const loadingRadius = 8;
     const time = Date.now() / 1000;
-    
+
     ctx.fillStyle = '#4CD964';
     ctx.beginPath();
     ctx.arc(loadingX, loadingY, loadingRadius, 0, Math.PI * 2);
     ctx.fill();
-    
+
     ctx.fillStyle = '#FFFFFF';
     ctx.beginPath();
-    ctx.arc(loadingX + Math.cos(time * 5) * (loadingRadius - 2), 
-              loadingY + Math.sin(time * 5) * (loadingRadius - 2), 
+    ctx.arc(loadingX + Math.cos(time * 5) * (loadingRadius - 2),
+              loadingY + Math.sin(time * 5) * (loadingRadius - 2),
               2, 0, Math.PI * 2);
     ctx.fill();
-    
+
     // 重置文本对齐
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';

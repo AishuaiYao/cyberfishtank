@@ -441,7 +441,7 @@ class DatabaseManager {
 
         const sortedFishes = [];
         const skippedFishNames = []; // 记录被跳过的fishName，便于调试
-        
+
         commentResult.data.forEach(comment => {
           if (fishMap[comment.fishName]) {
             sortedFishes.push({
@@ -457,7 +457,7 @@ class DatabaseManager {
         if (skippedFishNames.length > 0) {
           console.log(`跳过了 ${skippedFishNames.length} 条在fishes集合中不存在的鱼:`, skippedFishNames);
         }
-        
+
         console.log(`从comment集合获取了 ${commentResult.data.length} 条评论，从fishes集合匹配了 ${sortedFishes.length} 条鱼数据`);
         result = { data: sortedFishes };
       } else {
@@ -490,7 +490,7 @@ class DatabaseManager {
           .skip((page + 1) * pageSize)
           .limit(1)
           .get();
-        
+
         return {
           data: validRankingData,
           hasMore: nextCommentResult.data.length > 0
@@ -764,7 +764,7 @@ async getRandomFishesByUserFallback(openid, count = 20) {
 
     try {
       console.log(`开始监听房间 ${roomId} 的协作者数据变化`);
-      
+
       // 使用数据库的watch功能监听指定房间的teamworker数据变化
       const watch = this.cloudDb.collection('drawing').where({
         roomId: roomId,
@@ -772,7 +772,7 @@ async getRandomFishesByUserFallback(openid, count = 20) {
       }).watch({
         onChange: (snapshot) => {
           console.log('监听到协作者数据变化:', snapshot, 'type:', snapshot.type);
-          
+
           // 处理不同类型的变更
           if (snapshot.type === 'update' && snapshot.updated && snapshot.updated.length > 0) {
             // 检查uid字段是否从空变为非空（表示有队友加入）
@@ -878,7 +878,7 @@ async getRandomFishesByUserFallback(openid, count = 20) {
         console.log(`房间 ${roomId} 协作者状态: ${isJoined ? '已加入' : '未加入'}`);
         return isJoined;
       }
-      
+
       return false;
     } catch (error) {
       console.error('检查协作者状态失败:', error);
@@ -926,7 +926,7 @@ async getRandomFishesByUserFallback(openid, count = 20) {
       } else {
         // 对于协作者操作，使用云函数更新
         console.log(`使用云函数更新协作者数据: 房间${roomId}, 角色${role}`);
-        
+
         // 调用云函数更新绘画数据
         const cloudFunctionResult = await wx.cloud.callFunction({
           name: 'updateDrawingData',
@@ -939,7 +939,7 @@ async getRandomFishesByUserFallback(openid, count = 20) {
             lineWidth: updateData.lineWidth
           }
         });
-        
+
         if (cloudFunctionResult.result && cloudFunctionResult.result.success) {
           console.log(`云函数更新绘画数据成功`);
           return true;
@@ -1016,7 +1016,7 @@ async getRandomFishesByUserFallback(openid, count = 20) {
   // 新增：查询用户对指定鱼的点赞/点踩状态
   async getUserInteractionStatus(fishNames, openid) {
     if (!Utils.checkDatabaseInitialization(this, '查询用户交互状态')) return {};
-    
+
     if (!fishNames || fishNames.length === 0 || !openid) {
       console.log('无效的查询参数，跳过用户交互状态查询');
       return {};
@@ -1038,7 +1038,7 @@ async getRandomFishesByUserFallback(openid, count = 20) {
         // 基于action字段设置状态
         const liked = interaction.action === 'star';
         const disliked = interaction.action === 'unstar';
-        
+
         interactionMap[interaction.fishName] = {
           liked: liked,
           disliked: disliked,
@@ -1058,19 +1058,19 @@ async getRandomFishesByUserFallback(openid, count = 20) {
     const cacheKey = sortType; // 'best', 'worst', 'latest'
     const currentCache = rankingCache[cacheKey];
     const currentPageInfo = rankingPages[cacheKey];
-    
+
     // 检查是否需要从数据库加载新数据
-    const needLoadFromDB = page > currentPageInfo.currentPage || 
-                         currentCache.size === 0 || 
+    const needLoadFromDB = page > currentPageInfo.currentPage ||
+                         currentCache.size === 0 ||
                          page === 0; // 第一页总是加载
-    
+
     if (!needLoadFromDB) {
       // 从缓存中获取数据
       const cachedFishNames = Array.from(currentCache.keys());
       const startIndex = page * pageSize;
       const endIndex = Math.min(startIndex + pageSize, cachedFishNames.length);
       const fishNames = cachedFishNames.slice(startIndex, endIndex);
-      
+
       // 从缓存获取小鱼数据
       const fishes = [];
       for (const fishName of fishNames) {
@@ -1079,17 +1079,17 @@ async getRandomFishesByUserFallback(openid, count = 20) {
           fishes.push(fishCardData);
         }
       }
-      
+
       return {
         data: fishes,
         hasMore: endIndex < cachedFishNames.length,
         fromCache: true
       };
     }
-    
+
     // 需要从数据库加载数据
     const result = await this.getRankingDataPage(page, pageSize, sortType);
-    
+
     // 将新加载的数据添加到缓存
     if (result.data && result.data.length > 0) {
       for (const fishData of result.data) {
@@ -1103,43 +1103,43 @@ async getRandomFishesByUserFallback(openid, count = 20) {
             base64: fishData.base64,
             createdAt: fishData.createdAt,
             createTimestamp: fishData.createTimestamp,
-            
+
             // === 评分信息（来自comment集合）===
             score: fishData.score || 0,
             scoreChanged: 0, // 0表示score无变化，1表示score有变化，需要更新到数据库
-            
+
             // === 用户交互状态 ===
             userInteraction: this.getUserInteractionFromCache(fishData.fishName, userInteractionCache),
-            
+
             // === 排行榜相关信息 ===
             rank: page * pageSize + result.data.indexOf(fishData) + 1,
-            
+
             // === UI渲染相关 ===
             fishImage: null, // 延迟加载
             imageLoadStatus: 'pending',
-            
+
             // === 缓存管理 ===
             cacheTime: Date.now(),
             lastUpdateTime: Date.now(),
             cacheVersion: 1
           };
-          
+
           // 添加到缓存
           currentCache.set(fishData.fishName, fishCardData);
         }
       }
-      
+
       // 更新分页信息
       currentPageInfo.currentPage = page;
       currentPageInfo.hasMore = result.hasMore;
     }
-    
+
     return {
       ...result,
       fromCache: false
     };
   }
-  
+
   // 辅助方法：从用户交互缓存获取交互状态
   getUserInteractionFromCache(fishName, userInteractionCache) {
     if (!userInteractionCache || !userInteractionCache.has(fishName)) {
@@ -1150,14 +1150,14 @@ async getRandomFishesByUserFallback(openid, count = 20) {
         _id: null
       };
     }
-    
+
     return userInteractionCache.get(fishName);
   }
 
   // 新增：获取用户的所有交互记录
   async getAllUserInteractions(userOpenid) {
     if (!Utils.checkDatabaseInitialization(this, '获取用户所有交互记录')) return new Map();
-    
+
     if (!userOpenid) {
       console.log('用户openid为空，无法获取交互记录');
       return new Map();
@@ -1188,7 +1188,7 @@ async getRandomFishesByUserFallback(openid, count = 20) {
             // 基于action字段设置状态
             const liked = interaction.action === 'star';
             const disliked = interaction.action === 'unstar';
-            
+
             // 存储到Map中
             interactionMap.set(interaction.fishName, {
               action: interaction.action,
@@ -1201,7 +1201,7 @@ async getRandomFishesByUserFallback(openid, count = 20) {
 
           // 更新skip值
           skip += batchSize;
-          
+
           // 如果返回的数据少于batchSize，说明没有更多数据
           hasMore = result.data.length >= batchSize;
         } else {
@@ -1236,7 +1236,7 @@ async getRandomFishesByUserFallback(openid, count = 20) {
       if (result.data.length > 0) {
         const commentData = result.data[0];
         console.log(`找到鱼 ${fishName} 的评分数据:`, commentData);
-        
+
         // 返回评分数据，与排行榜逻辑保持一致
         return {
           score: commentData.score || 0,
@@ -1260,10 +1260,10 @@ async getRandomFishesByUserFallback(openid, count = 20) {
         .orderBy('score', 'desc')
         .limit(limit * 2) // 多获取一些，避免数据不完整
         .get();
-      
+
       // 提取鱼名列表
       const fishNames = commentResult.data.map(comment => comment.fishName);
-      
+
       // 根据鱼名查询对应的鱼数据
       if (fishNames.length > 0) {
         const fishResult = await this.cloudDb.collection('fishes')
@@ -1271,7 +1271,7 @@ async getRandomFishesByUserFallback(openid, count = 20) {
             fishName: this.cloudDb.command.in(fishNames)
           })
           .get();
-        
+
         // 按照comment中的score排序鱼数据，并过滤无效数据
         const fishMap = {};
         fishResult.data.forEach(fish => {
@@ -1279,7 +1279,7 @@ async getRandomFishesByUserFallback(openid, count = 20) {
             fishMap[fish.fishName] = fish;
           }
         });
-        
+
         const sortedFishes = [];
         commentResult.data.forEach(comment => {
           if (fishMap[comment.fishName] && sortedFishes.length < limit) {
@@ -1289,11 +1289,11 @@ async getRandomFishesByUserFallback(openid, count = 20) {
             });
           }
         });
-        
+
         console.log(`最佳鱼缸：从${commentResult.data.length}条评论中获取了${sortedFishes.length}条有效鱼数据`);
         return sortedFishes;
       }
-      
+
       console.warn('最佳鱼缸：未找到有效的评论数据');
       return [];
     } catch (error) {
@@ -1311,10 +1311,10 @@ async getRandomFishesByUserFallback(openid, count = 20) {
         .orderBy('score', 'asc')
         .limit(limit * 2) // 多获取一些，避免数据不完整
         .get();
-      
+
       // 提取鱼名列表
       const fishNames = commentResult.data.map(comment => comment.fishName);
-      
+
       // 根据鱼名查询对应的鱼数据
       if (fishNames.length > 0) {
         const fishResult = await this.cloudDb.collection('fishes')
@@ -1322,7 +1322,7 @@ async getRandomFishesByUserFallback(openid, count = 20) {
             fishName: this.cloudDb.command.in(fishNames)
           })
           .get();
-        
+
         // 按照comment中的score排序鱼数据，并过滤无效数据
         const fishMap = {};
         fishResult.data.forEach(fish => {
@@ -1330,7 +1330,7 @@ async getRandomFishesByUserFallback(openid, count = 20) {
             fishMap[fish.fishName] = fish;
           }
         });
-        
+
         const sortedFishes = [];
         commentResult.data.forEach(comment => {
           if (fishMap[comment.fishName] && sortedFishes.length < limit) {
@@ -1340,11 +1340,11 @@ async getRandomFishesByUserFallback(openid, count = 20) {
             });
           }
         });
-        
+
         console.log(`最丑鱼缸：从${commentResult.data.length}条评论中获取了${sortedFishes.length}条有效鱼数据`);
         return sortedFishes;
       }
-      
+
       console.warn('最丑鱼缸：未找到有效的评论数据');
       return [];
     } catch (error) {
@@ -1384,7 +1384,7 @@ async getRandomFishesByUserFallback(openid, count = 20) {
             fishName: fishName
           }
         });
-        
+
         if (cloudResult.result && cloudResult.result.success) {
           console.log(`云函数删除评论成功: ${fishName}`);
           return true;
