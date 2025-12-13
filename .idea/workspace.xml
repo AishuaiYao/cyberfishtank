@@ -4,8 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="比较好了，放大后绘画也不会偏移。">
-      <change beforePath="$PROJECT_DIR$/touchHandlers/mainTouchHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/mainTouchHandler.js" afterDir="false" />
+    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="加入鱼缸前先执行重置">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uiManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/uiManager.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -70,14 +71,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00172" summary="细微优化-排行榜点赞ok，点踩有问题-修复了interaction插入数据冗余">
-      <option name="closed" value="true" />
-      <created>1765096156936</created>
-      <option name="number" value="00172" />
-      <option name="presentableId" value="LOCAL-00172" />
-      <option name="project" value="LOCAL" />
-      <updated>1765096156936</updated>
     </task>
     <task id="LOCAL-00173" summary="细微优化-排行榜点赞ok，点踩有问题-修复了interaction插入数据冗余">
       <option name="closed" value="true" />
@@ -463,11 +456,18 @@
       <option name="project" value="LOCAL" />
       <updated>1765622295894</updated>
     </task>
-    <option name="localTasksCounter" value="221" />
+    <task id="LOCAL-00221" summary="加入鱼缸前先执行重置">
+      <option name="closed" value="true" />
+      <created>1765623579599</created>
+      <option name="number" value="00221" />
+      <option name="presentableId" value="LOCAL-00221" />
+      <option name="project" value="LOCAL" />
+      <updated>1765623579599</updated>
+    </task>
+    <option name="localTasksCounter" value="222" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="鱼缸选择" />
     <MESSAGE value="最佳鱼缸刷新" />
     <MESSAGE value="最佳鱼缸刷新OK" />
     <MESSAGE value="调色板-可以选颜色" />
@@ -492,6 +492,7 @@
     <MESSAGE value="缩放-每次都有反应-放大缩小还有问题-增加重置button" />
     <MESSAGE value="缩放-每次都有反应-缩放基本可用，但是还是存在部分时候误识别。" />
     <MESSAGE value="比较好了，放大后绘画也不会偏移。" />
-    <option name="LAST_COMMIT_MESSAGE" value="比较好了，放大后绘画也不会偏移。" />
+    <MESSAGE value="加入鱼缸前先执行重置" />
+    <option name="LAST_COMMIT_MESSAGE" value="加入鱼缸前先执行重置" />
   </component>
 </project>

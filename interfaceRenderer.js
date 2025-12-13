@@ -8,6 +8,12 @@ class InterfaceRenderer {
     this.pixelRatio = pixelRatio;
     // 初始化时优化渲染设置
     this.optimizeRendering();
+    
+    // 提示语轮换相关变量
+    this.tips = ['鱼头请朝右', '双指长按然后外拉缩放', '共同绘画场景禁用缩放'];
+    this.currentTipIndex = 0;
+    this.lastTipChangeTime = Date.now();
+    this.tipChangeInterval = 5000; // 5秒间隔
   }
 
   // 新增：优化渲染设置
@@ -354,9 +360,16 @@ drawBrushSizeControl(startY, gameState) {
     ctx.font = 'bold 18px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.fillText('🎨画一条鱼吧!', config.screenWidth / 2, startY - 25);
 
+    // 检查是否需要更换提示语
+    const currentTime = Date.now();
+    if (currentTime - this.lastTipChangeTime >= this.tipChangeInterval) {
+      this.currentTipIndex = (this.currentTipIndex + 1) % this.tips.length;
+      this.lastTipChangeTime = currentTime;
+    }
+
     ctx.fillStyle = config.lightTextColor;
     ctx.font = '14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-    ctx.fillText('鱼头请朝右', config.screenWidth / 2, startY - 5);
+    ctx.fillText(this.tips[this.currentTipIndex], config.screenWidth / 2, startY - 5);
 
     ctx.textAlign = 'left';
   }

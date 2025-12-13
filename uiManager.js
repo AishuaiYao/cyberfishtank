@@ -11,10 +11,10 @@ class UIManager {
     this.eventHandler = null;
     this.interfaceRenderer = new InterfaceRenderer(ctx, pixelRatio);
     this.teamInterfaceRenderer = new TeamInterfaceRenderer(ctx, pixelRatio);
-    
+
     // 新增：加载动画相关变量
     this.loadingSpinnerAngle = 0;
-    
+
     // 初始化时优化渲染设置
     this.optimizeRendering();
 
@@ -87,7 +87,7 @@ class UIManager {
     ctx.textAlign = 'center';
 
     const fishCount = this.eventHandler.getCurrentTankFishCount();
-    
+
     if (this.eventHandler.currentTankMode === 'public') {
       if (fishCount === 0) {
         ctx.fillText('赛博鱼缸：随机加载20条鱼', Math.round(config.screenWidth / 2), config.screenHeight - 30);
@@ -135,20 +135,20 @@ class UIManager {
     // 绘制四个按钮：返回、最佳榜、最丑榜、最新榜
     const buttonSpacing = 5; // 统一使用5像素间距
     const buttonHeight = 30;
-    
+
     // 返回按钮（宽度50）
     Utils.drawModernButton(ctx, 20, 50, 50, buttonHeight, '返回', false, true);
-    
+
     // 最佳榜按钮（宽度65）
     const bestButtonX = 20 + 50 + buttonSpacing;
     const isBestRankActive = this.eventHandler.rankingSortType === 'best';
     Utils.drawModernButton(ctx, bestButtonX, 50, 65, buttonHeight, '最佳榜', isBestRankActive, false);
-    
+
     // 最丑榜按钮（宽度65）
     const worstButtonX = bestButtonX + 65 + buttonSpacing;
     const isWorstRankActive = this.eventHandler.rankingSortType === 'worst';
     Utils.drawModernButton(ctx, worstButtonX, 50, 65, buttonHeight, '最丑榜', isWorstRankActive, false);
-    
+
     // 最新榜按钮（宽度65）
     const latestButtonX = worstButtonX + 65 + buttonSpacing;
     const isLatestRankActive = this.eventHandler.rankingSortType === 'latest';
@@ -174,7 +174,7 @@ class UIManager {
   drawTankSelector(buttonY) {
     const buttonHeight = 30; // 直接在方法内部定义
     const ctx = this.ctx;
-    
+
     // 初始化选择器状态（如果不存在）
     if (!this.eventHandler.tankSelectorState) {
       // 调整选项顺序：赛博鱼缸放在第三个位置
@@ -185,10 +185,10 @@ class UIManager {
         { id: 'latest', name: '最新鱼缸' },
         { id: 'my', name: '我的鱼缸' }
       ];
-      
+
       // 设置默认选中赛博鱼缸（索引2）
       const defaultSelectedIndex = 2;
-      
+
       this.eventHandler.tankSelectorState = {
         isOpen: false,
         selectedIndex: defaultSelectedIndex,
@@ -196,13 +196,13 @@ class UIManager {
         items: items
       };
     }
-    
+
     // 进一步减小选择器宽度和高度，使整体更紧凑
     const selectorWidth = 100; // 减小宽度
     const selectorHeight = 160; // 减小高度
     const selectorX = 80; // 紧跟在返回按钮后面
     const selectorY = buttonY;
-    
+
     // 保存选择器边界到事件处理器，用于点击检测
     this.eventHandler.tankSelectorBounds = {
       x: selectorX,
@@ -211,101 +211,101 @@ class UIManager {
       collapsedHeight: buttonHeight, // 收起状态的高度
       expandedHeight: selectorHeight // 展开状态的高度
     };
-    
+
     // 如果选择器展开，绘制半透明遮罩
     if (this.eventHandler.tankSelectorState.isOpen) {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.25)'; // 减小遮罩透明度
       ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
-      
+
       // 绘制选择器背景卡片 - 使用更现代的样式
       ctx.shadowColor = 'rgba(0,0,0,0.15)'; // 减小阴影
       ctx.shadowBlur = 10;
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 3;
-      
+
       // 使用更柔和的背景色渐变，去掉纯蓝色
       const bgGradient = ctx.createLinearGradient(selectorX, selectorY, selectorX, selectorY + selectorHeight);
       bgGradient.addColorStop(0, 'rgba(255, 255, 255, 0.98)');
       bgGradient.addColorStop(1, 'rgba(248, 248, 250, 0.98)');
-      
+
       ctx.fillStyle = bgGradient;
       Utils.drawRoundedRect(ctx, selectorX, selectorY, selectorWidth, selectorHeight, 8, true, false); // 减小圆角
-      
+
       // 添加内部边框
       ctx.strokeStyle = 'rgba(0, 0, 0, 0.05)'; // 更淡的边框
       ctx.lineWidth = 0.5;
       Utils.drawRoundedRect(ctx, selectorX, selectorY, selectorWidth, selectorHeight, 8, false, true);
-      
+
       ctx.shadowColor = 'transparent';
       ctx.shadowBlur = 0;
-      
+
       // 进一步减小选项高度，使布局更紧凑
       const itemHeight = 32; // 减小选项高度
-      
+
       // 初始化滚动偏移量（如果不存在）
       if (this.eventHandler.tankSelectorState.scrollOffset === undefined) {
         this.eventHandler.tankSelectorState.scrollOffset = 0;
       }
-      
+
       // 绘制选中项高亮（中间位置）- 使用更淡的背景色
       const highlightY = selectorY + selectorHeight / 2 - itemHeight / 2;
       ctx.fillStyle = 'rgba(0, 122, 255, 0.08)'; // 更淡的蓝色背景
       Utils.drawRoundedRect(ctx, selectorX + 4, highlightY, selectorWidth - 8, itemHeight, 4, true, false); // 减小边距和圆角
-      
+
       // 添加选中项边框
       ctx.strokeStyle = 'rgba(0, 122, 255, 0.15)'; // 更淡的边框
       ctx.lineWidth = 0.5;
       Utils.drawRoundedRect(ctx, selectorX + 4, highlightY, selectorWidth - 8, itemHeight, 4, false, true);
-      
+
       // 绘制选项文本
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      
+
       // 计算可见区域的高度
       const visibleAreaHeight = selectorHeight;
       const centerOffset = this.eventHandler.tankSelectorState.scrollOffset;
-      
+
       // 绘制所有选项，但只显示可见部分
       for (let i = 0; i < this.eventHandler.tankSelectorState.items.length; i++) {
         const item = this.eventHandler.tankSelectorState.items[i];
-        
+
         // 计算每个选项相对于中心的位置
         const offsetFromCenter = (i - this.eventHandler.tankSelectorState.selectedIndex) * itemHeight + centerOffset;
         const itemY = selectorY + selectorHeight / 2 - itemHeight / 2 + offsetFromCenter;
-        
+
         // 只渲染可见范围内的选项，确保不超出边界
         if (itemY > selectorY - itemHeight/2 && itemY < selectorY + selectorHeight - itemHeight/2) {
           const isSelected = i === this.eventHandler.tankSelectorState.selectedIndex;
-          
+
           // 根据与中心距离调整文字颜色和透明度，确保滑动时文字可见
           const distanceFromCenter = Math.abs(offsetFromCenter);
           let opacity = 1.0;
-          
+
           if (distanceFromCenter > itemHeight) {
             opacity = Math.max(0.6, 1 - (distanceFromCenter - itemHeight) / (visibleAreaHeight / 2));
           }
-          
+
           // 选项名称 - 使用更小的字体和更柔和的颜色
-          ctx.font = isSelected ? '600 12px -apple-system, "SF Pro Display", "PingFang SC", "Helvetica Neue", Arial, sans-serif' : 
+          ctx.font = isSelected ? '600 12px -apple-system, "SF Pro Display", "PingFang SC", "Helvetica Neue", Arial, sans-serif' :
                                  '500 12px -apple-system, "SF Pro Display", "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-                                 
+
           if (isSelected) {
             ctx.fillStyle = '#007AFF'; // 选中项使用蓝色
           } else {
             ctx.fillStyle = `rgba(29, 29, 31, ${opacity})`; // 非选中项使用带透明度的深色
           }
-          
+
           // 添加文字阴影，提高可读性
           ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
           ctx.shadowBlur = 0.5;
           ctx.shadowOffsetX = 0;
           ctx.shadowOffsetY = 0.5;
-          
+
           // 确保文字不会超出边界 - 减小内边距
           const textPadding = 6;
           const maxTextWidth = selectorWidth - textPadding * 2;
           let displayText = item.name;
-          
+
           // 如果文字太长，进行截断
           if (ctx.measureText(item.name).width > maxTextWidth) {
             let truncatedText = item.name;
@@ -314,60 +314,60 @@ class UIManager {
             }
             displayText = truncatedText + '...';
           }
-          
+
           ctx.fillText(displayText, selectorX + selectorWidth / 2, itemY + itemHeight / 2);
-          
+
           // 重置阴影
           ctx.shadowColor = 'transparent';
           ctx.shadowBlur = 0;
         }
       }
-      
+
       // 绘制顶部和底部渐变边缘 - 更现代的效果，进一步减小渐变区域
       const fadeHeight = 15; // 进一步减小渐变区域高度
-      
+
       const topGradient = ctx.createLinearGradient(0, selectorY, 0, selectorY + fadeHeight);
       topGradient.addColorStop(0, 'rgba(248, 248, 250, 0.9)');
       topGradient.addColorStop(1, 'rgba(248, 248, 250, 0)');
       ctx.fillStyle = topGradient;
       ctx.fillRect(selectorX, selectorY, selectorWidth, fadeHeight);
-      
+
       const bottomGradient = ctx.createLinearGradient(0, selectorY + selectorHeight - fadeHeight, 0, selectorY + selectorHeight);
       bottomGradient.addColorStop(0, 'rgba(248, 248, 250, 0)');
       bottomGradient.addColorStop(1, 'rgba(248, 248, 250, 0.9)');
       ctx.fillStyle = bottomGradient;
       ctx.fillRect(selectorX, selectorY + selectorHeight - fadeHeight, selectorWidth, fadeHeight);
-      
+
       ctx.textAlign = 'left';
       ctx.textBaseline = 'alphabetic';
     } else {
       // 绘制收起状态的按钮
       const selectedItem = this.eventHandler.tankSelectorState.items[this.eventHandler.tankSelectorState.selectedIndex];
-      
+
       // 优化按钮背景颜色 - 使用与返回按钮相同的渐变风格
       const buttonGradient = ctx.createLinearGradient(selectorX, selectorY, selectorX, selectorY + buttonHeight);
       buttonGradient.addColorStop(0, '#F8F9FA'); // 浅灰色渐变
       buttonGradient.addColorStop(1, '#F2F2F7'); // 稍深一点的灰色
-      
+
       ctx.fillStyle = buttonGradient;
       ctx.strokeStyle = '#E5E5EA';
       ctx.lineWidth = 0.5;
       Utils.drawRoundedRect(ctx, selectorX, selectorY, selectorWidth, buttonHeight, 6, true, false);
       Utils.drawRoundedRect(ctx, selectorX, selectorY, selectorWidth, buttonHeight, 6, false, true);
-      
+
       // 绘制当前选中的文本 - 使用更小的字体并确保居中对齐
       ctx.fillStyle = '#1D1D1F';
       ctx.font = '500 12px -apple-system, "SF Pro Display", "PingFang SC", "Helvetica Neue", Arial, sans-serif'; // 减小字体
-      
+
       // 确保文本居中显示
       ctx.textAlign = 'center'; // 改为居中对齐
       ctx.textBaseline = 'middle';
-      
+
       // 计算文本显示位置，考虑下拉箭头的宽度
       const arrowWidth = 15;
       const maxTextWidth = selectorWidth - arrowWidth - 10;
       let displayText = selectedItem.name;
-      
+
       // 如果文字太长，进行截断
       if (ctx.measureText(selectedItem.name).width > maxTextWidth) {
         let truncatedText = selectedItem.name;
@@ -376,15 +376,15 @@ class UIManager {
         }
         displayText = truncatedText + '...';
       }
-      
+
       ctx.fillText(displayText, selectorX + (selectorWidth - arrowWidth) / 2, selectorY + buttonHeight / 2);
-      
+
       // 绘制下拉箭头 - 使用更小的图标并确保居中对齐
       ctx.fillStyle = '#8E8E93';
       ctx.font = '8px -apple-system, "SF Pro Display", "PingFang SC", "Helvetica Neue", Arial, sans-serif'; // 减小字体
       ctx.textAlign = 'center'; // 居中对齐
       ctx.fillText('▼', selectorX + selectorWidth - arrowWidth / 2, selectorY + buttonHeight / 2);
-      
+
       // 添加微小的分隔线
       ctx.strokeStyle = '#E5E5EA';
       ctx.lineWidth = 0.5;
@@ -392,7 +392,7 @@ class UIManager {
       ctx.moveTo(selectorX + selectorWidth - arrowWidth - 3, selectorY + 6); // 调整位置
       ctx.lineTo(selectorX + selectorWidth - arrowWidth - 3, selectorY + buttonHeight - 6); // 调整位置
       ctx.stroke();
-      
+
       ctx.textAlign = 'left';
       ctx.textBaseline = 'alphabetic';
     }
@@ -405,7 +405,7 @@ class UIManager {
     // 绘制主游戏界面作为背景
     const gameState = this.eventHandler ? this.eventHandler.gameState : null;
     const positions = getAreaPositions();
-    
+
     this.interfaceRenderer.drawBackground();
     this.drawMainTitle();
     this.interfaceRenderer.drawFunctionArea(gameState, positions);
@@ -417,11 +417,11 @@ class UIManager {
     // 确保teamInterfaceRenderer能够访问到事件处理器的输入数据
     if (this.eventHandler && this.eventHandler.touchHandlers && this.eventHandler.touchHandlers.team) {
       const currentTeamState = this.eventHandler.touchHandlers.team.currentTeamState;
-      
+
       // 将输入数据设置到teamInterfaceRenderer中
       this.teamInterfaceRenderer.setTeamInput(this.eventHandler.touchHandlers.team.teamInput);
       this.teamInterfaceRenderer.setSearchRoomInput(this.eventHandler.touchHandlers.team.searchRoomInput);
-      
+
       switch (currentTeamState) {
         case 'main':
           this.teamInterfaceRenderer.drawTeamInterface();
@@ -970,17 +970,17 @@ class UIManager {
 
     // 检查最终交互状态 - 兼容action字段和liked/disliked字段
     const hasInteracted = !!finalInteraction;
-    
+
     // 兼容两种数据结构
     let isLiked = false;
     let isDisliked = false;
-    
+
     if (hasInteracted) {
       // 新数据结构使用liked/disliked字段
       if (finalInteraction.liked !== undefined || finalInteraction.disliked !== undefined) {
         isLiked = finalInteraction.liked === true;
         isDisliked = finalInteraction.disliked === true;
-      } 
+      }
       // 旧数据结构使用action字段
       else if (finalInteraction.action) {
         isLiked = finalInteraction.action === 'star';
@@ -1138,17 +1138,17 @@ class UIManager {
 
     // 检查最终交互状态 - 兼容action字段和liked/disliked字段
     const hasInteracted = !!finalInteraction;
-    
+
     // 兼容两种数据结构
     let isLiked = false;
     let isDisliked = false;
-    
+
     if (hasInteracted) {
       // 新数据结构使用liked/disliked字段
       if (finalInteraction.liked !== undefined || finalInteraction.disliked !== undefined) {
         isLiked = finalInteraction.liked === true;
         isDisliked = finalInteraction.disliked === true;
-      } 
+      }
       // 旧数据结构使用action字段
       else if (finalInteraction.action) {
         isLiked = finalInteraction.action === 'star';
