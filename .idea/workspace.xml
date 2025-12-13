@@ -4,17 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="擦除外边框-减少间距">
+    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="开始优化更多细节-最新榜获取逻辑-对齐最佳最丑">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/aiService.js" beforeDir="false" afterPath="$PROJECT_DIR$/aiService.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/databaseManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/databaseManager.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/game.js" beforeDir="false" afterPath="$PROJECT_DIR$/game.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/gameState.js" beforeDir="false" afterPath="$PROJECT_DIR$/gameState.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/interfaceRenderer.js" beforeDir="false" afterPath="$PROJECT_DIR$/interfaceRenderer.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/prompt.txt" beforeDir="false" afterPath="$PROJECT_DIR$/prompt.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/testDatabaseConsistency.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/touchHandlers/mainTouchHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/mainTouchHandler.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uiManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/uiManager.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -79,22 +71,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00163" summary="细微优化-通过comment排序-评分没有正常显示">
-      <option name="closed" value="true" />
-      <created>1765069894857</created>
-      <option name="number" value="00163" />
-      <option name="presentableId" value="LOCAL-00163" />
-      <option name="project" value="LOCAL" />
-      <updated>1765069894857</updated>
-    </task>
-    <task id="LOCAL-00164" summary="细微优化-通过comment排序-评分没有正常显示">
-      <option name="closed" value="true" />
-      <created>1765071052171</created>
-      <option name="number" value="00164" />
-      <option name="presentableId" value="LOCAL-00164" />
-      <option name="project" value="LOCAL" />
-      <updated>1765071052171</updated>
     </task>
     <task id="LOCAL-00165" summary="细微优化-通过comment排序-评分没有正常显示">
       <option name="closed" value="true" />
@@ -472,12 +448,26 @@
       <option name="project" value="LOCAL" />
       <updated>1765461846325</updated>
     </task>
-    <option name="localTasksCounter" value="212" />
+    <task id="LOCAL-00212" summary="开始优化更多细节">
+      <option name="closed" value="true" />
+      <created>1765594239426</created>
+      <option name="number" value="00212" />
+      <option name="presentableId" value="LOCAL-00212" />
+      <option name="project" value="LOCAL" />
+      <updated>1765594239426</updated>
+    </task>
+    <task id="LOCAL-00213" summary="开始优化更多细节-最新榜获取逻辑-对齐最佳最丑">
+      <option name="closed" value="true" />
+      <created>1765595321619</created>
+      <option name="number" value="00213" />
+      <option name="presentableId" value="LOCAL-00213" />
+      <option name="project" value="LOCAL" />
+      <updated>1765595321619</updated>
+    </task>
+    <option name="localTasksCounter" value="214" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="细微优化-更新comment" />
-    <MESSAGE value="细微优化-详情页优化完毕" />
     <MESSAGE value="串门" />
     <MESSAGE value="串门返回问题" />
     <MESSAGE value="串门返回问题ok" />
@@ -501,6 +491,8 @@
     <MESSAGE value="去掉网格线" />
     <MESSAGE value="擦除外边框" />
     <MESSAGE value="擦除外边框-减少间距" />
-    <option name="LAST_COMMIT_MESSAGE" value="擦除外边框-减少间距" />
+    <MESSAGE value="开始优化更多细节" />
+    <MESSAGE value="开始优化更多细节-最新榜获取逻辑-对齐最佳最丑" />
+    <option name="LAST_COMMIT_MESSAGE" value="开始优化更多细节-最新榜获取逻辑-对齐最佳最丑" />
   </component>
 </project>

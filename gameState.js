@@ -16,6 +16,19 @@ class GameState {
     this.drawingPaths = [];
     this.currentPath = null;
 
+    // 新增：缩放状态管理
+    this.zoomState = {
+      isZooming: false,                    // 是否正在缩放
+      zoomScale: 1.0,                      // 当前缩放比例
+      zoomCenterX: 0,                      // 缩放中心点X坐标
+      zoomCenterY: 0,                      // 缩放中心点Y坐标
+      initialDistance: 0,                  // 初始双指距离
+      initialScale: 1.0,                   // 初始缩放比例
+      zoomTimer: null,                     // 缩放计时器
+      zoomStartTime: 0,                    // 缩放开始时间
+      zoomThreshold: 200                   // 缩放触发阈值（毫秒）
+    };
+
 
 
     // 优化：分离评分状态
@@ -348,6 +361,90 @@ class GameState {
     if (this.scoringState.collaborativeMode) {
       this.unlockCollaborationScoring();
     }
+  }
+
+  // 新增：缩放相关方法
+  
+  // 开始缩放（双指触摸开始）
+  startZooming(touch1X, touch1Y, touch2X, touch2Y) {
+    const zoomState = this.zoomState;
+    
+    // 计算双指中心点
+    zoomState.zoomCenterX = (touch1X + touch2X) / 2;
+    zoomState.zoomCenterY = (touch1Y + touch2Y) / 2;
+    
+    // 计算初始距离
+    zoomState.initialDistance = Math.sqrt(
+      Math.pow(touch2X - touch1X, 2) + Math.pow(touch2Y - touch1Y, 2)
+    );
+    
+    zoomState.initialScale = zoomState.zoomScale;
+    zoomState.zoomStartTime = Date.now();
+    
+    // 设置缩放计时器（200ms后开始缩放）
+    zoomState.zoomTimer = setTimeout(() => {
+      zoomState.isZooming = true;
+      console.log(`缩放模式已激活，当前缩放比例: ${zoomState.zoomScale.toFixed(2)}`);
+    }, zoomState.zoomThreshold);
+  }
+
+  // 更新缩放（双指移动）
+  updateZooming(touch1X, touch1Y, touch2X, touch2Y) {
+    const zoomState = this.zoomState;
+    
+    if (!zoomState.isZooming) return;
+    
+    // 计算当前距离
+    const currentDistance = Math.sqrt(
+      Math.pow(touch2X - touch1X, 2) + Math.pow(touch2Y - touch1Y, 2)
+    );
+    
+    // 更新缩放中心点
+    zoomState.zoomCenterX = (touch1X + touch2X) / 2;
+    zoomState.zoomCenterY = (touch1Y + touch2Y) / 2;
+    
+    // 计算缩放比例（限制在合理范围内）
+    const scaleChange = currentDistance / zoomState.initialDistance;
+    const newScale = Math.max(0.5, Math.min(3.0, zoomState.initialScale * scaleChange));
+    
+    zoomState.zoomScale = newScale;
+  }
+
+  // 结束缩放
+  finishZooming() {
+    const zoomState = this.zoomState;
+    
+    // 清除计时器
+    if (zoomState.zoomTimer) {
+      clearTimeout(zoomState.zoomTimer);
+      zoomState.zoomTimer = null;
+    }
+    
+    zoomState.isZooming = false;
+    console.log(`缩放结束，最终缩放比例: ${zoomState.zoomScale.toFixed(2)}`);
+  }
+
+  // 重置缩放状态
+  resetZoom() {
+    const zoomState = this.zoomState;
+    
+    // 清除计时器
+    if (zoomState.zoomTimer) {
+      clearTimeout(zoomState.zoomTimer);
+      zoomState.zoomTimer = null;
+    }
+    
+    zoomState.isZooming = false;
+    zoomState.zoomScale = 1.0;
+    zoomState.zoomCenterX = 0;
+    zoomState.zoomCenterY = 0;
+    zoomState.initialDistance = 0;
+    zoomState.initialScale = 1.0;
+  }
+
+  // 检查是否在缩放状态下
+  isInZoomMode() {
+    return this.zoomState.isZooming || this.zoomState.zoomScale !== 1.0;
   }
 }
 

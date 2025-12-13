@@ -140,7 +140,7 @@ class InterfaceRenderer {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('🔍', buttonX + buttonSize/2, buttonY + buttonSize/2);
-    
+
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
   }
@@ -205,13 +205,13 @@ class InterfaceRenderer {
     const centerX = x + size / 2;
     const centerY = y + size / 2;
     const radius = size / 2;
-    
+
     // 绘制调色板基本圆形 - 与其他颜色按钮相同的大小
     ctx.fillStyle = '#007AFF'; // 使用蓝色作为调色板背景
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
     ctx.fill();
-    
+
     // 绘制调色板扇形区域
     const sectorColors = [
       '#FF3B30', '#FF9500', '#FFCC00', '#4CD964',
@@ -219,7 +219,7 @@ class InterfaceRenderer {
     ];
     const sectorCount = sectorColors.length;
     const sectorAngle = (Math.PI * 2) / sectorCount;
-    
+
     // 绘制扇形区域
     for (let i = 0; i < sectorCount; i++) {
       const startAngle = i * sectorAngle - Math.PI / 6;
@@ -232,13 +232,13 @@ class InterfaceRenderer {
       ctx.closePath();
       ctx.fill();
     }
-    
+
     // 绘制中心白色圆点
     ctx.fillStyle = '#FFFFFF';
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius * 0.3, 0, Math.PI * 2);
     ctx.fill();
-    
+
     // 绘制调色板边框
     ctx.strokeStyle = '#FFFFFF';
     ctx.lineWidth = 1;
@@ -260,11 +260,11 @@ drawBrushSizeControl(startY, gameState) {
   // 使用调整后的Y坐标
   ctx.fillStyle = config.textColor;
   ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-  
+
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic'; // 确保使用标准基线
   ctx.fillText('画笔大小:', 25, adjustedY);
-  
+
   // 重置文本基线
   ctx.textBaseline = originalTextBaseline;
 
@@ -301,11 +301,11 @@ drawBrushSizeControl(startY, gameState) {
   // 大小显示
   ctx.fillStyle = config.primaryColor;
   ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-  
+
   ctx.textAlign = 'right';
   ctx.textBaseline = 'alphabetic'; // 确保使用标准基线
   ctx.fillText(`${gameState.brushSize}px`, config.screenWidth - 25, adjustedY);
-  
+
   // 重置文本对齐和基线
   ctx.textAlign = 'left';
   ctx.textBaseline = originalTextBaseline;
@@ -402,15 +402,26 @@ drawBrushSizeControl(startY, gameState) {
 
     // 绘制路径
     this.redrawAllPaths(gameState, startY);
+    
+    // 绘制缩放指示器
+    this.drawZoomIndicator(gameState, startY);
   }
 
-  // 重新绘制所有路径 - 修改：支持翻转状态
+  // 重新绘制所有路径 - 修改：支持翻转状态和缩放状态
   redrawAllPaths(gameState, drawingAreaY) {
     const ctx = this.ctx;
+    const zoomState = gameState.zoomState;
+
+    // 保存画布状态
+    ctx.save();
+
+    // 如果处于缩放状态，应用缩放变换
+    if (zoomState.isZooming || zoomState.zoomScale !== 1.0) {
+      this.applyZoomTransform(ctx, zoomState);
+    }
 
     // 如果处于翻转状态，应用翻转变换
     if (gameState.isFlipped) {
-      ctx.save();
       ctx.translate(config.screenWidth, 0);
       ctx.scale(-1, 1);
     }
@@ -435,8 +446,17 @@ drawBrushSizeControl(startY, gameState) {
           ctx.lineTo(path.points[i].x, path.points[i].y);
         }
 
+        // 在缩放模式下保持画笔粗细不变
+        const originalLineWidth = path.size;
+        let actualLineWidth = originalLineWidth;
+        
+        // 如果处于缩放状态，根据缩放比例调整线宽（保持视觉一致性）
+        if (zoomState.isZooming || zoomState.zoomScale !== 1.0) {
+          actualLineWidth = originalLineWidth / zoomState.zoomScale;
+        }
+
         ctx.strokeStyle = path.color;
-        ctx.lineWidth = path.size;
+        ctx.lineWidth = Math.max(0.5, actualLineWidth); // 最小线宽为0.5
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.stroke();
@@ -446,9 +466,45 @@ drawBrushSizeControl(startY, gameState) {
       }
     });
 
-    if (gameState.isFlipped) {
-      ctx.restore();
-    }
+    // 恢复画布状态
+    ctx.restore();
+  }
+
+  // 新增：应用缩放变换
+  applyZoomTransform(ctx, zoomState) {
+    const { zoomScale, zoomCenterX, zoomCenterY } = zoomState;
+    
+    // 应用缩放变换：以双指中心点为缩放中心
+    ctx.translate(zoomCenterX, zoomCenterY);
+    ctx.scale(zoomScale, zoomScale);
+    ctx.translate(-zoomCenterX, -zoomCenterY);
+  }
+
+  // 新增：绘制缩放指示器
+  drawZoomIndicator(gameState, drawingAreaY) {
+    const ctx = this.ctx;
+    const zoomState = gameState.zoomState;
+    
+    if (!zoomState.isZooming && zoomState.zoomScale === 1.0) return;
+    
+    // 在绘画区域上方显示缩放比例
+    const indicatorX = config.screenWidth - 60;
+    const indicatorY = drawingAreaY - 25;
+    
+    // 绘制背景
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    Utils.drawRoundedRect(ctx, indicatorX - 40, indicatorY - 10, 80, 20, 10, true, false);
+    
+    // 绘制文字
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 12px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`${zoomState.zoomScale.toFixed(1)}x`, indicatorX, indicatorY);
+    
+    // 重置文本对齐
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
   }
 
   // 绘制得分区

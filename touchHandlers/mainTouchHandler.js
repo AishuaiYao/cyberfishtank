@@ -14,22 +14,66 @@ class MainTouchHandler {
 
     // 调色板处理器
     this.paletteHandler = null;
+
+    // 新增：双指缩放相关
+    this.touches = []; // 存储当前触摸点
+    this.isTwoFingerTouch = false; // 是否双指触摸
+    this.zoomActive = false; // 缩放是否激活
   }
 
   // 处理主界面触摸开始
   handleTouchStart(x, y) {
-    // 只在开始绘画时取消可能的评分请求
+    // 新增：双指触摸检测
     if (this.isInDrawingArea(x, y)) {
-      this.cancelPendingScoring();
-      this.startDrawing(x, y);
+      // 检查当前触摸点数量
+      if (this.touches.length === 0) {
+        // 单指触摸：开始绘画
+        this.cancelPendingScoring();
+        this.startDrawing(x, y);
+      } else if (this.touches.length === 1) {
+        // 双指触摸：开始检测缩放
+        this.handleTwoFingerStart(this.touches[0], {x, y});
+      }
+      // 添加当前触摸点
+      this.touches.push({x, y});
     } else {
+      // 非绘画区域的触摸
       this.handleFunctionAreaClick(x, y);
     }
   }
 
+  // 新增：处理双指触摸开始
+  handleTwoFingerStart(touch1, touch2) {
+    const gameState = this.eventHandler.gameState;
+    
+    // 重置缩放状态
+    gameState.resetZoom();
+    
+    // 开始缩放检测
+    gameState.startZooming(touch1.x, touch1.y, touch2.x, touch2.y);
+    this.isTwoFingerTouch = true;
+    
+    console.log('双指触摸开始，等待缩放激活');
+  }
+
   // 处理主界面触摸移动
   handleTouchMove(x, y) {
-    if (!this.eventHandler.gameState.isDrawing) return;
+    const gameState = this.eventHandler.gameState;
+    
+    // 新增：双指移动处理
+    if (this.touches.length >= 2 && this.isTwoFingerTouch) {
+      // 更新触摸点位置
+      this.updateTouchPosition(x, y);
+      
+      // 处理双指缩放
+      if (gameState.zoomState.isZooming) {
+        this.handleZoomMove();
+        return; // 缩放模式中不进行绘画
+      }
+    }
+
+    // 原有绘画逻辑
+    if (!gameState.isDrawing) return;
 
     if (this.isInDrawingArea(x, y)) {
       this.continueDrawing(x, y);
@@ -40,14 +84,96 @@ class MainTouchHandler {
     }
   }
 
+  // 新增：更新触摸点位置
+  updateTouchPosition(x, y) {
+    // 找到距离最近的触摸点并更新位置
+    let minDistance = Infinity;
+    let closestTouch = null;
+    
+    for (let i = 0; i < this.touches.length; i++) {
+      const touch = this.touches[i];
+      const distance = Math.sqrt(Math.pow(x - touch.x, 2) + Math.pow(y - touch.y, 2));
+      
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestTouch = i;
+      }
+    }
+    
+    if (closestTouch !== null) {
+      this.touches[closestTouch] = {x, y};
+    }
+  }
+
+  // 新增：处理缩放移动
+  handleZoomMove() {
+    if (this.touches.length < 2) return;
+    
+    const gameState = this.eventHandler.gameState;
+    const touch1 = this.touches[0];
+    const touch2 = this.touches[1];
+    
+    // 更新缩放状态
+    gameState.updateZooming(touch1.x, touch1.y, touch2.x, touch2.y);
+    
+    // 强制重绘界面以显示缩放效果
+    this.eventHandler.uiManager.drawGameUI(gameState);
+  }
+
   // 处理主界面触摸结束
   handleTouchEnd(x, y) {
-    if (this.eventHandler.gameState.isDrawing) {
+    const gameState = this.eventHandler.gameState;
+    
+    // 新增：处理触摸结束
+    this.removeTouch(x, y);
+    
+    // 如果只剩一个触摸点，结束缩放模式
+    if (this.touches.length <= 1 && this.isTwoFingerTouch) {
+      this.handleZoomEnd();
+      this.isTwoFingerTouch = false;
+    }
+    
+    // 原有绘画结束逻辑
+    if (gameState.isDrawing) {
       this.finishDrawing();
 
       // 优化：延迟触发智能评分
       this.scheduleSmartScoring();
     }
+  }
+
+  // 新增：移除触摸点
+  removeTouch(x, y) {
+    // 找到距离最近的触摸点并移除
+    let minDistance = Infinity;
+    let closestTouch = null;
+    
+    for (let i = 0; i < this.touches.length; i++) {
+      const touch = this.touches[i];
+      const distance = Math.sqrt(Math.pow(x - touch.x, 2) + Math.pow(y - touch.y, 2));
+      
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestTouch = i;
+      }
+    }
+    
+    if (closestTouch !== null && minDistance < 50) { // 50像素以内的阈值
+      this.touches.splice(closestTouch, 1);
+    }
+  }
+
+  // 新增：处理缩放结束
+  handleZoomEnd() {
+    const gameState = this.eventHandler.gameState;
+    
+    // 结束缩放
+    gameState.finishZooming();
+    
+    // 重绘界面显示最终缩放状态
+    this.eventHandler.uiManager.drawGameUI(gameState);
+    
+    console.log('缩放模式结束');
   }
 
   // 优化：取消待处理的评分

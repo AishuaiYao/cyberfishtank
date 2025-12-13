@@ -1331,7 +1331,23 @@ class EventHandler {
   }
 
   handleTouchCancel(e) {
-    this.gameState.isDrawing = false;
+    const gameState = this.gameState;
+    
+    // 重置所有触摸状态
+    if (this.touchHandlers.main) {
+      this.touchHandlers.main.touches = [];
+      this.touchHandlers.main.isTwoFingerTouch = false;
+    }
+    
+    // 结束缩放（如果正在进行）
+    if (gameState.zoomState.isZooming || gameState.zoomState.zoomTimer) {
+      gameState.finishZooming();
+    }
+    
+    // 结束绘画
+    gameState.isDrawing = false;
+    
+    // 原有排行榜处理逻辑
     if (this.isRankingInterfaceVisible) {
       if (e && e.changedTouches && e.changedTouches.length > 0) {
         const touch = e.changedTouches[0];
