@@ -86,13 +86,17 @@ class MainTouchHandler {
   handleTwoFingerStart(touch1, touch2) {
     const gameState = this.eventHandler.gameState;
     
-    // 重置缩放状态
-    gameState.resetZoom();
+    // 只重置缩放激活状态，保持当前缩放比例
+    if (gameState.zoomState.zoomTimer) {
+      clearTimeout(gameState.zoomState.zoomTimer);
+      gameState.zoomState.zoomTimer = null;
+    }
+    gameState.zoomState.isZooming = false;
     
-    // 开始缩放检测（保持200ms延迟）
+    // 开始缩放检测（保持200ms延迟），从当前缩放比例继续
     gameState.startZooming(touch1.x, touch1.y, touch2.x, touch2.y);
     
-    console.log('双指缩放检测已启动，等待200ms激活');
+    console.log(`双指缩放检测已启动，从${gameState.zoomState.zoomScale.toFixed(1)}x继续缩放`);
   }
 
   // 新增：重置触摸状态
@@ -106,8 +110,13 @@ class MainTouchHandler {
       this.singleTouchTimer = null;
     }
     
-    // 重置缩放状态
-    this.eventHandler.gameState.resetZoom();
+    // 只重置缩放激活状态，保持当前缩放比例
+    const gameState = this.eventHandler.gameState;
+    if (gameState.zoomState.zoomTimer) {
+      clearTimeout(gameState.zoomState.zoomTimer);
+      gameState.zoomState.zoomTimer = null;
+    }
+    gameState.zoomState.isZooming = false;
   }
 
   // 处理主界面触摸移动（重新设计）

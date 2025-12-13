@@ -423,16 +423,23 @@ class GameState {
     zoomState.zoomCenterX = (touch1X + touch2X) / 2;
     zoomState.zoomCenterY = (touch1Y + touch2Y) / 2;
     
-    // 计算缩放比例（严格限制在1.0到3.0之间）
-    const scaleChange = currentDistance / zoomState.initialDistance;
-    let newScale = zoomState.initialScale * scaleChange;
+    // 修复缩放非线性问题：使用增量缩放，而不是基于初始距离的比例
+    const scaleRatio = currentDistance / zoomState.initialDistance;
+    
+    // 计算增量缩放因子，确保缩放操作更线性
+    const incrementalFactor = 1 + (scaleRatio - 1) * 0.3; // 降低缩放灵敏度，使操作更平滑
+    
+    let newScale = zoomState.zoomScale * incrementalFactor;
     
     // 确保缩放比例在有效范围内
     newScale = Math.max(1.0, Math.min(3.0, newScale));
     
     // 只有当缩放比例变化超过阈值时才更新，避免频繁重绘
-    if (Math.abs(newScale - zoomState.zoomScale) > 0.05) {
+    if (Math.abs(newScale - zoomState.zoomScale) > 0.01) {
       zoomState.zoomScale = newScale;
+      
+      // 更新初始距离为当前距离，为下一次增量计算做准备
+      zoomState.initialDistance = currentDistance;
     }
   }
 
