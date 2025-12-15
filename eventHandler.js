@@ -2126,16 +2126,16 @@ async refreshFishTank() {
 
     try {
       let nextPageResult;
-      
+
       // 检查是否在从缓存加载模式
       if (this.loadFromCacheMode && incrementalData.cachedFishNames) {
         // 从缓存加载下一页数据
         const startIndex = incrementalData.currentPage * incrementalData.pageSize;
         const endIndex = Math.min(startIndex + incrementalData.pageSize, incrementalData.cachedFishNames.length);
         const nextCachedFishNames = incrementalData.cachedFishNames.slice(startIndex, endIndex);
-        
+
         console.log(`从缓存加载数据，索引范围: ${startIndex}-${endIndex}, 条数: ${nextCachedFishNames.length}`);
-        
+
         // 创建缓存结果对象
         const cachedData = [];
         for (const fishName of nextCachedFishNames) {
@@ -2144,13 +2144,13 @@ async refreshFishTank() {
             cachedData.push(fishCardData);
           }
         }
-        
+
         nextPageResult = {
           data: cachedData,
           hasMore: endIndex < incrementalData.cachedFishNames.length,
           fromCache: true
         };
-        
+
         // 如果缓存已用完，切换回数据库加载模式
         if (!nextPageResult.hasMore) {
           this.loadFromCacheMode = false;
@@ -2423,11 +2423,11 @@ async refreshFishTank() {
         // 获取所有缓存数据的fishName，按顺序排列
         const cachedFishNames = Array.from(newCache.keys());
         const pageSize = this.rankingIncrementalData.cyber.pageSize;
-        
+
         // 初始只加载第一页数据，与初次加载逻辑保持一致
         const initialFishNames = cachedFishNames.slice(0, pageSize);
         console.log(`准备初始加载第一页 ${initialFishNames.length} 条缓存数据`);
-        
+
         // 创建初始显示数据
         for (const fishName of initialFishNames) {
           const fishCardData = newCache.get(fishName);
@@ -2467,7 +2467,7 @@ async refreshFishTank() {
         // 重置增量加载状态，以便正确处理缓存数据的后续加载
         this.rankingIncrementalData.cyber.currentPage = 0;
         this.rankingIncrementalData.cyber.hasMore = cachedFishNames.length > pageSize;
-        
+
         // 创建一个特殊的缓存数据结构，用于处理从缓存中加载更多数据
         this.rankingIncrementalData.cyber.cachedFishNames = cachedFishNames;
         this.rankingIncrementalData.cyber.cachedData = rankingFishesWithImages.map(item => ({
@@ -2477,13 +2477,13 @@ async refreshFishTank() {
           createTimestamp: item.fishData.createTimestamp,
           score: item.fishData.score
         }));
-        
+
         // 如果缓存中的数据多于第一页，修改loadNextRankingPage方法以支持从缓存加载
         if (cachedFishNames.length > pageSize) {
           this.loadFromCacheMode = true;
           console.log(`缓存中有更多数据 (${cachedFishNames.length - pageSize} 条)，启用从缓存加载模式`);
         }
-        
+
         console.log(`已加载第一页 ${rankingFishesWithImages.length} 条缓存数据，总缓存: ${cachedFishNames.length}, 是否有更多: ${this.rankingIncrementalData.cyber.hasMore}`);
 
         // 清除新榜单的临时score，重新初始化

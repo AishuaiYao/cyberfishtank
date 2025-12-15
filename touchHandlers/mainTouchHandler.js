@@ -520,23 +520,34 @@ class MainTouchHandler {
 
   // 新增：处理清空操作 - 支持协作同步
   async handleClearAction() {
-    const gameState = this.eventHandler.gameState;
+    // 添加二次确认
+    wx.showModal({
+      title: '确认清空',
+      content: '确定要清空画布吗？此操作不可撤销',
+      confirmText: '确定',
+      cancelText: '取消',
+      success: async (res) => {
+        if (res.confirm) {
+          const gameState = this.eventHandler.gameState;
 
-    // 执行清空操作
-    gameState.clear();
-    this.cancelPendingScoring();
+          // 执行清空操作
+          gameState.clear();
+          this.cancelPendingScoring();
 
-    // 协作模式：记录清空操作
-    if (this.isCollaborativeMode && this.collaborationManager) {
-      const role = this.getCurrentUserRole();
-      console.log(`${role} 执行清空操作，将同步到对方画布`);
+          // 协作模式：记录清空操作
+          if (this.isCollaborativeMode && this.collaborationManager) {
+            const role = this.getCurrentUserRole();
+            console.log(`${role} 执行清空操作，将同步到对方画布`);
 
-      // 清空操作不需要轨迹，但需要记录操作类型
-      await this.recordCollaborativeOperation('clear');
-    }
+            // 清空操作不需要轨迹，但需要记录操作类型
+            await this.recordCollaborativeOperation('clear');
+          }
 
-    // 重新绘制整个界面（显示清空后的画布）
-    this.eventHandler.uiManager.drawGameUI(gameState);
+          // 重新绘制整个界面（显示清空后的画布）
+          this.eventHandler.uiManager.drawGameUI(gameState);
+        }
+      }
+    });
   }
 
 
