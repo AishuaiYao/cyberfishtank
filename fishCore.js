@@ -290,7 +290,7 @@ class Fish {
       const g = data[i + 1];
       const b = data[i + 2];
 
-      if (r > 240 && g > 240 && b > 240) {
+      if (r === 255 && g === 255 && b === 255) {
         data[i + 3] = 0;
       }
     }
