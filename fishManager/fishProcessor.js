@@ -101,19 +101,36 @@ class FishProcessor {
     // 修复2: 增加边距，同时排除边框区域
     const margin = 10 + lineMargin;
 
-    // 绘制区域的实际边界（排除边框）
-    const drawingAreaLeft = 12;    // 左边框位置
-    const drawingAreaTop = this.getDrawingAreaTop(); // 绘制区域顶部位置
-    const drawingAreaRight = config.screenWidth - 12;  // 右边框位置
-    const drawingAreaBottom = drawingAreaTop + config.drawingAreaHeight; // 底部边框位置
+    // 绘制区域的实际边界（排除边框和边框线宽）
+    // 边框位置为x=12，线宽为1像素，因此实际可绘制区域需要额外内边距
+    const borderWidth = 1; // 边框线宽
+    const drawingAreaLeft = 12 + borderWidth;    // 左边框位置 + 边框宽度
+    const drawingAreaTop = this.getDrawingAreaTop() + borderWidth; // 绘制区域顶部位置 + 边框宽度
+    const drawingAreaRight = config.screenWidth - 12 - borderWidth;  // 右边框位置 - 边框宽度
+    // 重要修复：正确计算底部边界 - 整个绘制区域的底部是drawingAreaTop + drawingAreaHeight
+    // 再减去borderWidth，确保不包括边框线条
+    const drawingAreaBottom = this.getDrawingAreaTop() + config.drawingAreaHeight - borderWidth; // 实际可绘制区域的底部坐标（不包括边框）
 
-    // 计算逻辑像素边界，确保在绘制区域内
+    // 计算逻辑像素边界，确保在绘制区域内（排除边框）
+    // 重要修复：确保边界计算正确排除边框
     const logicalX = Math.max(drawingAreaLeft, Math.round(minX - margin));
     const logicalY = Math.max(drawingAreaTop, Math.round(minY - margin));
-    const logicalWidth = Math.round(Math.max(0, Math.min(maxX + margin, drawingAreaRight) - logicalX));
-    const logicalHeight = Math.round(Math.max(0, Math.min(maxY + margin, drawingAreaBottom) - logicalY));
+    
+    // 特别处理底部边界：确保不会包含边框
+    const adjustedMaxX = Math.min(maxX, drawingAreaRight);
+    const adjustedMaxY = Math.min(maxY, drawingAreaBottom);
+    
+    const logicalWidth = Math.round(Math.max(0, Math.min(adjustedMaxX + margin, drawingAreaRight) - logicalX));
+    const logicalHeight = Math.round(Math.max(0, Math.min(adjustedMaxY + margin, drawingAreaBottom) - logicalY));
 
     console.log('逻辑像素边界:', { logicalX, logicalY, logicalWidth, logicalHeight });
+    console.log('绘制区域边界:', { 
+      drawingAreaTop: this.getDrawingAreaTop(), 
+      drawingAreaBottom: this.getDrawingAreaTop() + config.drawingAreaHeight,
+      actualDrawingBottom: drawingAreaBottom,
+      borderWidth,
+      maxY 
+    });
 
     // 修复3: 转换为物理像素（因为Canvas是物理像素尺寸）
     const physicalX = Math.round(logicalX * this.pixelRatio);

@@ -695,7 +695,9 @@ class CollaborationManager {
       const drawingAreaY = positions.drawingAreaY;
 
       // 清除绘画区域
-      ctx.clearRect(12, drawingAreaY, require('./config.js').config.screenWidth - 24, require('./config.js').config.drawingAreaHeight);
+      // 清除边框内部的绘制区域（不包括边框）
+      const borderWidth = 1;
+      ctx.clearRect(12 + borderWidth, drawingAreaY + borderWidth, require('./config.js').config.screenWidth - 24 - borderWidth * 2, require('./config.js').config.drawingAreaHeight - borderWidth * 2);
 
       // 重新绘制所有路径
       gameState.drawingPaths.forEach(path => {

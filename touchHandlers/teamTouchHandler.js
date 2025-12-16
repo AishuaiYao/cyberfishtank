@@ -888,7 +888,9 @@ class TeamTouchHandler {
     const drawingAreaY = positions.drawingAreaY;
 
     // 清除绘画区域
-    ctx.clearRect(12, drawingAreaY, config.screenWidth - 24, config.drawingAreaHeight);
+    // 清除边框内部的绘制区域（不包括边框）
+    const borderWidth = 1;
+    ctx.clearRect(12 + borderWidth, drawingAreaY + borderWidth, config.screenWidth - 24 - borderWidth * 2, config.drawingAreaHeight - borderWidth * 2);
 
     // 清空游戏状态中的绘画路径
     if (this.eventHandler.gameState) {
@@ -915,7 +917,9 @@ class TeamTouchHandler {
     const drawingAreaY = positions.drawingAreaY;
 
     // 清除绘画区域
-    ctx.clearRect(12, drawingAreaY, config.screenWidth - 24, config.drawingAreaHeight);
+    // 清除边框内部的绘制区域（不包括边框）
+    const borderWidth = 1;
+    ctx.clearRect(12 + borderWidth, drawingAreaY + borderWidth, config.screenWidth - 24 - borderWidth * 2, config.drawingAreaHeight - borderWidth * 2);
 
     // 清空游戏状态中的绘画路径
     if (this.eventHandler.gameState) {

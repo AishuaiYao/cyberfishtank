@@ -1125,7 +1125,9 @@ class MainTouchHandler {
     const drawingAreaY = positions.drawingAreaY;
 
     // 清除绘画区域
-    ctx.clearRect(12, drawingAreaY, config.screenWidth - 24, config.drawingAreaHeight);
+    // 清除边框内部的绘制区域（不包括边框）
+    const borderWidth = 1;
+    ctx.clearRect(12 + borderWidth, drawingAreaY + borderWidth, config.screenWidth - 24 - borderWidth * 2, config.drawingAreaHeight - borderWidth * 2);
 
     // 如果处于翻转状态，应用翻转变换
     if (gameState.isFlipped) {
