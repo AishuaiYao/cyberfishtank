@@ -2738,11 +2738,12 @@ async refreshFishTank() {
       } else {
         wx.showToast({ title: `${finalName} 加入鱼缸！(本地)`, icon: 'success', duration: 1500 });
         // 本地模式下还是使用原有逻辑
+        // 注意：Fish类内部会处理缩放，所以这里使用原始图像
         const { Fish } = require('./fishCore.js');
         const fish = new Fish(
           scaledImage.canvas,
-          Math.random() * (config.screenWidth - scaledImage.width),
-          Math.random() * (config.screenHeight - scaledImage.height),
+          Math.random() * (config.screenWidth - 80), // 使用缩放后的宽度（80像素）
+          Math.random() * (config.screenHeight - 100), // 预估高度，Fish类内部会处理
           Math.random() < 0.5 ? -1 : 1,
           finalName
         );
@@ -2757,8 +2758,8 @@ async refreshFishTank() {
       const { Fish } = require('./fishCore.js');
       const fish = new Fish(
         scaledImage.canvas,
-        Math.random() * (config.screenWidth - scaledImage.width),
-        Math.random() * (config.screenHeight - scaledImage.height),
+        Math.random() * (config.screenWidth - 80), // 使用缩放后的宽度（80像素）
+        Math.random() * (config.screenHeight - 100), // 预估高度，Fish类内部会处理
         Math.random() < 0.5 ? -1 : 1,
         finalName
       );

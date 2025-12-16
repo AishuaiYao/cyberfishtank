@@ -254,8 +254,16 @@ class Fish {
     this.speed = 0.8 + Math.random() * 1.2; // 提高基础速度
     this.vx = this.speed * this.direction;
     this.vy = (Math.random() - 0.5) * 0.5;
-    this.width = image.width;
-    this.height = image.height;
+    
+    // 先保存原始图像尺寸，用于后续缩放
+    const originalWidth = image.width || 80;
+    const originalHeight = image.height || 80;
+    
+    // 在鱼缸场景中缩放图像到宽度为80像素
+    const scaledImage = this.scaleImageForTank(image);
+    this.width = scaledImage.width;
+    this.height = scaledImage.height;
+    
     this.peduncle = 0.4;
     this.tailEnd = Math.floor(this.width * this.peduncle);
     this.time = 0;
@@ -270,7 +278,62 @@ class Fish {
     this.maxHunger = 100;
     this.foodDetectionRange = 400; // 增加检测范围
 
-    this.transparentImage = this.createTransparentFishImage(image);
+    // 使用缩放后的图像创建透明图像
+    this.transparentImage = this.createTransparentFishImage(scaledImage.canvas);
+  }
+
+  // 缩放图像到宽度为80像素（高度等比例缩放）
+  scaleImageForTank(originalImage) {
+    // 如果传入的是canvas对象，需要获取其尺寸
+    let imageWidth, imageHeight;
+    if (originalImage.width !== undefined) {
+      // 如果是canvas对象
+      imageWidth = originalImage.width;
+      imageHeight = originalImage.height;
+      const canvas = originalImage;
+      
+      // 计算缩放比例
+      const targetWidth = 80;
+      const scale = targetWidth / imageWidth;
+      const scaledHeight = Math.round(imageHeight * scale);
+      
+      // 创建缩放后的canvas
+      const scaledCanvas = wx.createCanvas();
+      scaledCanvas.width = targetWidth;
+      scaledCanvas.height = scaledHeight;
+      
+      const scaledCtx = scaledCanvas.getContext('2d');
+      scaledCtx.drawImage(canvas, 0, 0, targetWidth, scaledHeight);
+      
+      return {
+        canvas: scaledCanvas,
+        width: targetWidth,
+        height: scaledHeight
+      };
+    } else {
+      // 如果是其他类型的图像对象，假设它有width和height属性
+      imageWidth = originalImage.width || 80;
+      imageHeight = originalImage.height || 80;
+      
+      // 计算缩放比例
+      const targetWidth = 80;
+      const scale = targetWidth / imageWidth;
+      const scaledHeight = Math.round(imageHeight * scale);
+      
+      // 创建缩放后的canvas
+      const scaledCanvas = wx.createCanvas();
+      scaledCanvas.width = targetWidth;
+      scaledCanvas.height = scaledHeight;
+      
+      const scaledCtx = scaledCanvas.getContext('2d');
+      scaledCtx.drawImage(originalImage, 0, 0, targetWidth, scaledHeight);
+      
+      return {
+        canvas: scaledCanvas,
+        width: targetWidth,
+        height: scaledHeight
+      };
+    }
   }
 
   // 创建透明背景的鱼图像

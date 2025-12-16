@@ -27,10 +27,11 @@ class FishDataManager {
       // }
 
       // 使用导入的 Fish 类
+      // 注意：Fish类内部会处理缩放，所以这里直接传入canvas对象
       const fish = new Fish(
         fishImage.canvas,
-        Math.random() * (this.eventHandler.canvas.width - fishImage.width),
-        Math.random() * (this.eventHandler.canvas.height - fishImage.height),
+        Math.random() * (this.eventHandler.canvas.width - 80), // 使用缩放后的宽度
+        Math.random() * (this.eventHandler.canvas.height - fishImage.height), // 高度会在Fish类中缩放
         Math.random() < 0.5 ? -1 : 1,
         fishName,
         fishData
