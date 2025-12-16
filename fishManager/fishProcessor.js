@@ -27,15 +27,13 @@ class FishProcessor {
 
       const subImage = await this.cropWithCorrectScaling(boundingBox);
 
-      // 修改：由于翻转是瞬时操作，路径坐标已经修改，直接使用裁剪的图像
+      // 不应用缩放逻辑，直接使用裁剪后的图像
       const finalImage = subImage;
-
-      const scaledImage = await this.scaleImageWithOriginalLogic(finalImage);
 
       wx.hideLoading();
 
-      this.eventHandler.gameState.scaledFishImage = scaledImage;
-      this.eventHandler.showNameInputDialog(scaledImage);
+      this.eventHandler.gameState.scaledFishImage = finalImage;
+      this.eventHandler.showNameInputDialog(finalImage);
 
     } catch (error) {
       wx.hideLoading();
@@ -202,64 +200,7 @@ class FishProcessor {
     });
   }
 
-  // 恢复原来的缩放逻辑
-  scaleImageWithOriginalLogic(subImage) {
-    return new Promise((resolve, reject) => {
-      try {
-        const { width, height } = subImage;
-        const targetSize = 80;
 
-        console.log('缩放前尺寸:', { width, height });
-
-        // 恢复原来的缩放逻辑：
-        // 1. 判断宽高哪个更长
-        const isWidthLonger = width >= height;
-
-        // 2. 按最长边计算缩放比例
-        const scale = isWidthLonger ? targetSize / width : targetSize / height;
-
-        // 3. 计算缩放后的尺寸
-        const scaledWidth = Math.round(width * scale);
-        const scaledHeight = Math.round(height * scale);
-
-        console.log('缩放参数:', {
-          isWidthLonger,
-          scale,
-          scaledWidth,
-          scaledHeight,
-          targetSize
-        });
-
-        // 4. 创建缩放canvas
-        const scaledCanvas = wx.createCanvas();
-        scaledCanvas.width = scaledWidth;
-        scaledCanvas.height = scaledHeight;
-
-        const scaledCtx = scaledCanvas.getContext('2d');
-
-        // 5. 使用 drawImage 进行缩放（保持原逻辑）
-        scaledCtx.drawImage(
-          subImage.canvas,
-          0, 0, width, height,           // 源图像区域
-          0, 0, scaledWidth, scaledHeight // 目标区域
-        );
-
-        console.log('缩放完成:', {
-          original: { width, height },
-          scaled: { width: scaledWidth, height: scaledHeight }
-        });
-
-        resolve({
-          canvas: scaledCanvas,
-          width: scaledWidth,
-          height: scaledHeight,
-          scale: scale
-        });
-      } catch (error) {
-        reject(error);
-      }
-    });
-  }
 }
 
 module.exports = FishProcessor;

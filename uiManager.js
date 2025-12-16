@@ -911,8 +911,8 @@ class UIManager {
     // 绘制鱼图片 - 确保高质量渲染
     ctx.imageSmoothingEnabled = false;
 
-    const maxImageWidth = width - 20;
-    const maxImageHeight = 80;
+    const maxImageWidth = width - 10;
+    const maxImageHeight = 100;
 
     let imageWidth = fishItem.fishImage.width;
     let imageHeight = fishItem.fishImage.height;
@@ -930,7 +930,7 @@ class UIManager {
     }
 
     const imageX = Math.round(x + (width - imageWidth) / 2);
-    const imageY = Math.round(y + 40);
+    const imageY = Math.round(y + 20);
 
     ctx.drawImage(fishItem.fishImage.canvas, imageX, imageY, imageWidth, imageHeight);
 
