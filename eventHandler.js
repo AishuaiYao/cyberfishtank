@@ -2737,11 +2737,14 @@ async refreshFishTank() {
         await this.enterFishTank(finalName);
       } else {
         wx.showToast({ title: `${finalName} 加入鱼缸！(本地)`, icon: 'success', duration: 1500 });
-        // 本地模式下还是使用原有逻辑
-        // 注意：Fish类内部会处理缩放，所以这里使用原始图像
+        // 本地模式下，需要在创建Fish对象前处理透明背景
         const { Fish } = require('./fishCore.js');
+        
+        // 先处理透明背景（复用fishDataManager的逻辑）
+        const processedImage = this.fishManager.data.createTransparentImage(scaledImage.canvas);
+        
         const fish = new Fish(
-          scaledImage.canvas,
+          processedImage,
           Math.random() * (config.screenWidth - 80), // 使用缩放后的宽度（80像素）
           Math.random() * (config.screenHeight - 100), // 预估高度，Fish类内部会处理
           Math.random() < 0.5 ? -1 : 1,

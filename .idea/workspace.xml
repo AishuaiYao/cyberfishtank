@@ -4,10 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="添加清空确认">
+    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="鱼缸场景缩放">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fishManager/fishProcessor.js" beforeDir="false" afterPath="$PROJECT_DIR$/fishManager/fishProcessor.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uiManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/uiManager.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/eventHandler.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fishCore.js" beforeDir="false" afterPath="$PROJECT_DIR$/fishCore.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fishManager/fishDataManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/fishManager/fishDataManager.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -72,22 +73,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00179" summary="鱼缸button位移">
-      <option name="closed" value="true" />
-      <created>1765105298122</created>
-      <option name="number" value="00179" />
-      <option name="presentableId" value="LOCAL-00179" />
-      <option name="project" value="LOCAL" />
-      <updated>1765105298122</updated>
-    </task>
-    <task id="LOCAL-00180" summary="鱼缸button滑动选择">
-      <option name="closed" value="true" />
-      <created>1765111587605</created>
-      <option name="number" value="00180" />
-      <option name="presentableId" value="LOCAL-00180" />
-      <option name="project" value="LOCAL" />
-      <updated>1765111587605</updated>
     </task>
     <task id="LOCAL-00181" summary="鱼缸button滑动选择-基础OK">
       <option name="closed" value="true" />
@@ -465,12 +450,26 @@
       <option name="project" value="LOCAL" />
       <updated>1765891703034</updated>
     </task>
-    <option name="localTasksCounter" value="228" />
+    <task id="LOCAL-00228" summary="取消缩放，直接保存原图，画面清晰了">
+      <option name="closed" value="true" />
+      <created>1765893535229</created>
+      <option name="number" value="00228" />
+      <option name="presentableId" value="LOCAL-00228" />
+      <option name="project" value="LOCAL" />
+      <updated>1765893535229</updated>
+    </task>
+    <task id="LOCAL-00229" summary="鱼缸场景缩放">
+      <option name="closed" value="true" />
+      <created>1765894392598</created>
+      <option name="number" value="00229" />
+      <option name="presentableId" value="LOCAL-00229" />
+      <option name="project" value="LOCAL" />
+      <updated>1765894392598</updated>
+    </task>
+    <option name="localTasksCounter" value="230" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="修复没有插入comment的bug" />
-    <MESSAGE value="调试高度" />
     <MESSAGE value="调色板button大小" />
     <MESSAGE value="删除comment" />
     <MESSAGE value="添加测试脚本，检测数据库" />
@@ -494,6 +493,8 @@
     <MESSAGE value="锯齿问题" />
     <MESSAGE value="透明问题" />
     <MESSAGE value="添加清空确认" />
-    <option name="LAST_COMMIT_MESSAGE" value="添加清空确认" />
+    <MESSAGE value="取消缩放，直接保存原图，画面清晰了" />
+    <MESSAGE value="鱼缸场景缩放" />
+    <option name="LAST_COMMIT_MESSAGE" value="鱼缸场景缩放" />
   </component>
 </project>

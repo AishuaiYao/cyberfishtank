@@ -254,16 +254,16 @@ class Fish {
     this.speed = 0.8 + Math.random() * 1.2; // 提高基础速度
     this.vx = this.speed * this.direction;
     this.vy = (Math.random() - 0.5) * 0.5;
-    
+
     // 先保存原始图像尺寸，用于后续缩放
     const originalWidth = image.width || 80;
     const originalHeight = image.height || 80;
-    
+
     // 在鱼缸场景中缩放图像到宽度为80像素
     const scaledImage = this.scaleImageForTank(image);
     this.width = scaledImage.width;
     this.height = scaledImage.height;
-    
+
     this.peduncle = 0.4;
     this.tailEnd = Math.floor(this.width * this.peduncle);
     this.time = 0;
@@ -278,8 +278,8 @@ class Fish {
     this.maxHunger = 100;
     this.foodDetectionRange = 400; // 增加检测范围
 
-    // 使用缩放后的图像创建透明图像
-    this.transparentImage = this.createTransparentFishImage(scaledImage.canvas);
+    // 数据库中已存储透明背景图像，直接使用缩放后的图像
+    this.transparentImage = scaledImage.canvas;
   }
 
   // 缩放图像到宽度为80像素（高度等比例缩放）
@@ -291,20 +291,20 @@ class Fish {
       imageWidth = originalImage.width;
       imageHeight = originalImage.height;
       const canvas = originalImage;
-      
+
       // 计算缩放比例
       const targetWidth = 80;
       const scale = targetWidth / imageWidth;
       const scaledHeight = Math.round(imageHeight * scale);
-      
+
       // 创建缩放后的canvas
       const scaledCanvas = wx.createCanvas();
       scaledCanvas.width = targetWidth;
       scaledCanvas.height = scaledHeight;
-      
+
       const scaledCtx = scaledCanvas.getContext('2d');
       scaledCtx.drawImage(canvas, 0, 0, targetWidth, scaledHeight);
-      
+
       return {
         canvas: scaledCanvas,
         width: targetWidth,
@@ -314,20 +314,20 @@ class Fish {
       // 如果是其他类型的图像对象，假设它有width和height属性
       imageWidth = originalImage.width || 80;
       imageHeight = originalImage.height || 80;
-      
+
       // 计算缩放比例
       const targetWidth = 80;
       const scale = targetWidth / imageWidth;
       const scaledHeight = Math.round(imageHeight * scale);
-      
+
       // 创建缩放后的canvas
       const scaledCanvas = wx.createCanvas();
       scaledCanvas.width = targetWidth;
       scaledCanvas.height = scaledHeight;
-      
+
       const scaledCtx = scaledCanvas.getContext('2d');
       scaledCtx.drawImage(originalImage, 0, 0, targetWidth, scaledHeight);
-      
+
       return {
         canvas: scaledCanvas,
         width: targetWidth,
@@ -336,31 +336,8 @@ class Fish {
     }
   }
 
-  // 创建透明背景的鱼图像
-  createTransparentFishImage(originalImage) {
-    const tempCanvas = wx.createCanvas();
-    tempCanvas.width = this.width;
-    tempCanvas.height = this.height;
-    const tempCtx = tempCanvas.getContext('2d');
-
-    tempCtx.drawImage(originalImage, 0, 0);
-
-    const imageData = tempCtx.getImageData(0, 0, this.width, this.height);
-    const data = imageData.data;
-
-    for (let i = 0; i < data.length; i += 4) {
-      const r = data[i];
-      const g = data[i + 1];
-      const b = data[i + 2];
-
-      if (r === 255 && g === 255 && b === 255) {
-        data[i + 3] = 0;
-      }
-    }
-
-    tempCtx.putImageData(imageData, 0, 0);
-    return tempCanvas;
-  }
+  // 注意：透明背景处理已移至fishDataManager的canvasToBase64方法中
+  // 数据库中存储的已经是透明背景的图像，因此这里不再需要处理
 
   update(deltaTime, fishFoods = []) {
     this.time += deltaTime / 1000;

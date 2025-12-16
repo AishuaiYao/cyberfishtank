@@ -79,17 +79,48 @@ class FishDataManager {
     });
   }
 
-  // canvas转base64
+  // canvas转base64（添加透明背景处理）
   canvasToBase64(canvas) {
     return new Promise((resolve, reject) => {
       try {
-        const base64 = canvas.toDataURL();
+        // 先处理透明背景，再转base64
+        const processedCanvas = this.createTransparentImage(canvas);
+        const base64 = processedCanvas.toDataURL();
         const pureBase64 = base64.split(',')[1];
         resolve(pureBase64);
       } catch (error) {
         reject(error);
       }
     });
+  }
+
+  // 创建透明背景的图像（从Fish类移动到这里）
+  createTransparentImage(originalCanvas) {
+    const tempCanvas = wx.createCanvas();
+    tempCanvas.width = originalCanvas.width;
+    tempCanvas.height = originalCanvas.height;
+    const tempCtx = tempCanvas.getContext('2d');
+
+    // 复制原图像
+    tempCtx.drawImage(originalCanvas, 0, 0);
+
+    // 获取像素数据并处理透明度
+    const imageData = tempCtx.getImageData(0, 0, originalCanvas.width, originalCanvas.height);
+    const data = imageData.data;
+
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+
+      // 将纯白色像素设为透明
+      if (r === 255 && g === 255 && b === 255) {
+        data[i + 3] = 0;
+      }
+    }
+
+    tempCtx.putImageData(imageData, 0, 0);
+    return tempCanvas;
   }
 
   // 修改：不再需要此方法，由eventHandler统一管理
