@@ -4,9 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="共同绘画禁用缩放">
+    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="透明问题">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/eventHandler.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fishManager/fishProcessor.js" beforeDir="false" afterPath="$PROJECT_DIR$/fishManager/fishProcessor.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/prompt.txt" beforeDir="false" afterPath="$PROJECT_DIR$/prompt.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -72,30 +72,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00175" summary="细微优化-详情页优化完毕">
-      <option name="closed" value="true" />
-      <created>1765102813378</created>
-      <option name="number" value="00175" />
-      <option name="presentableId" value="LOCAL-00175" />
-      <option name="project" value="LOCAL" />
-      <updated>1765102813378</updated>
-    </task>
-    <task id="LOCAL-00176" summary="串门">
-      <option name="closed" value="true" />
-      <created>1765103667393</created>
-      <option name="number" value="00176" />
-      <option name="presentableId" value="LOCAL-00176" />
-      <option name="project" value="LOCAL" />
-      <updated>1765103667393</updated>
-    </task>
-    <task id="LOCAL-00177" summary="串门返回问题">
-      <option name="closed" value="true" />
-      <created>1765104282710</created>
-      <option name="number" value="00177" />
-      <option name="presentableId" value="LOCAL-00177" />
-      <option name="project" value="LOCAL" />
-      <updated>1765104282710</updated>
     </task>
     <task id="LOCAL-00178" summary="串门返回问题ok">
       <option name="closed" value="true" />
@@ -465,13 +441,34 @@
       <option name="project" value="LOCAL" />
       <updated>1765627562622</updated>
     </task>
-    <option name="localTasksCounter" value="224" />
+    <task id="LOCAL-00224" summary="清空画布">
+      <option name="closed" value="true" />
+      <created>1765804867089</created>
+      <option name="number" value="00224" />
+      <option name="presentableId" value="LOCAL-00224" />
+      <option name="project" value="LOCAL" />
+      <updated>1765804867089</updated>
+    </task>
+    <task id="LOCAL-00225" summary="锯齿问题">
+      <option name="closed" value="true" />
+      <created>1765805522358</created>
+      <option name="number" value="00225" />
+      <option name="presentableId" value="LOCAL-00225" />
+      <option name="project" value="LOCAL" />
+      <updated>1765805522358</updated>
+    </task>
+    <task id="LOCAL-00226" summary="透明问题">
+      <option name="closed" value="true" />
+      <created>1765806504058</created>
+      <option name="number" value="00226" />
+      <option name="presentableId" value="LOCAL-00226" />
+      <option name="project" value="LOCAL" />
+      <updated>1765806504058</updated>
+    </task>
+    <option name="localTasksCounter" value="227" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="调色板-可以选颜色" />
-    <MESSAGE value="调色板" />
-    <MESSAGE value="搜索" />
     <MESSAGE value="搜索-可能有问题" />
     <MESSAGE value="修复没有插入comment的bug" />
     <MESSAGE value="调试高度" />
@@ -494,6 +491,9 @@
     <MESSAGE value="加入鱼缸前先执行重置" />
     <MESSAGE value="提示语轮换" />
     <MESSAGE value="共同绘画禁用缩放" />
-    <option name="LAST_COMMIT_MESSAGE" value="共同绘画禁用缩放" />
+    <MESSAGE value="清空画布" />
+    <MESSAGE value="锯齿问题" />
+    <MESSAGE value="透明问题" />
+    <option name="LAST_COMMIT_MESSAGE" value="透明问题" />
   </component>
 </project>

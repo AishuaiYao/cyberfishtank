@@ -170,9 +170,8 @@ class FishProcessor {
 
         const tempCtx = tempCanvas.getContext('2d');
 
-        // 设置高质量渲染和抗锯齿
-        tempCtx.imageSmoothingEnabled = true;
-        tempCtx.imageSmoothingQuality = 'high';
+        // 设置高质量渲染
+        tempCtx.imageSmoothingEnabled = false;
 
         console.log('裁剪参数:', {
           srcX: boundingBox.x,
@@ -203,7 +202,7 @@ class FishProcessor {
     });
   }
 
-  // 改进的缩放逻辑 - 多步缩放减少锯齿
+  // 恢复原来的缩放逻辑
   scaleImageWithOriginalLogic(subImage) {
     return new Promise((resolve, reject) => {
       try {
@@ -212,13 +211,14 @@ class FishProcessor {
 
         console.log('缩放前尺寸:', { width, height });
 
-        // 判断宽高哪个更长
+        // 恢复原来的缩放逻辑：
+        // 1. 判断宽高哪个更长
         const isWidthLonger = width >= height;
 
-        // 按最长边计算缩放比例
+        // 2. 按最长边计算缩放比例
         const scale = isWidthLonger ? targetSize / width : targetSize / height;
 
-        // 计算缩放后的尺寸
+        // 3. 计算缩放后的尺寸
         const scaledWidth = Math.round(width * scale);
         const scaledHeight = Math.round(height * scale);
 
@@ -230,57 +230,18 @@ class FishProcessor {
           targetSize
         });
 
-        // 多步缩放减少锯齿
-        let currentCanvas = subImage.canvas;
-        let currentWidth = width;
-        let currentHeight = height;
+        // 4. 创建缩放canvas
+        const scaledCanvas = wx.createCanvas();
+        scaledCanvas.width = scaledWidth;
+        scaledCanvas.height = scaledHeight;
 
-        // 如果缩放比例小于0.5，则分多步缩放
-        const maxStepScale = 0.7; // 每次最多缩放70%
-        if (scale < maxStepScale) {
-          const steps = Math.ceil(Math.log(scale) / Math.log(maxStepScale));
-          
-          for (let i = 0; i < steps - 1; i++) {
-            const stepScale = Math.min(maxStepScale, Math.pow(scale, (i + 1) / steps));
-            const stepWidth = Math.round(width * stepScale);
-            const stepHeight = Math.round(height * stepScale);
-            
-            const stepCanvas = wx.createCanvas();
-            stepCanvas.width = stepWidth;
-            stepCanvas.height = stepHeight;
-            
-            const stepCtx = stepCanvas.getContext('2d');
-            stepCtx.imageSmoothingEnabled = true;
-            stepCtx.imageSmoothingQuality = 'high';
-            
-            stepCtx.drawImage(
-              currentCanvas,
-              0, 0, currentWidth, currentHeight,
-              0, 0, stepWidth, stepHeight
-            );
-            
-            currentCanvas = stepCanvas;
-            currentWidth = stepWidth;
-            currentHeight = stepHeight;
-          }
-        }
+        const scaledCtx = scaledCanvas.getContext('2d');
 
-        // 最后一步缩放到目标尺寸
-        const finalCanvas = wx.createCanvas();
-        finalCanvas.width = scaledWidth;
-        finalCanvas.height = scaledHeight;
-
-        const finalCtx = finalCanvas.getContext('2d');
-        finalCtx.imageSmoothingEnabled = true;
-        finalCtx.imageSmoothingQuality = 'high';
-
-        // 应用边缘羽化
-        finalCtx.filter = 'blur(0.3px)';
-
-        finalCtx.drawImage(
-          currentCanvas,
-          0, 0, currentWidth, currentHeight,
-          0, 0, scaledWidth, scaledHeight
+        // 5. 使用 drawImage 进行缩放（保持原逻辑）
+        scaledCtx.drawImage(
+          subImage.canvas,
+          0, 0, width, height,           // 源图像区域
+          0, 0, scaledWidth, scaledHeight // 目标区域
         );
 
         console.log('缩放完成:', {
@@ -289,7 +250,7 @@ class FishProcessor {
         });
 
         resolve({
-          canvas: finalCanvas,
+          canvas: scaledCanvas,
           width: scaledWidth,
           height: scaledHeight,
           scale: scale
