@@ -700,16 +700,19 @@ class EventHandler {
     // 标记为已修改
     fishData.scoreChanged = 1;
 
-    // 如果是排行榜中的鱼，同时更新缓存中的fishCardData
-    const cache = this.rankingCache[this.rankingSortType];
-    if (cache && cache.has(fishData.fishName)) {
-      const fishCardData = cache.get(fishData.fishName);
-      fishCardData.score = newScore;
-      fishCardData.scoreChanged = 1;
-      if (fishCardData.originalScore === undefined) {
-        fishCardData.originalScore = currentScore;
+    // 如果是排行榜中的鱼，同时更新所有缓存中的fishCardData
+    // 因为同一条鱼可能出现在多个榜单中
+    for (const sortType of ['best', 'worst', 'latest']) {
+      const cache = this.rankingCache[sortType];
+      if (cache && cache.has(fishData.fishName)) {
+        const fishCardData = cache.get(fishData.fishName);
+        fishCardData.score = newScore;
+        fishCardData.scoreChanged = 1;
+        if (fishCardData.originalScore === undefined) {
+          fishCardData.originalScore = currentScore;
+        }
+        cache.set(fishData.fishName, fishCardData);
       }
-      cache.set(fishData.fishName, fishCardData);
     }
   }
 
@@ -820,16 +823,19 @@ class EventHandler {
     // 标记为已修改
     fishData.scoreChanged = 1;
 
-    // 如果是排行榜中的鱼，同时更新缓存中的fishCardData
-    const cache = this.rankingCache[this.rankingSortType];
-    if (cache && cache.has(fishData.fishName)) {
-      const fishCardData = cache.get(fishData.fishName);
-      fishCardData.score = newScore;
-      fishCardData.scoreChanged = 1;
-      if (fishCardData.originalScore === undefined) {
-        fishCardData.originalScore = currentScore;
+    // 如果是排行榜中的鱼，同时更新所有缓存中的fishCardData
+    // 因为同一条鱼可能出现在多个榜单中
+    for (const sortType of ['best', 'worst', 'latest']) {
+      const cache = this.rankingCache[sortType];
+      if (cache && cache.has(fishData.fishName)) {
+        const fishCardData = cache.get(fishData.fishName);
+        fishCardData.score = newScore;
+        fishCardData.scoreChanged = 1;
+        if (fishCardData.originalScore === undefined) {
+          fishCardData.originalScore = currentScore;
+        }
+        cache.set(fishData.fishName, fishCardData);
       }
-      cache.set(fishData.fishName, fishCardData);
     }
   }
 
@@ -1334,15 +1340,15 @@ class EventHandler {
 
   handleTouchCancel(e) {
     const gameState = this.gameState;
-    
+
     // 重置所有触摸状态
     if (this.touchHandlers.main) {
       this.touchHandlers.main.resetTouchState();
     }
-    
+
     // 结束绘画
     gameState.isDrawing = false;
-    
+
     // 原有排行榜处理逻辑
     if (this.isRankingInterfaceVisible) {
       if (e && e.changedTouches && e.changedTouches.length > 0) {
@@ -2034,6 +2040,7 @@ async refreshFishTank() {
 
       // 存入增量加载的缓存数据（保持兼容性）
       this.rankingIncrementalData.cyber.cachedData = result.data.map(item => ({
+        _id: item._id, // 添加_id字段 - 修复ID丢失问题
         fishName: item.fishName,
         base64: item.base64,
         createdAt: item.createdAt,
@@ -2253,8 +2260,16 @@ async refreshFishTank() {
     try {
       const fishData = fishItem.fishData;
       if (!fishData._id) {
-        console.warn('鱼数据没有ID，无法更新');
-        return;
+        console.warn('鱼数据没有ID，尝试重新获取:', fishData.fishName);
+        // 尝试从缓存中获取完整的fishData
+        const cachedFishData = this.getCachedFishData(fishData.fishName);
+        if (cachedFishData && cachedFishData._id) {
+          fishData._id = cachedFishData._id;
+          console.log('从缓存中重新获取到鱼的ID:', fishData.fishName, fishData._id);
+        } else {
+          console.error('无法获取鱼的ID，跳过更新:', fishData.fishName);
+          return;
+        }
       }
 
       const userInteraction = fishItem.userInteraction;
@@ -2445,6 +2460,7 @@ async refreshFishTank() {
 
             rankingFishesWithImages.push({
               fishData: {
+                _id: fishCardData._id, // 添加_id字段 - 修复ID丢失问题
                 fishName: fishCardData.fishName,
                 base64: fishCardData.base64,
                 createdAt: fishCardData.createdAt,
@@ -2471,6 +2487,7 @@ async refreshFishTank() {
         // 创建一个特殊的缓存数据结构，用于处理从缓存中加载更多数据
         this.rankingIncrementalData.cyber.cachedFishNames = cachedFishNames;
         this.rankingIncrementalData.cyber.cachedData = rankingFishesWithImages.map(item => ({
+          _id: item.fishData._id, // 添加_id字段 - 修复ID丢失问题
           fishName: item.fishData.fishName,
           base64: item.fishData.base64,
           createdAt: item.fishData.createdAt,
@@ -3361,6 +3378,18 @@ async refreshFishTank() {
         message: '安全校验网络异常，跳过校验'
       };
     }
+  }
+
+  // 新增：从缓存中获取完整的鱼数据
+  getCachedFishData(fishName) {
+    // 遍历所有排行榜缓存，查找指定的鱼
+    for (const sortType of ['best', 'worst', 'latest']) {
+      const cache = this.rankingCache[sortType];
+      if (cache && cache.has(fishName)) {
+        return cache.get(fishName);
+      }
+    }
+    return null;
   }
 }
 

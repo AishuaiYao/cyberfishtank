@@ -4,11 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="鱼缸场景缩放">
+    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="边框线被裁剪入画问题">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/eventHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/eventHandler.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fishCore.js" beforeDir="false" afterPath="$PROJECT_DIR$/fishCore.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fishManager/fishDataManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/fishManager/fishDataManager.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/touchHandlers/rankingTouchHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/touchHandlers/rankingTouchHandler.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -73,22 +72,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00181" summary="鱼缸button滑动选择-基础OK">
-      <option name="closed" value="true" />
-      <created>1765112448886</created>
-      <option name="number" value="00181" />
-      <option name="presentableId" value="LOCAL-00181" />
-      <option name="project" value="LOCAL" />
-      <updated>1765112448886</updated>
-    </task>
-    <task id="LOCAL-00182" summary="鱼缸button滑动选择-基础OK">
-      <option name="closed" value="true" />
-      <created>1765113196766</created>
-      <option name="number" value="00182" />
-      <option name="presentableId" value="LOCAL-00182" />
-      <option name="project" value="LOCAL" />
-      <updated>1765113196766</updated>
     </task>
     <task id="LOCAL-00183" summary="鱼缸button滑动选择-基础OK">
       <option name="closed" value="true" />
@@ -466,12 +449,26 @@
       <option name="project" value="LOCAL" />
       <updated>1765894392598</updated>
     </task>
-    <option name="localTasksCounter" value="230" />
+    <task id="LOCAL-00230" summary="先处理为透明背景再转为base64">
+      <option name="closed" value="true" />
+      <created>1765895417377</created>
+      <option name="number" value="00230" />
+      <option name="presentableId" value="LOCAL-00230" />
+      <option name="project" value="LOCAL" />
+      <updated>1765895417377</updated>
+    </task>
+    <task id="LOCAL-00231" summary="边框线被裁剪入画问题">
+      <option name="closed" value="true" />
+      <created>1765896128262</created>
+      <option name="number" value="00231" />
+      <option name="presentableId" value="LOCAL-00231" />
+      <option name="project" value="LOCAL" />
+      <updated>1765896128262</updated>
+    </task>
+    <option name="localTasksCounter" value="232" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="调色板button大小" />
-    <MESSAGE value="删除comment" />
     <MESSAGE value="添加测试脚本，检测数据库" />
     <MESSAGE value="解决只显示59条鱼的问题-还未解决切换后显示20条" />
     <MESSAGE value="排行榜问题优化" />
@@ -495,6 +492,8 @@
     <MESSAGE value="添加清空确认" />
     <MESSAGE value="取消缩放，直接保存原图，画面清晰了" />
     <MESSAGE value="鱼缸场景缩放" />
-    <option name="LAST_COMMIT_MESSAGE" value="鱼缸场景缩放" />
+    <MESSAGE value="先处理为透明背景再转为base64" />
+    <MESSAGE value="边框线被裁剪入画问题" />
+    <option name="LAST_COMMIT_MESSAGE" value="边框线被裁剪入画问题" />
   </component>
 </project>

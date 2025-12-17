@@ -103,7 +103,7 @@ class RankingTouchHandler {
 
     const buttonSpacing = 5; // 统一使用5像素间距
     const buttonHeight = 30;
-    
+
     // 最佳榜按钮坐标（宽度65）
     const bestButtonX = 20 + 50 + buttonSpacing;
     if (x >= bestButtonX && x <= bestButtonX + 65 &&
@@ -376,7 +376,7 @@ class RankingTouchHandler {
     if (rankDistance <= preloadThreshold && incrementalData.hasMore && !incrementalData.isLoading) {
       console.log(`当前排名距离: ${rankDistance}（阈值: ${preloadThreshold}），当前可见排名: ${currentVisibleLastRank}，缓存最后排名: ${currentLastRank}，触发异步预加载`);
       console.log(`预加载详情: 当前页=${incrementalData.currentPage}, hasMore=${incrementalData.hasMore}, isLoading=${incrementalData.isLoading}`);
-      
+
       // 确保 loadNextRankingPage 方法存在
       if (typeof this.eventHandler.loadNextRankingPage === 'function') {
         this.eventHandler.loadNextRankingPage();
@@ -448,7 +448,7 @@ class RankingTouchHandler {
 
     // 添加标志，避免重复处理按钮点击
     const isButtonClick = this.isButtonClick(x, y);
-    
+
     if (isButtonClick) {
       return; // 如果点击了按钮，不执行滚动逻辑
     }
@@ -467,7 +467,7 @@ class RankingTouchHandler {
     // 只有在滚动结束时才检查是否需要加载更多数据
     this.checkLoadMore();
   }
-  
+
   // 检查是否点击了按钮（不执行操作，只返回结果）
   isButtonClick(x, y) {
     if (!this.eventHandler.rankingData || this.eventHandler.rankingData.fishes.length === 0) {
