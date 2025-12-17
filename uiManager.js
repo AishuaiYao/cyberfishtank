@@ -862,8 +862,9 @@ class UIManager {
     Utils.drawRoundedRect(ctx, indicatorRight - indicatorWidth, sliderY, indicatorWidth, sliderHeight, 2, true, false);
   }
 
-  // 新增：通用的交互按钮绘制函数
+  // 新增：通用的交互按钮绘制函数 - 优化：使用图标模式提高点击体验
   drawInteractionButton(ctx, x, y, width, height, text, isActive, isPrimary = false) {
+    // 使用图标模式，只显示图标不显示背景，提高视觉识别度
     Utils.drawModernButton(
       ctx,
       x,
@@ -873,7 +874,8 @@ class UIManager {
       text,
       isActive,
       isPrimary,
-      false
+      false,
+      true // 设置为图标模式，提高点击体验
     );
   }
 
@@ -988,14 +990,14 @@ class UIManager {
       }
     }
 
-    // 点赞按钮（左侧）
-    const likeButtonX = x + 15;
-    const likeButtonWidth = 40;
+    // 点赞按钮（左侧） - 与触摸处理保持一致
+    const likeButtonX = x + 10; // 与触摸区域对齐
+    const likeButtonWidth = 50;
     const likeButtonText = '👍';
 
-    // 点踩按钮（右侧）
-    const dislikeButtonX = x + width - 55;
-    const dislikeButtonWidth = 40;
+    // 点踩按钮（右侧） - 与触摸处理保持一致
+    const dislikeButtonX = x + width - 60; // 与触摸区域对齐
+    const dislikeButtonWidth = 50;
     const dislikeButtonText = '👎';
 
     // 绘制点赞按钮

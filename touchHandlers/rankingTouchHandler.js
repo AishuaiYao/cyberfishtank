@@ -161,15 +161,15 @@ class RankingTouchHandler {
         // 计算按钮区域 - 确保与UI渲染一致
         const buttonAreaY = cardY + cardHeight - 35; // 底部按钮区域
 
-        // 点赞按钮区域（左侧） - 确保与UI渲染一致
-        const likeButtonX = cardX + 15;
-        const likeButtonWidth = 40;
+        // 点赞按钮区域（左侧） - 增大触摸区域优化点击灵敏度
+        const likeButtonX = cardX + 10; // 扩大触摸区域
+        const likeButtonWidth = 50; // 增大触摸宽度
 
-        // 点踩按钮区域（右侧） - 确保与UI渲染一致
-        const dislikeButtonX = cardX + cardWidth - 55;
-        const dislikeButtonWidth = 40;
+        // 点踩按钮区域（右侧） - 增大触摸区域优化点击灵敏度
+        const dislikeButtonX = cardX + cardWidth - 60; // 扩大触摸区域
+        const dislikeButtonWidth = 50; // 增大触摸宽度
 
-        const buttonHeight = 25;
+        const buttonHeight = 30; // 增大触摸高度
 
         // 检查点赞按钮点击
         if (x >= likeButtonX && x <= likeButtonX + likeButtonWidth &&
@@ -259,8 +259,8 @@ class RankingTouchHandler {
       // 修正：正确的deltaY计算，手指向上滑动时内容向下滚动
       const deltaY = this.lastTouchY - y;
 
-      // 立即更新滚动位置（即使移动距离很小）
-      if (Math.abs(deltaY) > 0) {
+      // 优化：只有在移动距离超过10像素时才认为是滚动，提高按钮点击灵敏度
+      if (Math.abs(deltaY) > 10) {
         this.isScrolling = true;
 
         // 更新滚动位置，添加弹性边界

@@ -87,7 +87,7 @@ class EventHandler {
     this.isOperating = false;
     // 新增：防止快速连续点击的计时器
     this.lastInteractionTime = 0;
-    this.interactionCooldown = 1000; // 1秒冷却时间
+    this.interactionCooldown = 300; // 300毫秒冷却时间，提高响应速度
 
     // 新增：我的鱼缸相关
     this.myFishTankList = []; // 用户自己的鱼列表
