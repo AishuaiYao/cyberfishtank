@@ -71,6 +71,35 @@ class Game {
 //    });
 
     console.log('游戏初始化完成，像素比:', pixelRatio);
+
+    // 初始化分享功能
+    this.initShare();
+  }
+
+  // 初始化分享功能
+  initShare() {
+    // 显示右上角转发按钮
+    wx.showShareMenu({
+      withShareTicket: true,
+      menus: ['shareAppMessage', 'shareTimeline']
+    });
+
+    // 监听转发事件 - 转发给朋友
+    wx.onShareAppMessage(() => {
+      return {
+        title: '来玩画小鱼游戏吧！',
+        path: 'game/game'
+      };
+    });
+
+    // 监听分享到朋友圈事件
+    wx.onShareTimeline(() => {
+      return {
+        title: '来看看我画的小鱼！'
+      };
+    });
+
+    console.log('分享功能初始化完成');
   }
 
   // 新增：优化Canvas渲染质量
