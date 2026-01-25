@@ -447,7 +447,7 @@ class DatabaseManager {
   }
 
   // 修改：分页获取排行榜数据，支持从comment集合读取score
-  async getRankingDataPage(page = 0, pageSize = 20, sortType = 'latest') {
+  async getRankingDataPage(page = 0, pageSize = 15, sortType = 'latest') {
     if (!Utils.checkDatabaseInitialization(this, '获取排行榜分页数据')) return { data: [], hasMore: false };
 
     try {

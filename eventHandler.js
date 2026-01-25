@@ -106,7 +106,7 @@ class EventHandler {
         isLoading: false,
         hasMore: true,
         currentPage: 0,
-        pageSize: 20,
+        pageSize: 15,
         cachedData: [] // 缓存已加载的数据
       }
     };

@@ -4,9 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="实现分享和转发功能">
+    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="读取数据的时候用field筛选字段">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/databaseManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/databaseManager.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventHandler.js" beforeDir="false" afterPath="$PROJECT_DIR$/eventHandler.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -71,14 +72,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00186" summary="鱼缸选择">
-      <option name="closed" value="true" />
-      <created>1765115164815</created>
-      <option name="number" value="00186" />
-      <option name="presentableId" value="LOCAL-00186" />
-      <option name="project" value="LOCAL" />
-      <updated>1765115164815</updated>
     </task>
     <task id="LOCAL-00187" summary="最佳鱼缸刷新">
       <option name="closed" value="true" />
@@ -464,11 +457,18 @@
       <option name="project" value="LOCAL" />
       <updated>1768663135162</updated>
     </task>
-    <option name="localTasksCounter" value="235" />
+    <task id="LOCAL-00235" summary="读取数据的时候用field筛选字段">
+      <option name="closed" value="true" />
+      <created>1769329742061</created>
+      <option name="number" value="00235" />
+      <option name="presentableId" value="LOCAL-00235" />
+      <option name="project" value="LOCAL" />
+      <updated>1769329742061</updated>
+    </task>
+    <option name="localTasksCounter" value="236" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="去掉网格线" />
     <MESSAGE value="擦除外边框" />
     <MESSAGE value="擦除外边框-减少间距" />
     <MESSAGE value="开始优化更多细节" />
@@ -493,6 +493,7 @@
     <MESSAGE value="点赞点踩失效问题" />
     <MESSAGE value="点赞点踩灵敏度调整" />
     <MESSAGE value="实现分享和转发功能" />
-    <option name="LAST_COMMIT_MESSAGE" value="实现分享和转发功能" />
+    <MESSAGE value="读取数据的时候用field筛选字段" />
+    <option name="LAST_COMMIT_MESSAGE" value="读取数据的时候用field筛选字段" />
   </component>
 </project>
