@@ -4,9 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="点赞点踩灵敏度调整">
+    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="实现分享和转发功能">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/game.js" beforeDir="false" afterPath="$PROJECT_DIR$/game.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/databaseManager.js" beforeDir="false" afterPath="$PROJECT_DIR$/databaseManager.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -71,14 +71,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00185" summary="鱼缸button滑动选择-基础OK">
-      <option name="closed" value="true" />
-      <created>1765114529539</created>
-      <option name="number" value="00185" />
-      <option name="presentableId" value="LOCAL-00185" />
-      <option name="project" value="LOCAL" />
-      <updated>1765114529539</updated>
     </task>
     <task id="LOCAL-00186" summary="鱼缸选择">
       <option name="closed" value="true" />
@@ -464,11 +456,18 @@
       <option name="project" value="LOCAL" />
       <updated>1765983341751</updated>
     </task>
-    <option name="localTasksCounter" value="234" />
+    <task id="LOCAL-00234" summary="实现分享和转发功能">
+      <option name="closed" value="true" />
+      <created>1768663135161</created>
+      <option name="number" value="00234" />
+      <option name="presentableId" value="LOCAL-00234" />
+      <option name="project" value="LOCAL" />
+      <updated>1768663135162</updated>
+    </task>
+    <option name="localTasksCounter" value="235" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="排行榜问题优化" />
     <MESSAGE value="去掉网格线" />
     <MESSAGE value="擦除外边框" />
     <MESSAGE value="擦除外边框-减少间距" />
@@ -493,6 +492,7 @@
     <MESSAGE value="边框线被裁剪入画问题" />
     <MESSAGE value="点赞点踩失效问题" />
     <MESSAGE value="点赞点踩灵敏度调整" />
-    <option name="LAST_COMMIT_MESSAGE" value="点赞点踩灵敏度调整" />
+    <MESSAGE value="实现分享和转发功能" />
+    <option name="LAST_COMMIT_MESSAGE" value="实现分享和转发功能" />
   </component>
 </project>

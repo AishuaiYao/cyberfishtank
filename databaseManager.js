@@ -290,6 +290,10 @@ class DatabaseManager {
           case 'best': // 从comment集合读取score，按从大到小排序（最佳榜）
             // 先获取所有有评论的鱼，按score降序排列
             const commentResult = await this.cloudDb.collection('comment')
+              .field({
+                fishName: true,
+                score: true
+              })
               .orderBy('score', 'desc')
               .limit(limit)
               .get();
@@ -328,6 +332,10 @@ class DatabaseManager {
           case 'worst': // 从comment集合读取score，按从小到大排序（最丑榜）
             // 先获取所有有评论的鱼，按score升序排列
             const worstCommentResult = await this.cloudDb.collection('comment')
+              .field({
+                fishName: true,
+                score: true
+              })
               .orderBy('score', 'asc')
               .limit(limit)
               .get();
@@ -366,6 +374,11 @@ class DatabaseManager {
           case 'latest': // 创作时间最新（最新榜）- 修改：先从comment集合读取数据
             // 从comment集合读取数据，按createTimestamp降序排序
             const latestCommentResult = await this.cloudDb.collection('comment')
+              .field({
+                fishName: true,
+                createTimestamp: true,
+                score: true
+              })
               .orderBy('createTimestamp', 'desc')
               .limit(limit)
               .get();
@@ -451,6 +464,10 @@ class DatabaseManager {
         console.log(`从comment集合按score ${orderText}排序获取数据`);
 
         const commentResult = await this.cloudDb.collection('comment')
+          .field({
+            fishName: true,
+            score: true
+          })
           .orderBy('score', order)
           .skip(page * pageSize)
           .limit(pageSize)
@@ -502,6 +519,11 @@ class DatabaseManager {
         console.log(`从comment集合按createTimestamp降序排序获取最新榜数据`);
 
         const latestCommentResult = await this.cloudDb.collection('comment')
+          .field({
+            fishName: true,
+            createTimestamp: true,
+            score: true
+          })
           .orderBy('createTimestamp', 'desc')
           .skip(page * pageSize)
           .limit(pageSize)
@@ -569,7 +591,7 @@ class DatabaseManager {
       if (sortType === 'best' || sortType === 'worst' || sortType === 'latest') {
         // 查询下一页是否存在更多评论数据
         let query = this.cloudDb.collection('comment');
-        
+
         if (sortType === 'best') {
           query = query.orderBy('score', 'desc');
         } else if (sortType === 'worst') {
@@ -577,7 +599,7 @@ class DatabaseManager {
         } else if (sortType === 'latest') {
           query = query.orderBy('createTimestamp', 'desc');
         }
-        
+
         const nextCommentResult = await query
           .skip((page + 1) * pageSize)
           .limit(1)
@@ -1349,8 +1371,12 @@ async getRandomFishesByUserFallback(openid, count = 20) {
     try {
       // 先获取所有有评论的鱼，按score降序排列
       const commentResult = await this.cloudDb.collection('comment')
+        .field({
+          fishName: true,
+          score: true
+        })
         .orderBy('score', 'desc')
-        .limit(limit * 2) // 多获取一些，避免数据不完整
+        .limit(limit)
         .get();
 
       // 提取鱼名列表
@@ -1400,8 +1426,12 @@ async getRandomFishesByUserFallback(openid, count = 20) {
     try {
       // 先获取所有有评论的鱼，按score升序排列
       const commentResult = await this.cloudDb.collection('comment')
+        .field({
+          fishName: true,
+          score: true
+        })
         .orderBy('score', 'asc')
-        .limit(limit * 2) // 多获取一些，避免数据不完整
+        .limit(limit)
         .get();
 
       // 提取鱼名列表
@@ -1451,8 +1481,13 @@ async getRandomFishesByUserFallback(openid, count = 20) {
     try {
       // 先从comment集合获取数据，按createTimestamp降序排列
       const commentResult = await this.cloudDb.collection('comment')
+        .field({
+          fishName: true,
+          createTimestamp: true,
+          score: true
+        })
         .orderBy('createTimestamp', 'desc')
-        .limit(limit * 2) // 多获取一些，避免数据不完整
+        .limit(limit)
         .get();
 
       // 提取鱼名列表
