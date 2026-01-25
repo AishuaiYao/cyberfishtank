@@ -71,25 +71,58 @@ class DatabaseManager {
 
   // 修改：按用户_openid查询鱼数据 - 现在接收openid参数
   async getFishesByUserOpenid(openid, limit = 20) {
+    if (!openid) {
+      Utils.handleWarning('', 'openid为空，无法查询用户鱼数据');
+      return [];
+    }
+
+    // 降级序列：20 → 15 → 10 → 8 → 5 → 3 → 1
+    const pageSizeSequence = [20, 15, 10, 8, 5, 3, 1];
+
+    // 找到传入的 limit 在降级序列中的起始位置
+    let sequenceIndex = pageSizeSequence.indexOf(limit);
+    if (sequenceIndex === -1) {
+      sequenceIndex = 0; // 默认从最大值开始
+    }
+
     return this._executeDatabaseOperation('按用户查询鱼数据', async () => {
-      if (!openid) {
-        Utils.handleWarning('', 'openid为空，无法查询用户鱼数据');
-        return [];
+      console.log(`查询用户 ${openid} 的鱼数据，目标: ${limit} 条`);
+
+      for (let i = sequenceIndex; i < pageSizeSequence.length; i++) {
+        const currentLimit = pageSizeSequence[i];
+
+        try {
+          console.log(`尝试查询用户鱼数据，限制: ${currentLimit} 条`);
+
+          // 关键：显式指定_openid条件
+          const result = await this.cloudDb.collection('fishes')
+            .where({
+              _openid: openid  // 显式指定_openid条件
+            })
+            .orderBy('createTimestamp', 'desc') // 按创建时间倒序
+            .limit(currentLimit)
+            .get();
+
+          console.log(`找到用户 ${openid} 的 ${result.data.length} 条鱼`);
+          return result.data;
+
+        } catch (error) {
+          const isSizeLimitError = error.errCode === -602001 ||
+            (error.errMsg && (error.errMsg.includes('exceeded 1MB') || error.errMsg.includes('exceed limit')));
+
+          if (isSizeLimitError && i < pageSizeSequence.length - 1) {
+            const nextLimit = pageSizeSequence[i + 1];
+            console.log(`查询用户鱼数据失败，触发降级: ${currentLimit} → ${nextLimit}，错误: ${error.errMsg || error.errCode}`);
+          } else if (isSizeLimitError) {
+            console.log(`查询用户鱼数据失败，已降级到最小值 ${currentLimit}`);
+            return [];
+          } else {
+            return Utils.handleDatabaseError(error, '查询用户鱼数据', []);
+          }
+        }
       }
 
-      console.log(`查询用户 ${openid} 的鱼数据，限制: ${limit} 条`);
-
-      // 关键：显式指定_openid条件
-      const result = await this.cloudDb.collection('fishes')
-        .where({
-          _openid: openid  // 显式指定_openid条件
-        })
-        .orderBy('createTimestamp', 'desc') // 按创建时间倒序
-        .limit(limit)
-        .get();
-
-      console.log(`找到用户 ${openid} 的 ${result.data.length} 条鱼`);
-      return result.data;
+      return [];
     }, []);
   }
 
@@ -235,41 +268,93 @@ class DatabaseManager {
   async getRandomFishesFromDatabase(count = 20) {
     if (!Utils.checkDatabaseInitialization(this, '获取随机鱼数据')) return [];
 
-    try {
-      // 优先使用方法1：数据库真随机
-      const result = await this.cloudDb.collection('fishes')
-        .aggregate()
-        .sample({ size: count })
-        .end();
+    // 降级序列：20 → 15 → 10 → 8 → 5 → 3 → 1
+    const pageSizeSequence = [20, 15, 10, 8, 5, 3, 1];
 
-      console.log(`使用数据库真随机获取了 ${result.list.length} 条鱼数据`);
-      return result.list;
-
-    } catch (error) {
-      Utils.handleWarning(error, '数据库真随机不支持，使用备选方案');
-      return await this.getRandomFishesFallback(count);
+    // 找到传入的 count 在降级序列中的起始位置
+    let sequenceIndex = pageSizeSequence.indexOf(count);
+    if (sequenceIndex === -1) {
+      sequenceIndex = 0; // 默认从最大值开始
     }
+
+    // 优先使用方法1：数据库真随机
+    for (let i = sequenceIndex; i < pageSizeSequence.length; i++) {
+      const currentCount = pageSizeSequence[i];
+
+      try {
+        console.log(`尝试获取随机鱼数据，数量: ${currentCount} 条`);
+
+        const result = await this.cloudDb.collection('fishes')
+          .aggregate()
+          .sample({ size: currentCount })
+          .end();
+
+        console.log(`使用数据库真随机获取了 ${result.list.length} 条鱼数据`);
+        return result.list;
+
+      } catch (error) {
+        const isSizeLimitError = error.errCode === -602001 ||
+          (error.errMsg && (error.errMsg.includes('exceeded 1MB') || error.errMsg.includes('exceed limit')));
+
+        if (isSizeLimitError && i < pageSizeSequence.length - 1) {
+          const nextCount = pageSizeSequence[i + 1];
+          console.log(`获取随机鱼数据失败，触发降级: ${currentCount} → ${nextCount}，错误: ${error.errMsg || error.errCode}`);
+        } else if (isSizeLimitError) {
+          console.log('获取随机鱼数据失败，降级到备选方案');
+          break; // 退出循环，使用备选方案
+        } else {
+          return Utils.handleDatabaseError(error, '获取随机鱼数据', []);
+        }
+      }
+    }
+
+    // 如果所有降级都失败，使用备选方案（也添加降级）
+    return await this.getRandomFishesFallback(pageSizeSequence[pageSizeSequence.length - 1]);
   }
 
   async getRandomFishesFallback(count = 20) {
     if (!Utils.checkDatabaseInitialization(this, '获取随机鱼数据(备选方案)')) return [];
 
-    try {
-      // 方法2：获取所有数据后随机选择
-      const result = await this.cloudDb.collection('fishes')
-        .limit(1000) // 限制最大获取数量
-        .get();
+    // 降级序列
+    const pageSizeSequence = [20, 15, 10, 8, 5, 3, 1];
 
-      console.log(`备选方案获取了 ${result.data.length} 条鱼数据`);
+    for (const currentCount of pageSizeSequence) {
+      try {
+        console.log(`备选方案尝试获取 ${currentCount} 条随机鱼数据`);
 
-      // 随机选择指定数量的鱼
-      const selectedFishes = Utils.shuffleArray(result.data).slice(0, count);
+        // 方法2：获取数据后随机选择
+        const result = await this.cloudDb.collection('fishes')
+          .limit(1000) // 限制最大获取数量
+          .get();
 
-      console.log(`备选方案随机选择了 ${selectedFishes.length} 条鱼`);
-      return selectedFishes;
-    } catch (error) {
-      return Utils.handleDatabaseError(error, '备选方案获取鱼数据', []);
+        console.log(`备选方案获取了 ${result.data.length} 条鱼数据`);
+
+        if (result.data.length === 0) return [];
+
+        // 随机选择指定数量的鱼
+        const selectedFishes = Utils.shuffleArray(result.data).slice(0, currentCount);
+
+        console.log(`备选方案随机选择了 ${selectedFishes.length} 条鱼`);
+        return selectedFishes;
+
+      } catch (error) {
+        const isSizeLimitError = error.errCode === -602001 ||
+          (error.errMsg && (error.errMsg.includes('exceeded 1MB') || error.errMsg.includes('exceed limit')));
+
+        if (isSizeLimitError && currentCount > pageSizeSequence[pageSizeSequence.length - 1]) {
+          const currentIndex = pageSizeSequence.indexOf(currentCount);
+          const nextCount = pageSizeSequence[currentIndex + 1];
+          console.log(`备选方案获取随机鱼数据失败，触发降级: ${currentCount} → ${nextCount}，错误: ${error.errMsg || error.errCode}`);
+        } else if (isSizeLimitError) {
+          console.log('备选方案降级到最小值，继续尝试');
+          continue;
+        } else {
+          return Utils.handleDatabaseError(error, '备选方案获取鱼数据', []);
+        }
+      }
     }
+
+    return Utils.handleDatabaseError(new Error('所有降级策略都失败'), '备选方案获取鱼数据', []);
   }
 
   async getRankingData(limit = 100, sortType = 'latest') {
@@ -777,53 +862,108 @@ class DatabaseManager {
       return [];
     }
 
+    // 降级序列：20 → 15 → 10 → 8 → 5 → 3 → 1
+    const pageSizeSequence = [20, 15, 10, 8, 5, 3, 1];
+
+    // 找到传入的 count 在降级序列中的起始位置
+    let sequenceIndex = pageSizeSequence.indexOf(count);
+    if (sequenceIndex === -1) {
+      sequenceIndex = 0; // 默认从最大值开始
+    }
+
     console.log(`随机查询用户 ${openid} 的 ${count} 条鱼数据`);
 
-    try {
-      // 方法1：使用数据库的aggregate + sample实现真随机（参考赛博鱼缸）
-      const result = await this.cloudDb.collection('fishes')
-        .aggregate()
-        .match({
-          _openid: openid  // 关键：添加_openid限制，只查询当前用户的鱼
-        })
-        .sample({ size: count })
-        .end();
+    // 方法1：使用数据库的aggregate + sample实现真随机（参考赛博鱼缸）
+    for (let i = sequenceIndex; i < pageSizeSequence.length; i++) {
+      const currentCount = pageSizeSequence[i];
 
-      console.log(`使用数据库真随机获取了用户 ${openid} 的 ${result.list.length} 条鱼`);
-      return result.list;
-    } catch (aggregateError) {
-      Utils.handleWarning(aggregateError, '数据库aggregate随机不支持，使用备选方案');
-      return await this.getRandomFishesByUserFallback(openid, count);
+      try {
+        console.log(`尝试使用数据库真随机获取用户鱼数据，数量: ${currentCount} 条`);
+
+        const result = await this.cloudDb.collection('fishes')
+          .aggregate()
+          .match({
+            _openid: openid  // 关键：添加_openid限制，只查询当前用户的鱼
+          })
+          .sample({ size: currentCount })
+          .end();
+
+        console.log(`使用数据库真随机获取了用户 ${openid} 的 ${result.list.length} 条鱼`);
+        return result.list;
+
+      } catch (error) {
+        const isSizeLimitError = error.errCode === -602001 ||
+          (error.errMsg && (error.errMsg.includes('exceeded 1MB') || error.errMsg.includes('exceed limit')));
+
+        if (isSizeLimitError && i < pageSizeSequence.length - 1) {
+          const nextCount = pageSizeSequence[i + 1];
+          console.log(`数据库真随机获取用户鱼数据失败，触发降级: ${currentCount} → ${nextCount}，错误: ${error.errMsg || error.errCode}`);
+        } else if (isSizeLimitError) {
+          console.log('数据库真随机获取用户鱼数据失败，降级到备选方案');
+          break; // 退出循环，使用备选方案
+        } else if (error.errCode !== -1 && !error.errMsg?.includes('aggregate')) {
+          return Utils.handleDatabaseError(error, '随机查询用户鱼数据', []);
+        }
+        // aggregate 错误继续使用备选方案
+      }
     }
+
+    // 如果 aggregate 失败或所有降级都失败，使用备选方案
+    return await this.getRandomFishesByUserFallback(openid, pageSizeSequence[pageSizeSequence.length - 1]);
   }
 
 // 新增：我的鱼缸随机备选方案
 async getRandomFishesByUserFallback(openid, count = 20) {
-  try {
-    console.log(`使用备选方案随机查询用户 ${openid} 的 ${count} 条鱼数据`);
-
-    // 先获取用户的所有鱼
-    const allUserFishes = await this.cloudDb.collection('fishes')
-      .where({
-        _openid: openid  // 关键：只查询当前用户的鱼
-      })
-      .get();
-
-    console.log(`用户 ${openid} 共有 ${allUserFishes.data.length} 条鱼`);
-
-    if (allUserFishes.data.length === 0) return [];
-
-    // 如果用户鱼的数量少于请求数量，返回所有鱼
-    if (allUserFishes.data.length <= count) return allUserFishes.data;
-
-    // 使用通用的洗牌算法随机选择指定数量的鱼
-    const selectedFishes = Utils.shuffleArray([...allUserFishes.data]).slice(0, count);
-
-    console.log(`随机选择了用户 ${openid} 的 ${selectedFishes.length} 条鱼`);
-    return selectedFishes;
-  } catch (error) {
-    return Utils.handleDatabaseError(error, '备选方案随机查询用户鱼数据', []);
+  if (!openid) {
+    Utils.handleWarning('', 'openid为空，无法随机查询用户鱼数据');
+    return [];
   }
+
+  // 降级序列
+  const pageSizeSequence = [20, 15, 10, 8, 5, 3, 1];
+
+  for (const currentCount of pageSizeSequence) {
+    try {
+      console.log(`备选方案尝试随机查询用户 ${openid} 的 ${currentCount} 条鱼数据`);
+
+      // 先获取用户的所有鱼
+      const allUserFishes = await this.cloudDb.collection('fishes')
+        .where({
+          _openid: openid  // 关键：只查询当前用户的鱼
+        })
+        .get();
+
+      console.log(`用户 ${openid} 共有 ${allUserFishes.data.length} 条鱼`);
+
+      if (allUserFishes.data.length === 0) return [];
+
+      // 如果用户鱼的数量少于请求数量，返回所有鱼
+      if (allUserFishes.data.length <= currentCount) return allUserFishes.data;
+
+      // 使用通用的洗牌算法随机选择指定数量的鱼
+      const selectedFishes = Utils.shuffleArray([...allUserFishes.data]).slice(0, currentCount);
+
+      console.log(`随机选择了用户 ${openid} 的 ${selectedFishes.length} 条鱼`);
+      return selectedFishes;
+
+    } catch (error) {
+      const isSizeLimitError = error.errCode === -602001 ||
+        (error.errMsg && (error.errMsg.includes('exceeded 1MB') || error.errMsg.includes('exceed limit')));
+
+      if (isSizeLimitError && currentCount > pageSizeSequence[pageSizeSequence.length - 1]) {
+        const currentIndex = pageSizeSequence.indexOf(currentCount);
+        const nextCount = pageSizeSequence[currentIndex + 1];
+        console.log(`备选方案随机查询用户鱼数据失败，触发降级: ${currentCount} → ${nextCount}，错误: ${error.errMsg || error.errCode}`);
+      } else if (isSizeLimitError) {
+        console.log('备选方案降级到最小值，继续尝试');
+        continue;
+      } else {
+        return Utils.handleDatabaseError(error, '备选方案随机查询用户鱼数据', []);
+      }
+    }
+  }
+
+  return Utils.handleDatabaseError(new Error('所有降级策略都失败'), '备选方案随机查询用户鱼数据', []);
 }
 
   // 新增：插入房间绘画数据
@@ -1385,167 +1525,254 @@ async getRandomFishesByUserFallback(openid, count = 20) {
   async getBestFishesFromDatabase(limit = 20) {
     if (!Utils.checkDatabaseInitialization(this, '获取最佳鱼数据')) return [];
 
-    try {
-      // 先获取所有有评论的鱼，按score降序排列
-      const commentResult = await this.cloudDb.collection('comment')
-        .field({
-          fishName: true,
-          score: true
-        })
-        .orderBy('score', 'desc')
-        .limit(limit)
-        .get();
+    // 降级序列：20 → 15 → 10 → 8 → 5 → 3 → 1
+    const pageSizeSequence = [20, 15, 10, 8, 5, 3, 1];
 
-      // 提取鱼名列表
-      const fishNames = commentResult.data.map(comment => comment.fishName);
+    // 找到传入的 limit 在降级序列中的起始位置
+    let sequenceIndex = pageSizeSequence.indexOf(limit);
+    if (sequenceIndex === -1) {
+      sequenceIndex = 0; // 默认从最大值开始
+    }
 
-      // 根据鱼名查询对应的鱼数据
-      if (fishNames.length > 0) {
-        const fishResult = await this.cloudDb.collection('fishes')
-          .where({
-            fishName: this.cloudDb.command.in(fishNames)
+    for (let i = sequenceIndex; i < pageSizeSequence.length; i++) {
+      const currentLimit = pageSizeSequence[i];
+
+      try {
+        console.log(`尝试获取最佳鱼数据，目标: ${currentLimit} 条`);
+
+        // 先获取所有有评论的鱼，按score降序排列
+        const commentResult = await this.cloudDb.collection('comment')
+          .field({
+            fishName: true,
+            score: true
           })
+          .orderBy('score', 'desc')
+          .limit(currentLimit)
           .get();
 
-        // 按照comment中的score排序鱼数据，并过滤无效数据
-        const fishMap = {};
-        fishResult.data.forEach(fish => {
-          if (fish.base64 && fish.base64.length > 0) { // 确保有有效的base64数据
-            fishMap[fish.fishName] = fish;
-          }
-        });
+        // 提取鱼名列表
+        const fishNames = commentResult.data.map(comment => comment.fishName);
 
-        const sortedFishes = [];
-        commentResult.data.forEach(comment => {
-          if (fishMap[comment.fishName] && sortedFishes.length < limit) {
-            sortedFishes.push({
-              ...fishMap[comment.fishName],
-              score: comment.score // 使用comment集合中的score
-            });
-          }
-        });
+        // 根据鱼名查询对应的鱼数据
+        if (fishNames.length > 0) {
+          const fishResult = await this.cloudDb.collection('fishes')
+            .where({
+              fishName: this.cloudDb.command.in(fishNames)
+            })
+            .get();
 
-        console.log(`最佳鱼缸：从${commentResult.data.length}条评论中获取了${sortedFishes.length}条有效鱼数据`);
-        return sortedFishes;
+          // 按照comment中的score排序鱼数据，并过滤无效数据
+          const fishMap = {};
+          fishResult.data.forEach(fish => {
+            if (fish.base64 && fish.base64.length > 0) { // 确保有有效的base64数据
+              fishMap[fish.fishName] = fish;
+            }
+          });
+
+          const sortedFishes = [];
+          commentResult.data.forEach(comment => {
+            if (fishMap[comment.fishName] && sortedFishes.length < currentLimit) {
+              sortedFishes.push({
+                ...fishMap[comment.fishName],
+                score: comment.score // 使用comment集合中的score
+              });
+            }
+          });
+
+          console.log(`最佳鱼缸：从${commentResult.data.length}条评论中获取了${sortedFishes.length}条有效鱼数据`);
+          return sortedFishes;
+        }
+
+        console.warn('最佳鱼缸：未找到有效的评论数据');
+        return [];
+
+      } catch (error) {
+        const isSizeLimitError = error.errCode === -602001 ||
+          (error.errMsg && (error.errMsg.includes('exceeded 1MB') || error.errMsg.includes('exceed limit')));
+
+        if (isSizeLimitError && i < pageSizeSequence.length - 1) {
+          const nextLimit = pageSizeSequence[i + 1];
+          console.log(`获取最佳鱼数据失败，触发降级: ${currentLimit} → ${nextLimit}，错误: ${error.errMsg || error.errCode}`);
+        } else if (isSizeLimitError) {
+          console.log(`获取最佳鱼数据失败，已降级到最小值 ${currentLimit}`);
+          return [];
+        } else {
+          return Utils.handleDatabaseError(error, '获取最佳鱼数据', []);
+        }
       }
-
-      console.warn('最佳鱼缸：未找到有效的评论数据');
-      return [];
-    } catch (error) {
-      return Utils.handleDatabaseError(error, '获取最佳鱼数据', []);
     }
+
+    return [];
   }
 
   // 新增：获取最丑鱼数据（评分最低的20条鱼）
   async getWorstFishesFromDatabase(limit = 20) {
     if (!Utils.checkDatabaseInitialization(this, '获取最丑鱼数据')) return [];
 
-    try {
-      // 先获取所有有评论的鱼，按score升序排列
-      const commentResult = await this.cloudDb.collection('comment')
-        .field({
-          fishName: true,
-          score: true
-        })
-        .orderBy('score', 'asc')
-        .limit(limit)
-        .get();
+    // 降级序列：20 → 15 → 10 → 8 → 5 → 3 → 1
+    const pageSizeSequence = [20, 15, 10, 8, 5, 3, 1];
 
-      // 提取鱼名列表
-      const fishNames = commentResult.data.map(comment => comment.fishName);
+    // 找到传入的 limit 在降级序列中的起始位置
+    let sequenceIndex = pageSizeSequence.indexOf(limit);
+    if (sequenceIndex === -1) {
+      sequenceIndex = 0; // 默认从最大值开始
+    }
 
-      // 根据鱼名查询对应的鱼数据
-      if (fishNames.length > 0) {
-        const fishResult = await this.cloudDb.collection('fishes')
-          .where({
-            fishName: this.cloudDb.command.in(fishNames)
+    for (let i = sequenceIndex; i < pageSizeSequence.length; i++) {
+      const currentLimit = pageSizeSequence[i];
+
+      try {
+        console.log(`尝试获取最丑鱼数据，目标: ${currentLimit} 条`);
+
+        // 先获取所有有评论的鱼，按score升序排列
+        const commentResult = await this.cloudDb.collection('comment')
+          .field({
+            fishName: true,
+            score: true
           })
+          .orderBy('score', 'asc')
+          .limit(currentLimit)
           .get();
 
-        // 按照comment中的score排序鱼数据，并过滤无效数据
-        const fishMap = {};
-        fishResult.data.forEach(fish => {
-          if (fish.base64 && fish.base64.length > 0) { // 确保有有效的base64数据
-            fishMap[fish.fishName] = fish;
-          }
-        });
+        // 提取鱼名列表
+        const fishNames = commentResult.data.map(comment => comment.fishName);
 
-        const sortedFishes = [];
-        commentResult.data.forEach(comment => {
-          if (fishMap[comment.fishName] && sortedFishes.length < limit) {
-            sortedFishes.push({
-              ...fishMap[comment.fishName],
-              score: comment.score // 使用comment集合中的score
-            });
-          }
-        });
+        // 根据鱼名查询对应的鱼数据
+        if (fishNames.length > 0) {
+          const fishResult = await this.cloudDb.collection('fishes')
+            .where({
+              fishName: this.cloudDb.command.in(fishNames)
+            })
+            .get();
 
-        console.log(`最丑鱼缸：从${commentResult.data.length}条评论中获取了${sortedFishes.length}条有效鱼数据`);
-        return sortedFishes;
+          // 按照comment中的score排序鱼数据，并过滤无效数据
+          const fishMap = {};
+          fishResult.data.forEach(fish => {
+            if (fish.base64 && fish.base64.length > 0) { // 确保有有效的base64数据
+              fishMap[fish.fishName] = fish;
+            }
+          });
+
+          const sortedFishes = [];
+          commentResult.data.forEach(comment => {
+            if (fishMap[comment.fishName] && sortedFishes.length < currentLimit) {
+              sortedFishes.push({
+                ...fishMap[comment.fishName],
+                score: comment.score // 使用comment集合中的score
+              });
+            }
+          });
+
+          console.log(`最丑鱼缸：从${commentResult.data.length}条评论中获取了${sortedFishes.length}条有效鱼数据`);
+          return sortedFishes;
+        }
+
+        console.warn('最丑鱼缸：未找到有效的评论数据');
+        return [];
+
+      } catch (error) {
+        const isSizeLimitError = error.errCode === -602001 ||
+          (error.errMsg && (error.errMsg.includes('exceeded 1MB') || error.errMsg.includes('exceed limit')));
+
+        if (isSizeLimitError && i < pageSizeSequence.length - 1) {
+          const nextLimit = pageSizeSequence[i + 1];
+          console.log(`获取最丑鱼数据失败，触发降级: ${currentLimit} → ${nextLimit}，错误: ${error.errMsg || error.errCode}`);
+        } else if (isSizeLimitError) {
+          console.log(`获取最丑鱼数据失败，已降级到最小值 ${currentLimit}`);
+          return [];
+        } else {
+          return Utils.handleDatabaseError(error, '获取最丑鱼数据', []);
+        }
       }
-
-      console.warn('最丑鱼缸：未找到有效的评论数据');
-      return [];
-    } catch (error) {
-      return Utils.handleDatabaseError(error, '获取最丑鱼数据', []);
     }
+
+    return [];
   }
 
   // 新增：获取最新鱼数据（最新加入的20条鱼）- 修改：从comment集合读取数据
   async getLatestFishesFromDatabase(limit = 20) {
     if (!Utils.checkDatabaseInitialization(this, '获取最新鱼数据')) return [];
 
-    try {
-      // 先从comment集合获取数据，按createTimestamp降序排列
-      const commentResult = await this.cloudDb.collection('comment')
-        .field({
-          fishName: true,
-          createTimestamp: true,
-          score: true
-        })
-        .orderBy('createTimestamp', 'desc')
-        .limit(limit)
-        .get();
+    // 降级序列：20 → 15 → 10 → 8 → 5 → 3 → 1
+    const pageSizeSequence = [20, 15, 10, 8, 5, 3, 1];
 
-      // 提取鱼名列表
-      const fishNames = commentResult.data.map(comment => comment.fishName);
+    // 找到传入的 limit 在降级序列中的起始位置
+    let sequenceIndex = pageSizeSequence.indexOf(limit);
+    if (sequenceIndex === -1) {
+      sequenceIndex = 0; // 默认从最大值开始
+    }
 
-      // 根据鱼名查询对应的鱼数据
-      if (fishNames.length > 0) {
-        const fishResult = await this.cloudDb.collection('fishes')
-          .where({
-            fishName: this.cloudDb.command.in(fishNames)
+    for (let i = sequenceIndex; i < pageSizeSequence.length; i++) {
+      const currentLimit = pageSizeSequence[i];
+
+      try {
+        console.log(`尝试获取最新鱼数据，目标: ${currentLimit} 条`);
+
+        // 先从comment集合获取数据，按createTimestamp降序排列
+        const commentResult = await this.cloudDb.collection('comment')
+          .field({
+            fishName: true,
+            createTimestamp: true,
+            score: true
           })
+          .orderBy('createTimestamp', 'desc')
+          .limit(currentLimit)
           .get();
 
-        // 按照comment中的createTimestamp排序鱼数据，并过滤无效数据
-        const fishMap = {};
-        fishResult.data.forEach(fish => {
-          if (fish.base64 && fish.base64.length > 0) { // 确保有有效的base64数据
-            fishMap[fish.fishName] = fish;
-          }
-        });
+        // 提取鱼名列表
+        const fishNames = commentResult.data.map(comment => comment.fishName);
 
-        const sortedFishes = [];
-        commentResult.data.forEach(comment => {
-          if (fishMap[comment.fishName] && sortedFishes.length < limit) {
-            sortedFishes.push({
-              ...fishMap[comment.fishName],
-              score: comment.score, // 使用comment集合中的score
-              createTimestamp: comment.createTimestamp // 使用comment集合中的createTimestamp
-            });
-          }
-        });
+        // 根据鱼名查询对应的鱼数据
+        if (fishNames.length > 0) {
+          const fishResult = await this.cloudDb.collection('fishes')
+            .where({
+              fishName: this.cloudDb.command.in(fishNames)
+            })
+            .get();
 
-        console.log(`最新鱼缸：从${commentResult.data.length}条评论中获取了${sortedFishes.length}条有效鱼数据`);
-        return sortedFishes;
+          // 按照comment中的createTimestamp排序鱼数据，并过滤无效数据
+          const fishMap = {};
+          fishResult.data.forEach(fish => {
+            if (fish.base64 && fish.base64.length > 0) { // 确保有有效的base64数据
+              fishMap[fish.fishName] = fish;
+            }
+          });
+
+          const sortedFishes = [];
+          commentResult.data.forEach(comment => {
+            if (fishMap[comment.fishName] && sortedFishes.length < currentLimit) {
+              sortedFishes.push({
+                ...fishMap[comment.fishName],
+                score: comment.score, // 使用comment集合中的score
+                createTimestamp: comment.createTimestamp // 使用comment集合中的createTimestamp
+              });
+            }
+          });
+
+          console.log(`最新鱼缸：从${commentResult.data.length}条评论中获取了${sortedFishes.length}条有效鱼数据`);
+          return sortedFishes;
+        }
+
+        console.warn('最新鱼缸：未找到有效的评论数据');
+        return [];
+
+      } catch (error) {
+        const isSizeLimitError = error.errCode === -602001 ||
+          (error.errMsg && (error.errMsg.includes('exceeded 1MB') || error.errMsg.includes('exceed limit')));
+
+        if (isSizeLimitError && i < pageSizeSequence.length - 1) {
+          const nextLimit = pageSizeSequence[i + 1];
+          console.log(`获取最新鱼数据失败，触发降级: ${currentLimit} → ${nextLimit}，错误: ${error.errMsg || error.errCode}`);
+        } else if (isSizeLimitError) {
+          console.log(`获取最新鱼数据失败，已降级到最小值 ${currentLimit}`);
+          return [];
+        } else {
+          return Utils.handleDatabaseError(error, '获取最新鱼数据', []);
+        }
       }
-
-      console.warn('最新鱼缸：未找到有效的评论数据');
-      return [];
-    } catch (error) {
-      return Utils.handleDatabaseError(error, '获取最新鱼数据', []);
     }
+
+    return [];
   }
 
   // 新增：从comment集合中删除鱼的评论数据

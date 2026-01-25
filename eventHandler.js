@@ -1684,10 +1684,19 @@ async loadLatestFishes() {
 
   // 新增：获取当前鱼缸鱼的数量
   getCurrentTankFishCount() {
-    if (this.currentTankMode === 'public') {
-      return this.globalFishList.length;
-    } else {
-      return this.myFishTankList.length;
+    switch (this.currentTankMode) {
+      case 'public':
+        return this.globalFishList.length;
+      case 'best':
+        return this.bestFishesList ? this.bestFishesList.length : 0;
+      case 'worst':
+        return this.worstFishesList ? this.worstFishesList.length : 0;
+      case 'latest':
+        return this.latestFishesList ? this.latestFishesList.length : 0;
+      case 'my':
+        return this.myFishTankList.length;
+      default:
+        return 0;
     }
   }
 
