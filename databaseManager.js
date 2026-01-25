@@ -446,18 +446,25 @@ class DatabaseManager {
     }
   }
 
-  // 修改：分页获取排行榜数据，支持从comment集合读取score
+  // 修改：分页获取排行榜数据，支持从comment集合读取score，并实现自动降级机制
   async getRankingDataPage(page = 0, pageSize = 15, sortType = 'latest') {
     if (!Utils.checkDatabaseInitialization(this, '获取排行榜分页数据')) return { data: [], hasMore: false };
 
-    try {
-      console.log(`获取排行榜第${page+1}页，每页${pageSize}条，排序类型: ${sortType}`);
+    // 降级序列
+    const pageSizeSequence = [15, 10, 7, 5, 3];
 
+    // 找到传入的 pageSize 在降级序列中的起始位置
+    let sequenceIndex = pageSizeSequence.indexOf(pageSize);
+    if (sequenceIndex === -1) {
+      sequenceIndex = 0;
+    }
+
+    // 内部执行查询的函数
+    const _executeQuery = async (currentPageSize) => {
       let result;
 
       // 根据排序类型使用不同的查询逻辑
       if (sortType === 'best' || sortType === 'worst') {
-        // 最佳榜或最丑榜：从comment集合读取score
         const order = sortType === 'best' ? 'desc' : 'asc';
         const orderText = sortType === 'best' ? '从大到小' : '从小到大';
 
@@ -469,41 +476,37 @@ class DatabaseManager {
             score: true
           })
           .orderBy('score', order)
-          .skip(page * pageSize)
-          .limit(pageSize)
+          .skip(page * currentPageSize)
+          .limit(currentPageSize)
           .get();
 
-        // 提取鱼名列表
         const fishNames = commentResult.data.map(comment => comment.fishName);
 
         if (fishNames.length === 0) {
           return { data: [], hasMore: false };
         }
 
-        // 根据鱼名查询对应的鱼数据
         const fishResult = await this.cloudDb.collection('fishes')
           .where({
             fishName: this.cloudDb.command.in(fishNames)
           })
           .get();
 
-        // 按照comment中的score排序鱼数据
         const fishMap = {};
         fishResult.data.forEach(fish => {
           fishMap[fish.fishName] = fish;
         });
 
         const sortedFishes = [];
-        const skippedFishNames = []; // 记录被跳过的fishName，便于调试
+        const skippedFishNames = [];
 
         commentResult.data.forEach(comment => {
           if (fishMap[comment.fishName]) {
             sortedFishes.push({
               ...fishMap[comment.fishName],
-              score: comment.score // 使用comment集合中的score
+              score: comment.score
             });
           } else {
-            // 跳过在fishes集合中不存在的鱼
             skippedFishNames.push(comment.fishName);
           }
         });
@@ -515,7 +518,6 @@ class DatabaseManager {
         console.log(`从comment集合获取了 ${commentResult.data.length} 条评论，从fishes集合匹配了 ${sortedFishes.length} 条鱼数据`);
         result = { data: sortedFishes };
       } else if (sortType === 'latest') {
-        // 最新榜：从comment集合读取createTimestamp
         console.log(`从comment集合按createTimestamp降序排序获取最新榜数据`);
 
         const latestCommentResult = await this.cloudDb.collection('comment')
@@ -525,42 +527,38 @@ class DatabaseManager {
             score: true
           })
           .orderBy('createTimestamp', 'desc')
-          .skip(page * pageSize)
-          .limit(pageSize)
+          .skip(page * currentPageSize)
+          .limit(currentPageSize)
           .get();
 
-        // 提取鱼名列表
         const latestFishNames = latestCommentResult.data.map(comment => comment.fishName);
 
         if (latestFishNames.length === 0) {
           return { data: [], hasMore: false };
         }
 
-        // 根据鱼名查询对应的鱼数据
         const latestFishResult = await this.cloudDb.collection('fishes')
           .where({
             fishName: this.cloudDb.command.in(latestFishNames)
           })
           .get();
 
-        // 按照comment中的createTimestamp排序鱼数据
         const latestFishMap = {};
         latestFishResult.data.forEach(fish => {
           latestFishMap[fish.fishName] = fish;
         });
 
         const sortedLatestFishes = [];
-        const skippedLatestFishNames = []; // 记录被跳过的fishName，便于调试
+        const skippedLatestFishNames = [];
 
         latestCommentResult.data.forEach(comment => {
           if (latestFishMap[comment.fishName]) {
             sortedLatestFishes.push({
               ...latestFishMap[comment.fishName],
-              score: comment.score, // 使用comment集合中的score
-              createTimestamp: comment.createTimestamp // 使用comment集合中的createTimestamp
+              score: comment.score,
+              createTimestamp: comment.createTimestamp
             });
           } else {
-            // 跳过在fishes集合中不存在的鱼
             skippedLatestFishNames.push(comment.fishName);
           }
         });
@@ -572,24 +570,20 @@ class DatabaseManager {
         console.log(`最新榜从comment集合获取了 ${latestCommentResult.data.length} 条评论，从fishes集合匹配了 ${sortedLatestFishes.length} 条鱼数据`);
         result = { data: sortedLatestFishes };
       } else {
-        // 其他排序类型：使用原有逻辑
         let query = this.cloudDb.collection('fishes');
         query = query.orderBy('createTimestamp', 'desc');
 
         result = await query
-          .skip(page * pageSize)
-          .limit(pageSize)
+          .skip(page * currentPageSize)
+          .limit(currentPageSize)
           .get();
       }
 
-      // 过滤有效数据
       const validRankingData = result.data.filter(fish => fish.base64 && fish.base64.length > 0);
 
       console.log(`第${page+1}页获取了 ${validRankingData.length} 条有效数据`);
 
-      // 对于最佳榜、最丑榜和最新榜，需要特殊判断是否还有更多数据
       if (sortType === 'best' || sortType === 'worst' || sortType === 'latest') {
-        // 查询下一页是否存在更多评论数据
         let query = this.cloudDb.collection('comment');
 
         if (sortType === 'best') {
@@ -601,7 +595,7 @@ class DatabaseManager {
         }
 
         const nextCommentResult = await query
-          .skip((page + 1) * pageSize)
+          .skip((page + 1) * currentPageSize)
           .limit(1)
           .get();
 
@@ -612,12 +606,35 @@ class DatabaseManager {
       } else {
         return {
           data: validRankingData,
-          hasMore: result.data.length === pageSize // 如果返回的数据量等于请求量，说明可能还有更多
+          hasMore: result.data.length === currentPageSize
         };
       }
-    } catch (error) {
-      return Utils.handleDatabaseError(error, '获取排行榜分页数据', { data: [], hasMore: false });
+    };
+
+    // 降级重试逻辑
+    for (let i = sequenceIndex; i < pageSizeSequence.length; i++) {
+      const currentPageSize = pageSizeSequence[i];
+
+      try {
+        console.log(`尝试获取排行榜第${page+1}页，每页${currentPageSize}条，排序类型: ${sortType}`);
+        const result = await _executeQuery(currentPageSize);
+
+        console.log(`查询成功，每页${currentPageSize}条`);
+        return result;
+      } catch (error) {
+        const isSizeLimitError = error.errCode === -602001 ||
+          (error.errMsg && (error.errMsg.includes('exceeded 1MB') || error.errMsg.includes('exceed limit')));
+
+        if (isSizeLimitError && i < pageSizeSequence.length - 1) {
+          const nextPageSize = pageSizeSequence[i + 1];
+          console.log(`获取排行榜分页数据失败，触发降级: ${currentPageSize} → ${nextPageSize}，错误: ${error.errMsg || error.errCode}`);
+        } else {
+          return Utils.handleDatabaseError(error, '获取排行榜分页数据', { data: [], hasMore: false });
+        }
+      }
     }
+
+    return { data: [], hasMore: false };
   }
 
 
