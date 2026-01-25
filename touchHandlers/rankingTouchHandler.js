@@ -338,11 +338,11 @@ class RankingTouchHandler {
     }
 
     // 确保 rankingIncrementalData 和 cyber 数据存在
-    if (!this.eventHandler.rankingIncrementalData || !this.eventHandler.rankingIncrementalData.cyber) {
+    if (!this.eventHandler.rankingIncrementalData || !this.eventHandler.rankingIncrementalData[this.eventHandler.rankingSortType]) {
       return;
     }
 
-    const incrementalData = this.eventHandler.rankingIncrementalData.cyber;
+    const incrementalData = this.eventHandler.rankingIncrementalData[this.eventHandler.rankingSortType];
 
     if (!this.eventHandler.rankingData || incrementalData.isLoading) {
       return;

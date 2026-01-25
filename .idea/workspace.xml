@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="解决了最新榜无法刷新的问题，每次加载20个太大了">
+    <list default="true" id="b09b40f2-5608-49a8-bf0a-87a5a448c539" name="更改" comment="读取数据库降级">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/prompt.txt" beforeDir="false" afterPath="$PROJECT_DIR$/prompt.txt" afterDir="false" />
     </list>
@@ -71,14 +71,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1763172174182</updated>
-    </task>
-    <task id="LOCAL-00188" summary="最佳鱼缸刷新OK">
-      <option name="closed" value="true" />
-      <created>1765116096540</created>
-      <option name="number" value="00188" />
-      <option name="presentableId" value="LOCAL-00188" />
-      <option name="project" value="LOCAL" />
-      <updated>1765116096540</updated>
     </task>
     <task id="LOCAL-00189" summary="最佳鱼缸刷新OK">
       <option name="closed" value="true" />
@@ -464,11 +456,18 @@
       <option name="project" value="LOCAL" />
       <updated>1769330879165</updated>
     </task>
-    <option name="localTasksCounter" value="237" />
+    <task id="LOCAL-00237" summary="读取数据库降级">
+      <option name="closed" value="true" />
+      <created>1769332837513</created>
+      <option name="number" value="00237" />
+      <option name="presentableId" value="LOCAL-00237" />
+      <option name="project" value="LOCAL" />
+      <updated>1769332837513</updated>
+    </task>
+    <option name="localTasksCounter" value="238" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="擦除外边框-减少间距" />
     <MESSAGE value="开始优化更多细节" />
     <MESSAGE value="开始优化更多细节-最新榜获取逻辑-对齐最佳最丑" />
     <MESSAGE value="缩放" />
@@ -493,6 +492,7 @@
     <MESSAGE value="实现分享和转发功能" />
     <MESSAGE value="读取数据的时候用field筛选字段" />
     <MESSAGE value="解决了最新榜无法刷新的问题，每次加载20个太大了" />
-    <option name="LAST_COMMIT_MESSAGE" value="解决了最新榜无法刷新的问题，每次加载20个太大了" />
+    <MESSAGE value="读取数据库降级" />
+    <option name="LAST_COMMIT_MESSAGE" value="读取数据库降级" />
   </component>
 </project>

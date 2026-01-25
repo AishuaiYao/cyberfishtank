@@ -741,8 +741,8 @@ class UIManager {
 
     // 检查是否正在加载更多数据
     if (this.eventHandler.rankingIncrementalData &&
-        this.eventHandler.rankingIncrementalData.cyber &&
-        this.eventHandler.rankingIncrementalData.cyber.isLoading) {
+        this.eventHandler.rankingIncrementalData[this.eventHandler.rankingSortType] &&
+        this.eventHandler.rankingIncrementalData[this.eventHandler.rankingSortType].isLoading) {
 
       // 在底部绘制专业级加载动画
       const spinnerY = config.screenHeight - 50;
@@ -824,8 +824,8 @@ class UIManager {
 
     // 检查是否正在加载更多数据
     if (this.eventHandler.rankingIncrementalData &&
-        this.eventHandler.rankingIncrementalData.cyber &&
-        this.eventHandler.rankingIncrementalData.cyber.isLoading) {
+        this.eventHandler.rankingIncrementalData[this.eventHandler.rankingSortType] &&
+        this.eventHandler.rankingIncrementalData[this.eventHandler.rankingSortType].isLoading) {
 
       // 在底部绘制专业级加载动画
       const spinnerY = config.screenHeight - 50;
