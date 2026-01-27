@@ -1857,7 +1857,37 @@ async refreshFishTank() {
   }
 
   // 组队功能
-  handleTeam() {
+  async handleTeam() {
+    console.log('组队按钮被点击，准备展示广告');
+    
+    // 直接通过gameState获取Game实例
+    const game = this.gameState.game;
+    console.log('Game实例:', game);
+    console.log('Game广告实例:', game?.interstitialAd);
+    
+    // 在显示组队界面前展示广告
+    if (game && game.interstitialAd) {
+      console.log('组队广告实例存在，准备展示');
+      try {
+        await game.interstitialAd.show();
+        console.log('组队前广告展示成功');
+      } catch (err) {
+        console.error('组队前插屏广告显示失败:', err);
+        console.error('错误类型:', typeof err);
+        console.error('错误信息:', err.message);
+        console.error('错误堆栈:', err.stack);
+        
+        // 处理微信小程序广告限制错误
+        if (err.errCode === 2002) {
+          console.log('微信小程序插屏广告时间间隔限制，跳过广告展示');
+        }
+        
+        // 广告展示失败不影响游戏继续运行
+      }
+    } else {
+      console.log('组队广告实例不存在:', game, game?.interstitialAd);
+    }
+    
     this.isTeamInterfaceVisible = true;
     this.uiManager.drawGameUI(this.gameState);
     console.log('组队界面已显示');
