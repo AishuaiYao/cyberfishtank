@@ -260,6 +260,36 @@ class TeamTouchHandler {
     // 重置房间数据初始化状态
     this.isRoomDataInitialized = false;
 
+    // 在切换到共同绘画界面前展示广告
+    console.log('组队按钮被点击，准备展示广告');
+    
+    // 直接通过gameState获取Game实例
+    const game = this.eventHandler.gameState.game;
+    console.log('Game实例:', game);
+    console.log('Game广告实例:', game?.interstitialAd);
+    
+    if (game && game.interstitialAd) {
+      console.log('共同绘画广告实例存在，准备展示');
+      try {
+        await game.interstitialAd.show();
+        console.log('共同绘画前广告展示成功');
+      } catch (err) {
+        console.error('共同绘画前插屏广告显示失败:', err);
+        console.error('错误类型:', typeof err);
+        console.error('错误信息:', err.message);
+        console.error('错误堆栈:', err.stack);
+        
+        // 处理微信小程序广告限制错误
+        if (err.errCode === 2002) {
+          console.log('微信小程序插屏广告时间间隔限制，跳过广告展示');
+        }
+        
+        // 广告展示失败不影响游戏继续运行
+      }
+    } else {
+      console.log('共同绘画广告实例不存在:', game, game?.interstitialAd);
+    }
+
     // 切换到共同绘画界面（不先插入数据）
     this.currentTeamState = 'collaborativePainting';
     this.eventHandler.isCollaborativePaintingVisible = true;

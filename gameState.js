@@ -1,7 +1,8 @@
 const { config } = require('./config.js');
 
 class GameState {
-  constructor() {
+  constructor(game) {
+    this.game = game; // 保存Game实例引用
     this.reset();
   }
 

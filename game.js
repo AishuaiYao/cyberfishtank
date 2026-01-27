@@ -14,11 +14,37 @@ class Game {
   async init() {
     console.log('游戏初始化开始...');
 
+    // 创建插屏广告实例，提前初始化
+    let interstitialAd = null;
+    
+    // 创建插屏广告实例
+    if (wx.createInterstitialAd) {
+      console.log('环境支持插屏广告，准备创建实例');
+      try {
+        interstitialAd = wx.createInterstitialAd({
+          adUnitId: 'adunit-d232b056449b55c6'
+        });
+        console.log('插屏广告实例创建成功');
+      } catch (error) {
+        console.error('创建插屏广告实例失败:', error);
+        console.error('错误类型:', typeof error);
+        console.error('错误信息:', error.message);
+        interstitialAd = null;
+      }
+    } else {
+      console.warn('当前环境不支持插屏广告');
+      interstitialAd = null;
+    }
+
     // 小游戏云开发初始化
     if (wx.cloud) {
       wx.cloud.init();
       console.log('小游戏云开发初始化成功');
     }
+
+    // 保存广告实例到Game类的实例中
+    this.interstitialAd = interstitialAd;
+    console.log('广告实例已保存到Game类:', this.interstitialAd ? '存在' : '不存在');
 
     const systemInfo = wx.getSystemInfoSync();
     const pixelRatio = systemInfo.pixelRatio || 1;
@@ -44,9 +70,9 @@ class Game {
     // 新增：优化Canvas绘制质量
     this.optimizeCanvasRendering(ctx, pixelRatio);
 
-    this.gameState = new GameState();
+    this.gameState = new GameState(this);
     this.uiManager = new UIManager(ctx, pixelRatio);
-    this.eventHandler = new EventHandler(canvas, ctx, this.gameState, this.uiManager);
+    this.eventHandler = new EventHandler(canvas, ctx, this.gameState, this.uiManager, this);
 
     // 关键：建立双向引用
     this.uiManager.setEventHandler(this.eventHandler);
@@ -71,6 +97,31 @@ class Game {
 //    });
 
     console.log('游戏初始化完成，像素比:', pixelRatio);
+
+    // 在游戏初始化完成后展示广告
+    if (interstitialAd) {
+      console.log('准备展示插屏广告，广告实例存在');
+      try {
+        // 等待一小段时间确保广告组件完全初始化
+        await new Promise(resolve => setTimeout(resolve, 500));
+        await interstitialAd.show();
+        console.log('插屏广告展示成功');
+      } catch (err) {
+        console.error('插屏广告显示失败:', err);
+        console.error('错误类型:', typeof err);
+        console.error('错误信息:', err.message);
+        console.error('错误堆栈:', err.stack);
+        
+        // 处理微信小程序广告限制错误
+        if (err.errCode === 2002) {
+          console.log('微信小程序插屏广告时间间隔限制，跳过广告展示');
+        }
+        
+        // 广告显示失败不影响游戏继续运行
+      }
+    } else {
+      console.log('没有可用的插屏广告实例');
+    }
 
     // 初始化分享功能
     this.initShare();

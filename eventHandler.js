@@ -19,11 +19,12 @@ const FishDataManager = require('./fishManager/fishDataManager.js');
 const { FishTank } = require('./fishCore.js');
 
 class EventHandler {
-  constructor(canvas, ctx, gameState, uiManager) {
+  constructor(canvas, ctx, gameState, uiManager, game) {
     this.canvas = canvas;
     this.ctx = ctx;
     this.gameState = gameState;
     this.uiManager = uiManager;
+    this.game = game; // 保存Game实例引用
     this.positions = require('./config.js').getAreaPositions();
     this.aiService = new AIService();
     this.databaseManager = new DatabaseManager();
@@ -1823,6 +1824,35 @@ async refreshFishTank() {
 
   // 排行榜功能
   async handleRanking() {
+    console.log('排行榜按钮被点击，准备展示广告');
+    
+    // 直接通过gameState获取Game实例
+    const game = this.gameState.game;
+    console.log('Game实例:', game);
+    console.log('Game广告实例:', game?.interstitialAd);
+    
+    // 在显示排行榜前展示广告
+    if (game && game.interstitialAd) {
+      console.log('排行榜广告实例存在，准备展示');
+      try {
+        await game.interstitialAd.show();
+        console.log('排行榜前广告展示成功');
+      } catch (err) {
+        console.error('排行榜前插屏广告显示失败:', err);
+        console.error('错误类型:', typeof err);
+        console.error('错误信息:', err.message);
+        console.error('错误堆栈:', err.stack);
+        
+        // 处理微信小程序广告限制错误
+        if (err.errCode === 2002) {
+          console.log('微信小程序插屏广告时间间隔限制，跳过广告展示');
+        }
+        
+        // 广告显示失败不影响游戏继续运行
+      }
+    } else {
+      console.log('排行榜广告实例不存在:', game, game?.interstitialAd);
+    }
     await this.showRankingInterface();
   }
 
