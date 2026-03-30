@@ -576,6 +576,45 @@ drawBrushSizeControl(startY, gameState) {
                             jumpButtons[i], false, isPrimary);
     }
   }
+
+  // 新增：绘制ESP32按钮（在跳转区下方）
+  drawESP32Button(positions) {
+    const ctx = this.ctx;
+    const startY = positions.jumpAreaY + config.jumpHeight - 10;
+    const buttonSize = config.esp32.buttonSize;
+    const x = config.screenWidth - buttonSize - 20; // 右下角
+
+    // 绘制按钮背景
+    ctx.fillStyle = '#FFFFFF';
+    ctx.shadowColor = 'rgba(0,0,0,0.1)';
+    ctx.shadowBlur = 3;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 1;
+
+    ctx.beginPath();
+    ctx.arc(x + buttonSize/2, startY + buttonSize/2, buttonSize/2, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+
+    // 绘制按钮边框
+    ctx.strokeStyle = config.primaryColor;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x + buttonSize/2, startY + buttonSize/2, buttonSize/2, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 绘制图标
+    ctx.fillStyle = config.primaryColor;
+    ctx.font = 'bold 18px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(config.esp32.buttonIcon, x + buttonSize/2, startY + buttonSize/2);
+
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+  }
 }
 
 module.exports = InterfaceRenderer;

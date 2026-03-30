@@ -1,7 +1,9 @@
 
+
 const { config, getAreaPositions } = require('./config.js');
 const InterfaceRenderer = require('./interfaceRenderer.js');
 const TeamInterfaceRenderer = require('./teamInterfaceRenderer.js');
+const ESP32InterfaceRenderer = require('./esp32InterfaceRenderer.js'); // 新增：ESP32界面渲染器
 const Utils = require('./utils.js');
 
 class UIManager {
@@ -11,6 +13,7 @@ class UIManager {
     this.eventHandler = null;
     this.interfaceRenderer = new InterfaceRenderer(ctx, pixelRatio);
     this.teamInterfaceRenderer = new TeamInterfaceRenderer(ctx, pixelRatio);
+    this.esp32InterfaceRenderer = new ESP32InterfaceRenderer(ctx, pixelRatio); // 新增：ESP32界面渲染器
 
     // 新增：加载动画相关变量
     this.loadingSpinnerAngle = 0;
@@ -1442,7 +1445,7 @@ drawMainTitle() {
   ctx.textBaseline = originalTextBaseline;
 }
 
-  // 新增：绘制他人鱼缸界面（串门界面）
+  // 绘制他人鱼缸界面（串门界面）
   drawOtherFishTankInterface() {
     const ctx = this.ctx;
 
@@ -1477,6 +1480,13 @@ drawMainTitle() {
     ctx.fillText('双击屏幕投放鱼粮', Math.round(config.screenWidth / 2), config.screenHeight - 30);
 
     ctx.textAlign = 'left';
+  }
+
+  // 新增：绘制ESP32界面
+  drawESP32Interface() {
+    if (this.eventHandler.esp32Manager) {
+      this.esp32InterfaceRenderer.drawESP32Interface(this.eventHandler.esp32Manager);
+    }
   }
 
   // 绘制完整UI
@@ -1532,6 +1542,11 @@ drawMainTitle() {
         this.drawOtherFishTankInterface();
         return;
       }
+
+      if (this.eventHandler.isESP32InterfaceVisible) {
+        this.drawESP32Interface();
+        return;
+      }
     }
 
     // 绘制主游戏界面
@@ -1542,6 +1557,9 @@ drawMainTitle() {
     this.interfaceRenderer.drawDrawingArea(gameState, positions);
     this.interfaceRenderer.drawScoreArea(gameState, positions);
     this.interfaceRenderer.drawJumpArea(positions);
+    
+    // 新增：绘制ESP32按钮
+    this.interfaceRenderer.drawESP32Button(positions);
   }
 
   // 绘制共同绘画界面

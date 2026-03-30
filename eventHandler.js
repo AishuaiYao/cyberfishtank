@@ -12,9 +12,11 @@ const DialogTouchHandler = require('./touchHandlers/dialogTouchHandler.js');
 const SearchDialogTouchHandler = require('./touchHandlers/searchDialogTouchHandler.js'); // 新增：搜索对话框触摸处理器
 const SwimTouchHandler = require('./touchHandlers/swimTouchHandler.js');
 const TeamTouchHandler = require('./touchHandlers/teamTouchHandler.js'); // 新增：组队触摸处理器
+const ESP32TouchHandler = require('./touchHandlers/esp32TouchHandler.js'); // 新增：ESP32触摸处理器
 const FishProcessor = require('./fishManager/fishProcessor.js');
 const FishAnimator = require('./fishManager/fishAnimator.js');
 const FishDataManager = require('./fishManager/fishDataManager.js');
+const ESP32Manager = require('./esp32Manager.js'); // 新增：ESP32管理器
 
 const { FishTank } = require('./fishCore.js');
 
@@ -37,7 +39,8 @@ class EventHandler {
       dialog: new DialogTouchHandler(this),
       searchDialog: new SearchDialogTouchHandler(this), // 新增：搜索对话框触摸处理器
       swim: new SwimTouchHandler(this),
-      team: new TeamTouchHandler(this) // 新增：组队触摸处理器
+      team: new TeamTouchHandler(this), // 新增：组队触摸处理器
+      esp32: new ESP32TouchHandler(this) // 新增：ESP32触摸处理器
     };
 
     this.fishManager = {
@@ -45,6 +48,9 @@ class EventHandler {
       animator: new FishAnimator(this),
       data: new FishDataManager(this)
     };
+
+    // 新增：ESP32管理器
+    this.esp32Manager = new ESP32Manager(this);
 
     // 界面状态
     this.isSwimInterfaceVisible = false;
@@ -55,6 +61,7 @@ class EventHandler {
     this.isTeamInterfaceVisible = false; // 新增：组队界面状态
     this.isCollaborativePaintingVisible = false; // 新增：共同绘画界面状态
     this.isOtherFishTankVisible = false; // 新增：串门界面状态
+    this.isESP32InterfaceVisible = false; // 新增：ESP32界面状态
 
     // 数据状态
     this.swimInterfaceData = null;
@@ -1256,7 +1263,8 @@ class EventHandler {
       swim: this.isSwimInterfaceVisible,
       team: this.isTeamInterfaceVisible,
       collaborativePainting: this.isCollaborativePaintingVisible,
-      otherFishTank: this.isOtherFishTankVisible
+      otherFishTank: this.isOtherFishTankVisible,
+      esp32: this.isESP32InterfaceVisible
     });
 
     // 根据当前界面状态路由到对应的触摸处理器
@@ -1279,6 +1287,9 @@ class EventHandler {
     } else if (this.isOtherFishTankVisible) {
       console.log('路由到游泳处理器处理串门界面');
       this.touchHandlers.swim.handleTouch(x, y);
+    } else if (this.isESP32InterfaceVisible) {
+      console.log('路由到ESP32处理器');
+      this.touchHandlers.esp32.handleTouchStart(x, y);
     } else if (this.touchHandlers.main.paletteHandler && this.touchHandlers.main.paletteHandler.isVisible) {
       console.log('路由到调色板处理器');
       // 调色板界面优先处理触摸事件
@@ -1310,6 +1321,8 @@ class EventHandler {
     } else if (this.isTeamInterfaceVisible || this.isCollaborativePaintingVisible) {
       // 组队界面和共同绘画界面需要处理移动（传递给组队处理器）
       this.touchHandlers.team.handleTouchMove(x, y);
+    } else if (this.isESP32InterfaceVisible) {
+      // ESP32界面不需要处理移动
     } else {
       // 主界面：传递所有触摸点信息以支持双指操作
       this.touchHandlers.main.handleTouchMove(x, y, touches);
@@ -1350,6 +1363,14 @@ class EventHandler {
     } else if (this.isTeamInterfaceVisible || this.isCollaborativePaintingVisible) {
       // 组队界面和共同绘画界面需要处理结束（传递给组队处理器）
       this.touchHandlers.team.handleTouchEnd();
+    } else if (this.isESP32InterfaceVisible) {
+      // ESP32界面 - 在触摸结束时处理按钮点击
+      if (e.changedTouches && e.changedTouches.length > 0) {
+        const touch = e.changedTouches[0];
+        const x = touch.clientX;
+        const y = touch.clientY;
+        this.touchHandlers.esp32.handleTouchEnd(x, y);
+      }
     } else {
       // 主界面
       this.touchHandlers.main.handleTouchEnd();
@@ -1898,6 +1919,22 @@ async refreshFishTank() {
     this.isTeamInterfaceVisible = false;
     this.uiManager.drawGameUI(this.gameState);
     console.log('组队界面已隐藏');
+  }
+
+  // 新增：显示ESP32界面
+  showESP32Interface() {
+    console.log('显示ESP32界面');
+    this.isESP32InterfaceVisible = true;
+    this.uiManager.drawGameUI(this.gameState);
+    console.log('ESP32界面已显示');
+  }
+
+  // 新增：隐藏ESP32界面
+  hideESP32Interface() {
+    console.log('隐藏ESP32界面');
+    this.isESP32InterfaceVisible = false;
+    this.uiManager.drawGameUI(this.gameState);
+    console.log('ESP32界面已隐藏');
   }
 
   // 显示搜索对话框

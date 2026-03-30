@@ -51,6 +51,16 @@ const config = {
       buttonWidth: 100,
       buttonHeight: 40
     }
+  },
+
+  // 新增：ESP32配置
+  esp32: {
+    buttonSize: 36, // ESP32按钮大小
+    buttonIcon: '📡', // ESP32按钮图标
+    ip: '192.168.4.1', // ESP32默认IP
+    port: 5000, // ESP32默认端口
+    imageWidth: 160, // 图像宽度
+    imageHeight: 120 // 图像高度
   }
 };
 

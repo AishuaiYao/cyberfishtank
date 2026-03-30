@@ -405,6 +405,7 @@ class MainTouchHandler {
     if (this.handleJumpButtonClick(x, y)) return;
     if (this.handleTeamButtonClick(x, y)) return;
     if (this.handleSearchButtonClick(x, y)) return;
+    if (this.handleESP32ButtonClick(x, y)) return;
   }
 
   // 颜色按钮点击 - 修改：调色板按钮特殊处理
@@ -659,6 +660,30 @@ class MainTouchHandler {
       // 显示搜索对话框
       if (this.eventHandler.handleSearch) {
         this.eventHandler.handleSearch();
+      }
+
+      return true;
+    }
+
+    return false;
+  }
+
+  // 新增：ESP32按钮点击
+  handleESP32ButtonClick(x, y) {
+    const positions = this.positions;
+    const buttonSize = config.esp32.buttonSize;
+    const startY = positions.jumpAreaY + config.jumpHeight - 10;
+    const buttonX = config.screenWidth - buttonSize - 20; // 右下角
+
+    // 检查是否点击了ESP32按钮
+    if (x >= buttonX && x <= buttonX + buttonSize &&
+        y >= startY && y <= startY + buttonSize) {
+
+      console.log('ESP32按钮被点击');
+
+      // 显示ESP32界面
+      if (this.eventHandler.showESP32Interface) {
+        this.eventHandler.showESP32Interface();
       }
 
       return true;
