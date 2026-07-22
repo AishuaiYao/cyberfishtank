@@ -1038,8 +1038,9 @@ class PlatformerGame {
     const p = this.player;
     if (p.invincibleTimer > 0 && Math.floor(p.invincibleTimer * 10) % 2 === 0) return;
 
-    const sx = Math.round(p.x - cam.x);
-    const sy = Math.round(p.y - cam.y);
+    // 不使用 Math.round，避免镜头平滑移动时的像素跳跃抖动
+    const sx = p.x - cam.x;
+    const sy = p.y - cam.y;
     const cx = sx + p.w / 2, cy = sy + p.h / 2;
 
     ctx.save();
@@ -1049,7 +1050,8 @@ class PlatformerGame {
     if (this.playerImgCanvas) {
       // 使用用户画的鱼（已预处理到 88×72 并清理白边光晕，直接原生绘制）
       const bob = Math.sin(this.animTime * 6) * 1.5;
-      const tilt = p.onGround ? 0 : p.vy * 0.02;
+      // 空中轻微倾斜：vy 范围 -500~750，乘 0.0005 得 ±15°~22° 的柔和摆头
+      const tilt = p.onGround ? 0 : p.vy * 0.0005;
       ctx.rotate(tilt);
       ctx.drawImage(this.playerImgCanvas, -p.w / 2, -p.h / 2 + bob);
 
