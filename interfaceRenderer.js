@@ -1,44 +1,34 @@
 // interfaceRenderer.js - 界面绘制逻辑
 const Utils = require('./utils.js');
-const { config } = require('./config.js');
+const { config, getAreaPositions } = require('./config.js');
 
 class InterfaceRenderer {
   constructor(ctx, pixelRatio = 1) {
     this.ctx = ctx;
     this.pixelRatio = pixelRatio;
-    // 初始化时优化渲染设置
     this.optimizeRendering();
-    
-    // 提示语轮换相关变量
-    this.tips = ['鱼头请朝右', '双指长按然后外拉缩放', '共同绘画场景禁用缩放'];
+
+    // 提示语轮换
+    this.tips = ['鱼头请朝右', '双指长按然后外拉缩放'];
     this.currentTipIndex = 0;
     this.lastTipChangeTime = Date.now();
-    this.tipChangeInterval = 5000; // 5秒间隔
+    this.tipChangeInterval = 5000;
+
+    // 闯关按钮边界（供触摸检测使用）
+    this.challengeBtnBounds = null;
   }
 
-  // 新增：优化渲染设置
   optimizeRendering() {
     const ctx = this.ctx;
-
-    // 设置高质量图像渲染
-    ctx.imageSmoothingEnabled = false; // 关闭图像平滑以获得更锐利的图像
+    ctx.imageSmoothingEnabled = false;
     ctx.imageSmoothingQuality = 'high';
-
-    // 设置文本渲染优化
-    ctx.textRendering = 'geometricPrecision';
-
-    // 设置清晰的线条渲染
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-
-    console.log('界面渲染器优化完成，像素比:', this.pixelRatio);
   }
 
   // 绘制背景
   drawBackground() {
     const ctx = this.ctx;
-
-    // 使用纯色背景避免渐变模糊
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(0, 0, config.screenWidth, config.screenHeight);
   }
@@ -48,107 +38,17 @@ class InterfaceRenderer {
     const startY = positions.functionAreaY;
     const ctx = this.ctx;
 
-    // 颜色选择 - 使用更清晰的阴影
+    // 颜色选择
     Utils.drawCard(ctx, 15, startY, config.screenWidth - 30, config.partHeight - 20);
     this.drawColorButtons(startY + 10, gameState);
 
-    // 在颜色区域上方绘制组队按钮
-    this.drawTeamButton(startY - config.team.buttonSize - config.team.buttonMargin);
-
-    // 在颜色区域上方绘制搜索按钮
-    this.drawSearchButton(startY - config.team.buttonSize - config.team.buttonMargin);
-
     // 画笔大小调节
-    Utils.drawCard(ctx, 15, startY + config.partHeight -15 , config.screenWidth - 30, config.partHeight - 40);
+    Utils.drawCard(ctx, 15, startY + config.partHeight - 15, config.screenWidth - 30, config.partHeight - 40);
     this.drawBrushSizeControl(startY + config.partHeight + 15, gameState);
 
     // 工具按钮
     Utils.drawCard(ctx, 15, startY + config.partHeight * 2 - 50, config.screenWidth - 30, config.partHeight - 10);
     this.drawToolButtons(startY + config.partHeight * 2 - 40, gameState);
-  }
-
-  // 绘制组队按钮
-  drawTeamButton(y) {
-    const ctx = this.ctx;
-    const buttonSize = config.team.buttonSize;
-    const x = config.team.buttonMargin; // 改为左上角位置
-
-    // 确保坐标为整数
-    const buttonX = Math.round(x);
-    const buttonY = Math.round(y);
-
-    // 绘制按钮背景
-    ctx.fillStyle = '#FFFFFF';
-    ctx.shadowColor = 'rgba(0,0,0,0.1)';
-    ctx.shadowBlur = 3;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 1;
-
-    ctx.beginPath();
-    ctx.arc(buttonX + buttonSize/2, buttonY + buttonSize/2, buttonSize/2, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-
-    // 绘制按钮边框
-    ctx.strokeStyle = config.primaryColor;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(buttonX + buttonSize/2, buttonY + buttonSize/2, buttonSize/2, 0, Math.PI * 2);
-    ctx.stroke();
-
-    // 绘制图标
-    ctx.fillStyle = config.primaryColor;
-    ctx.font = 'bold 18px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(config.team.buttonIcon, buttonX + buttonSize/2, buttonY + buttonSize/2);
-
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'alphabetic';
-  }
-
-  // 绘制搜索按钮
-  drawSearchButton(y) {
-    const ctx = this.ctx;
-    const buttonSize = config.team.buttonSize;
-    const x = config.team.buttonMargin + buttonSize + 10; // 放在组队按钮右侧
-
-    // 确保坐标为整数
-    const buttonX = Math.round(x);
-    const buttonY = Math.round(y);
-
-    // 绘制按钮背景
-    ctx.fillStyle = '#FFFFFF';
-    ctx.shadowColor = 'rgba(0,0,0,0.1)';
-    ctx.shadowBlur = 3;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 1;
-
-    ctx.beginPath();
-    ctx.arc(buttonX + buttonSize/2, buttonY + buttonSize/2, buttonSize/2, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-
-    // 绘制按钮边框
-    ctx.strokeStyle = config.primaryColor;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(buttonX + buttonSize/2, buttonY + buttonSize/2, buttonSize/2, 0, Math.PI * 2);
-    ctx.stroke();
-
-    // 绘制搜索图标
-    ctx.fillStyle = config.primaryColor;
-    ctx.font = 'bold 18px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('🔍', buttonX + buttonSize/2, buttonY + buttonSize/2);
-
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'alphabetic';
   }
 
   // 绘制颜色按钮
@@ -161,20 +61,18 @@ class InterfaceRenderer {
       const x = Math.round(startX + i * (config.colorButtonSize + 18));
       const isSelected = config.colors[i] === gameState.currentColor && !gameState.isEraser;
 
-      // 使用更清晰的阴影
       ctx.shadowColor = 'rgba(0,0,0,0.08)';
       ctx.shadowBlur = 3;
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 1;
 
-      // 如果是调色板按钮（最后一个按钮），绘制调色板图案
+      // 调色板按钮（最后一个按钮）
       if (i === 6) {
         this.drawPaletteButton(ctx, x, startY, config.colorButtonSize, isSelected);
       } else {
-        // 普通颜色按钮
         ctx.beginPath();
-        ctx.arc(x + config.colorButtonSize/2, startY + config.colorButtonSize/2,
-                config.colorButtonSize/2, 0, Math.PI * 2);
+        ctx.arc(x + config.colorButtonSize / 2, startY + config.colorButtonSize / 2,
+          config.colorButtonSize / 2, 0, Math.PI * 2);
         ctx.fillStyle = config.colors[i];
         ctx.fill();
 
@@ -186,18 +84,18 @@ class InterfaceRenderer {
         ctx.stroke();
       }
 
-      // 选中状态 - 使用更清晰的边框
+      // 选中状态
       if (isSelected) {
         ctx.beginPath();
-        ctx.arc(x + config.colorButtonSize/2, startY + config.colorButtonSize/2,
-                config.colorButtonSize/2 + 3, 0, Math.PI * 2);
+        ctx.arc(x + config.colorButtonSize / 2, startY + config.colorButtonSize / 2,
+          config.colorButtonSize / 2 + 3, 0, Math.PI * 2);
         ctx.strokeStyle = config.primaryColor;
-        ctx.lineWidth = 2; // 减少线宽提高清晰度
+        ctx.lineWidth = 2;
         ctx.stroke();
 
         ctx.beginPath();
-        ctx.arc(x + config.colorButtonSize/2, startY + config.colorButtonSize/2,
-                config.colorButtonSize/2 - 1, 0, Math.PI * 2);
+        ctx.arc(x + config.colorButtonSize / 2, startY + config.colorButtonSize / 2,
+          config.colorButtonSize / 2 - 1, 0, Math.PI * 2);
         ctx.strokeStyle = '#FFFFFF';
         ctx.lineWidth = 1;
         ctx.stroke();
@@ -205,20 +103,17 @@ class InterfaceRenderer {
     }
   }
 
-  // 绘制调色板按钮 - 与其他颜色按钮大小一致的圆形按钮
+  // 绘制调色板按钮
   drawPaletteButton(ctx, x, y, size, isSelected) {
-    // 确保与其他颜色按钮完全一致的大小和形状
     const centerX = x + size / 2;
     const centerY = y + size / 2;
     const radius = size / 2;
 
-    // 绘制调色板基本圆形 - 与其他颜色按钮相同的大小
-    ctx.fillStyle = '#007AFF'; // 使用蓝色作为调色板背景
+    ctx.fillStyle = '#007AFF';
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
     ctx.fill();
 
-    // 绘制调色板扇形区域
     const sectorColors = [
       '#FF3B30', '#FF9500', '#FFCC00', '#4CD964',
       '#5AC8FA', '#5856D6', '#E91E63', '#00BCD4'
@@ -226,7 +121,6 @@ class InterfaceRenderer {
     const sectorCount = sectorColors.length;
     const sectorAngle = (Math.PI * 2) / sectorCount;
 
-    // 绘制扇形区域
     for (let i = 0; i < sectorCount; i++) {
       const startAngle = i * sectorAngle - Math.PI / 6;
       const endAngle = (i + 1) * sectorAngle - Math.PI / 6;
@@ -239,13 +133,11 @@ class InterfaceRenderer {
       ctx.fill();
     }
 
-    // 绘制中心白色圆点
     ctx.fillStyle = '#FFFFFF';
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius * 0.3, 0, Math.PI * 2);
     ctx.fill();
 
-    // 绘制调色板边框
     ctx.strokeStyle = '#FFFFFF';
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -253,71 +145,54 @@ class InterfaceRenderer {
     ctx.stroke();
   }
 
-// 绘制画笔大小控制
-drawBrushSizeControl(startY, gameState) {
-  const ctx = this.ctx;
+  // 绘制画笔大小控制
+  drawBrushSizeControl(startY, gameState) {
+    const ctx = this.ctx;
+    const adjustedY = startY - 10;
 
-  // 上移10像素
-  const adjustedY = startY - 10;
+    ctx.fillStyle = config.textColor;
+    ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('画笔大小:', 25, adjustedY);
 
-  // 保存当前文本基线设置
-  const originalTextBaseline = ctx.textBaseline;
+    const sliderX = 100;
+    const sliderWidth = config.screenWidth - 140;
+    const progressWidth = (gameState.brushSize / 20) * sliderWidth;
 
-  // 使用调整后的Y坐标
-  ctx.fillStyle = config.textColor;
-  ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+    // 滑动条轨道
+    ctx.fillStyle = '#E5E5EA';
+    Utils.drawRoundedRect(ctx, sliderX, adjustedY - 6, sliderWidth, 3, 1.5, true, false);
 
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'alphabetic'; // 确保使用标准基线
-  ctx.fillText('画笔大小:', 25, adjustedY);
+    // 进度填充
+    ctx.fillStyle = config.primaryColor;
+    Utils.drawRoundedRect(ctx, sliderX, adjustedY - 6, progressWidth, 3, 1.5, true, false);
 
-  // 重置文本基线
-  ctx.textBaseline = originalTextBaseline;
+    // 滑动块
+    const sliderPos = sliderX + progressWidth;
+    ctx.shadowColor = 'rgba(0,122,255,0.15)';
+    ctx.shadowBlur = 3;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 1;
 
-  const sliderX = 100;
-  const sliderWidth = config.screenWidth - 140;
-  const progressWidth = (gameState.brushSize / 20) * sliderWidth;
+    ctx.fillStyle = config.primaryColor;
+    ctx.beginPath();
+    ctx.arc(sliderPos, adjustedY - 6, 8, 0, Math.PI * 2);
+    ctx.fill();
 
-  // 滑动条轨道 - 使用调整后的Y坐标
-  ctx.fillStyle = '#E5E5EA';
-  Utils.drawRoundedRect(ctx, sliderX, adjustedY - 6, sliderWidth, 3, 1.5, true, false);
+    ctx.shadowColor = 'transparent';
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(sliderPos, adjustedY - 6, 3, 0, Math.PI * 2);
+    ctx.fill();
 
-  // 进度填充
-  ctx.fillStyle = config.primaryColor;
-  Utils.drawRoundedRect(ctx, sliderX, adjustedY - 6, progressWidth, 3, 1.5, true, false);
+    ctx.fillStyle = config.primaryColor;
+    ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(`${gameState.brushSize}px`, config.screenWidth - 25, adjustedY);
+    ctx.textAlign = 'left';
+  }
 
-  // 滑动块
-  const sliderPos = sliderX + progressWidth;
-  ctx.shadowColor = 'rgba(0,122,255,0.15)';
-  ctx.shadowBlur = 3;
-  ctx.shadowOffsetX = 0;
-  ctx.shadowOffsetY = 1;
-
-  ctx.fillStyle = config.primaryColor;
-  ctx.beginPath();
-  ctx.arc(sliderPos, adjustedY - 6, 8, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.shadowColor = 'transparent';
-  ctx.fillStyle = '#FFFFFF';
-  ctx.beginPath();
-  ctx.arc(sliderPos, adjustedY - 6, 3, 0, Math.PI * 2);
-  ctx.fill();
-
-  // 大小显示
-  ctx.fillStyle = config.primaryColor;
-  ctx.font = 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-
-  ctx.textAlign = 'right';
-  ctx.textBaseline = 'alphabetic'; // 确保使用标准基线
-  ctx.fillText(`${gameState.brushSize}px`, config.screenWidth - 25, adjustedY);
-
-  // 重置文本对齐和基线
-  ctx.textAlign = 'left';
-  ctx.textBaseline = originalTextBaseline;
-}
-
-  // 修改：绘制工具按钮 - 翻转按钮不再显示激活状态
+  // 绘制工具按钮
   drawToolButtons(startY, gameState) {
     const toolButtons = [
       { name: '橡皮', icon: '◻' },
@@ -331,16 +206,13 @@ drawBrushSizeControl(startY, gameState) {
       const x = 30 + i * toolWidth;
       let isActive = false;
 
-      // 设置激活状态
       if (i === 0 && gameState.isEraser) {
-        // 橡皮按钮可以处于激活状态
         isActive = true;
       }
-      // 注意：撤销、清空和翻转按钮不设置激活状态，因为它们是瞬时操作
 
       Utils.drawModernButton(this.ctx, x, startY, toolWidth - 10, config.buttonHeight,
-                            `${toolButtons[i].icon} ${toolButtons[i].name}`,
-                            isActive, false);
+        `${toolButtons[i].icon} ${toolButtons[i].name}`,
+        isActive, false);
     }
   }
 
@@ -351,16 +223,11 @@ drawBrushSizeControl(startY, gameState) {
 
     Utils.drawCard(ctx, 15, startY - 45, config.screenWidth - 30, config.indicatorHeight - 40);
 
-    // 使用更清晰的字体
     ctx.fillStyle = config.textColor;
     ctx.font = 'bold 18px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'center';
-
-    ctx.fillStyle = config.textColor;
-    ctx.font = 'bold 18px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.fillText('🎨画一条鱼吧!', config.screenWidth / 2, startY - 25);
 
-    // 检查是否需要更换提示语
     const currentTime = Date.now();
     if (currentTime - this.lastTipChangeTime >= this.tipChangeInterval) {
       this.currentTipIndex = (this.currentTipIndex + 1) % this.tips.length;
@@ -370,16 +237,14 @@ drawBrushSizeControl(startY, gameState) {
     ctx.fillStyle = config.lightTextColor;
     ctx.font = '14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.fillText(this.tips[this.currentTipIndex], config.screenWidth / 2, startY - 5);
-
     ctx.textAlign = 'left';
   }
 
-  // 绘制绘画区 - 修改：支持翻转状态显示
+  // 绘制绘画区
   drawDrawingArea(gameState, positions) {
     const startY = positions.drawingAreaY;
     const ctx = this.ctx;
 
-    // 绘画区域卡片 - 使用更清晰的阴影
     ctx.shadowColor = 'rgba(0,0,0,0.05)';
     ctx.shadowBlur = 6;
     ctx.shadowOffsetX = 0;
@@ -395,53 +260,27 @@ drawBrushSizeControl(startY, gameState) {
     ctx.lineWidth = 1;
     Utils.drawRoundedRect(ctx, 12, startY, config.screenWidth - 24, config.drawingAreaHeight, config.borderRadius, false, true);
 
-    // 移除了网格背景
-    // ctx.strokeStyle = '#F8F9FA';
-    // ctx.lineWidth = 1;
-
-    // for (let i = 1; i < 4; i++) {
-    //   ctx.beginPath();
-    //   ctx.moveTo(12, Math.round(startY + i * (config.drawingAreaHeight / 4)));
-    //   ctx.lineTo(config.screenWidth - 12, Math.round(startY + i * (config.drawingAreaHeight / 4)));
-    //   ctx.stroke();
-    // }
-
-    // for (let i = 1; i < 4; i++) {
-    //   ctx.beginPath();
-    //   ctx.moveTo(Math.round(12 + i * ((config.screenWidth - 24) / 4)), startY);
-    //   ctx.lineTo(Math.round(12 + i * ((config.screenWidth - 24) / 4)), startY + config.drawingAreaHeight);
-    //   ctx.stroke();
-    // }
-
-    // 绘制路径
     this.redrawAllPaths(gameState, startY);
-    
-    // 绘制缩放指示器
     this.drawZoomIndicator(gameState, startY);
   }
 
-  // 重新绘制所有路径 - 修改：支持翻转状态和缩放状态
   redrawAllPaths(gameState, drawingAreaY) {
     const ctx = this.ctx;
     const zoomState = gameState.zoomState;
 
-    // 保存画布状态
     ctx.save();
 
-    // 首先设置全局裁剪区域，确保所有内容都在绘画区域内
     const padding = 2;
     ctx.beginPath();
     ctx.rect(12 + padding, drawingAreaY + padding,
-             config.screenWidth - 24 - padding * 2,
-             config.drawingAreaHeight - padding * 2);
+      config.screenWidth - 24 - padding * 2,
+      config.drawingAreaHeight - padding * 2);
     ctx.clip();
 
-    // 如果处于缩放状态，应用缩放变换
     if (zoomState.isZooming || zoomState.zoomScale !== 1.0) {
       this.applyZoomTransform(ctx, zoomState, drawingAreaY);
     }
 
-    // 如果处于翻转状态，应用翻转变换
     if (gameState.isFlipped) {
       ctx.translate(config.screenWidth, 0);
       ctx.scale(-1, 1);
@@ -449,9 +288,7 @@ drawBrushSizeControl(startY, gameState) {
 
     gameState.drawingPaths.forEach(path => {
       if (path.points.length > 0) {
-        // 为每条路径单独保存画布状态
         ctx.save();
-
         ctx.beginPath();
         ctx.moveTo(path.points[0].x, path.points[0].y);
 
@@ -459,69 +296,52 @@ drawBrushSizeControl(startY, gameState) {
           ctx.lineTo(path.points[i].x, path.points[i].y);
         }
 
-        // 修复：由于我们现在存储的坐标是未缩放的坐标，所以线宽不再需要额外调整
-        // 在缩放模式下，线宽会随着画布一起缩放
         ctx.strokeStyle = path.color;
-        ctx.lineWidth = path.size; // 直接使用原始线宽
+        ctx.lineWidth = path.size;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.stroke();
-
-        // 恢复画布状态
         ctx.restore();
       }
     });
 
-    // 恢复画布状态
     ctx.restore();
   }
 
-  // 新增：应用缩放变换
   applyZoomTransform(ctx, zoomState, drawingAreaY) {
     const { zoomScale, zoomCenterX, zoomCenterY } = zoomState;
-    
-    // 应用缩放变换：以双指中心点为缩放中心
-    // 这个变换会将存储的未缩放坐标正确地显示在缩放后的画布上
     ctx.translate(zoomCenterX, zoomCenterY);
     ctx.scale(zoomScale, zoomScale);
     ctx.translate(-zoomCenterX, -zoomCenterY);
   }
 
-  // 新增：绘制缩放指示器
   drawZoomIndicator(gameState, drawingAreaY) {
     const ctx = this.ctx;
     const zoomState = gameState.zoomState;
-    
+
     if (!zoomState.isZooming && zoomState.zoomScale === 1.0) return;
-    
-    // 在绘画区域上方显示缩放比例和重置按钮
+
     const indicatorX = config.screenWidth - 60;
-    const resetButtonX = 60; // 与放大倍数提示对称，放在指示区左边
+    const resetButtonX = 60;
     const indicatorY = drawingAreaY - 25;
-    
-    // 绘制放大倍数提示背景
+
+    // 放大倍数
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
     Utils.drawRoundedRect(ctx, indicatorX - 40, indicatorY - 10, 80, 20, 10, true, false);
-    
-    // 绘制放大倍数文字
+
     ctx.fillStyle = '#FFFFFF';
     ctx.font = 'bold 12px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(`${zoomState.zoomScale.toFixed(1)}x`, indicatorX, indicatorY);
-    
-    // 绘制重置按钮背景
+
+    // 重置按钮
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
     Utils.drawRoundedRect(ctx, resetButtonX - 40, indicatorY - 10, 80, 20, 10, true, false);
-    
-    // 绘制重置按钮文字
+
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 12px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
     ctx.fillText('重置', resetButtonX, indicatorY);
-    
-    // 重置文本对齐
+
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
   }
@@ -547,73 +367,101 @@ drawBrushSizeControl(startY, gameState) {
       else scoreColor = '#FF3B30';
     }
 
-    ctx.fillStyle = config.primaryColor;
-    ctx.font = 'bold 20px Arial, sans-serif';
-    ctx.fillText('', config.screenWidth / 2 - 50, startY + 22);
-
     ctx.fillStyle = scoreColor;
-    ctx.font = gameState.isScoring ? 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif' : 'bold 18px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+    ctx.font = gameState.isScoring
+      ? 'bold 16px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif'
+      : 'bold 18px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.fillText(scoreText, config.screenWidth / 2, startY + 35);
 
     ctx.textAlign = 'left';
   }
 
-  // 绘制跳转区
+  // 绘制跳转区：鱼缸 | 让它游起来！ | 分享
   drawJumpArea(positions) {
     const startY = positions.jumpAreaY;
     const ctx = this.ctx;
 
     Utils.drawCard(ctx, 15, startY, config.screenWidth - 30, config.jumpHeight - 20);
 
-    const jumpButtons = ['🐠 鱼缸', '🚀 让它游起来！', '🏆 排行榜'];
+    const jumpButtons = ['🐠 鱼缸', '🚀 加入鱼缸', '📤 分享'];
     const buttonWidth = (config.screenWidth - 50) / 3;
 
     for (let i = 0; i < jumpButtons.length; i++) {
       const x = 30 + i * buttonWidth;
-      const isPrimary = i === 1;
+      const isPrimary = i === 1; // "加入鱼缸" 高亮
 
       Utils.drawModernButton(ctx, x, startY + 13, buttonWidth - 10, config.buttonHeight,
-                            jumpButtons[i], false, isPrimary);
+        jumpButtons[i], false, isPrimary);
     }
   }
 
-  // 新增：绘制ESP32按钮（在跳转区下方）
-  drawESP32Button(positions) {
+  // 绘制主界面标题
+  drawMainTitle() {
     const ctx = this.ctx;
-    const startY = positions.jumpAreaY + config.jumpHeight - 10;
-    const buttonSize = config.esp32.buttonSize;
-    const x = config.screenWidth - buttonSize - 20; // 右下角
+    const title = '赛博鱼缸-共绘奇鱼';
+    const x = 30;
+    const y = 60;
 
-    // 绘制按钮背景
-    ctx.fillStyle = '#FFFFFF';
-    ctx.shadowColor = 'rgba(0,0,0,0.1)';
-    ctx.shadowBlur = 3;
+    ctx.font = 'italic bold 18px "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif';
+    ctx.fillStyle = config.textColor;
+    ctx.textAlign = 'left';
+
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+    ctx.shadowBlur = 2;
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 1;
 
-    ctx.beginPath();
-    ctx.arc(x + buttonSize/2, startY + buttonSize/2, buttonSize/2, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.fillText(title, x, y);
 
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
+  }
 
-    // 绘制按钮边框
-    ctx.strokeStyle = config.primaryColor;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(x + buttonSize/2, startY + buttonSize/2, buttonSize/2, 0, Math.PI * 2);
-    ctx.stroke();
+  // 绘制闯关区：闯关按钮 + 作者邮箱
+  drawChallengeSection() {
+    const ctx = this.ctx;
+    const margin = 15;
+    const btnWidth = config.screenWidth - margin * 2;
+    const btnHeight = 42;
+    const btnX = margin;
+        // 紧跟跳转区末尾，固定间距 18px
+    const positions = getAreaPositions();
+    const btnY = positions.jumpAreaY + config.jumpHeight ;
 
-    // 绘制图标
-    ctx.fillStyle = config.primaryColor;
+    // 闯关按钮卡片底色
+    Utils.drawCard(ctx, btnX, btnY, btnWidth, btnHeight);
+
+    // 按钮渐变背景（橙红色渐变）
+    const gradient = ctx.createLinearGradient(btnX, btnY, btnX, btnY + btnHeight);
+    gradient.addColorStop(0, '#FF6B35');
+    gradient.addColorStop(1, '#FF4500');
+    ctx.fillStyle = gradient;
+    Utils.drawRoundedRect(ctx, btnX + 1, btnY + 1, btnWidth - 2, btnHeight - 2, config.borderRadius, true, false);
+
+    // 按钮文字 + 火焰图标
+    ctx.fillStyle = '#FFFFFF';
     ctx.font = 'bold 18px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(config.esp32.buttonIcon, x + buttonSize/2, startY + buttonSize/2);
-
-    ctx.textAlign = 'left';
+    ctx.fillText('🔥 闯关 🔥', btnX + btnWidth / 2, btnY + btnHeight / 2);
     ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'left';
+
+    // 邮箱小字
+    const emailY = btnY + btnHeight + 16;
+    ctx.fillStyle = '#8E8E93';
+    ctx.font = '12px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('联系作者：cyberfishtank@163.com', config.screenWidth / 2, emailY);
+    ctx.textAlign = 'left';
+
+    // 存储按钮边界供触碰检测使用
+    this.challengeBtnBounds = { x: btnX, y: btnY, w: btnWidth, h: btnHeight };
+  }
+
+  // 获取闯关按钮边界
+  getChallengeBtnBounds() {
+    return this.challengeBtnBounds || null;
   }
 }
 

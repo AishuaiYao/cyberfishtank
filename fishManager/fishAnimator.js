@@ -28,8 +28,7 @@ class FishAnimator {
 
   // 更新动画
   updateAnimation(deltaTime) {
-    if (this.eventHandler.fishTank &&
-        (this.eventHandler.isSwimInterfaceVisible || this.eventHandler.isOtherFishTankVisible)) {
+    if (this.eventHandler.fishTank && this.eventHandler.isSwimInterfaceVisible) {
       this.eventHandler.fishTank.update(deltaTime);
     }
   }

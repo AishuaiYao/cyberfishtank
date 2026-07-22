@@ -1,4 +1,7 @@
-// uiManager.js - 简化版：只管理 Canvas 绘制，弹窗/输入使用微信原生API
+const fs = require('fs');
+const path = require('path');
+
+const content = `// uiManager.js - 简化版：只管理 Canvas 绘制，弹窗/输入使用微信原生API
 
 const { config, getAreaPositions } = require('./config.js');
 const InterfaceRenderer = require('./interfaceRenderer.js');
@@ -56,7 +59,7 @@ class UIManager {
     ctx.textAlign = 'center';
     const fishCount = this.eventHandler ? this.eventHandler.getCurrentTankFishCount() : 0;
     ctx.fillText(
-      fishCount > 0 ? `鱼缸里有 ${fishCount} 条鱼，双击投鱼粮` : '快去画鱼吧！',
+      fishCount > 0 ? \`鱼缸里有 \${fishCount} 条鱼，双击投鱼粮\` : '快去画鱼吧！',
       Math.round(config.screenWidth / 2),
       config.screenHeight - 30
     );
@@ -96,3 +99,7 @@ class UIManager {
 }
 
 module.exports = UIManager;
+`;
+
+fs.writeFileSync(path.join(__dirname, 'uiManager.js'), content, 'utf8');
+console.log('uiManager.js written successfully');
