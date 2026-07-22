@@ -323,14 +323,56 @@ class EventHandler {
   }
 
   // ===== 选鱼界面 =====
-  openFishSelectScreen() {
+  async openFishSelectScreen() {
     this.showFishSelect = true;
     this.selectedFishIndex = -1;
+
+    wx.showLoading({ title: '加载小鱼...', mask: true });
+
+    // 异步生成所有小鱼的预览图（缩小版，48px 宽）
+    const fishPreviews = [];
+    for (const fish of this.myFishesList) {
+      try {
+        const preview = await this._generateFishPreview(fish.base64);
+        fishPreviews.push(preview);
+      } catch (e) {
+        console.warn('预览图生成失败, 降级显示:', fish.fishName, e);
+        fishPreviews.push(null);
+      }
+    }
+
+    wx.hideLoading();
 
     // 渲染选鱼界面
     const renderer = this.uiManager.interfaceRenderer;
     const hasDrawing = this.gameState.drawingPaths.length > 0;
-    renderer.drawFishSelectScreen(this.myFishesList, this.selectedFishIndex, hasDrawing);
+    renderer.drawFishSelectScreen(this.myFishesList, this.selectedFishIndex, hasDrawing, fishPreviews);
+  }
+
+  // 从 base64 生成小鱼缩略预览图
+  _generateFishPreview(base64Data) {
+    return new Promise((resolve, reject) => {
+      try {
+        const image = wx.createImage();
+        image.onload = () => {
+          const TARGET_W = 48;
+          const scale = TARGET_W / image.width;
+          const targetH = Math.round(image.height * scale);
+
+          const canvas = wx.createCanvas();
+          canvas.width = TARGET_W;
+          canvas.height = targetH;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(image, 0, 0, TARGET_W, targetH);
+
+          resolve({ canvas: canvas, width: TARGET_W, height: targetH });
+        };
+        image.onerror = (err) => reject(err);
+        image.src = 'data:image/png;base64,' + base64Data;
+      } catch (e) {
+        reject(e);
+      }
+    });
   }
 
   handleFishSelectTap(x, y) {

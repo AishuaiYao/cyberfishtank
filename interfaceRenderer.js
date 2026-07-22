@@ -501,7 +501,7 @@ class InterfaceRenderer {
   }
 
   // ======================== 选鱼界面 ========================
-  drawFishSelectScreen(fishList, selectedIndex, hasDrawing) {
+  drawFishSelectScreen(fishList, selectedIndex, hasDrawing, fishPreviews) {
     const ctx = this.ctx;
     const sw = config.screenWidth;
     const sh = config.screenHeight;
@@ -552,29 +552,41 @@ class InterfaceRenderer {
         ctx.lineWidth = 1;
       }
 
-      // 预览图区域（渐变背景）
+      // 预览图区域（白色背景）
       const previewSize = Math.min(cardW - 20, 64);
       const previewX = cx + (cardW - previewSize) / 2;
       const previewY = cy + 8;
-      const previewGrad = ctx.createLinearGradient(previewX, previewY, previewX, previewY + previewSize);
-      previewGrad.addColorStop(0, '#1a1a2e');
-      previewGrad.addColorStop(1, '#16213e');
-      ctx.fillStyle = previewGrad;
+      ctx.fillStyle = '#FFFFFF';
       Utils.drawRoundedRect(ctx, previewX, previewY, previewSize, previewSize, 8, true, false);
+      ctx.strokeStyle = '#E5E5EA';
+      ctx.lineWidth = 1;
+      Utils.drawRoundedRect(ctx, previewX, previewY, previewSize, previewSize, 8, false, true);
 
-      // 绘制鱼名字前导字母
-      ctx.fillStyle = 'rgba(255,255,255,0.4)';
-      ctx.font = 'bold 22px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      const initial = (fish.fishName || '?')[0];
-      ctx.fillText(initial, previewX + previewSize / 2, previewY + previewSize / 2);
-      ctx.textBaseline = 'alphabetic';
-      ctx.textAlign = 'left';
+      // 绘制小鱼真实预览图（或降级为首字母）
+      const preview = fishPreviews && fishPreviews[i];
+      if (preview && preview.canvas) {
+        // 等比缩放居中绘制
+        const scale = Math.min(previewSize / preview.width, previewSize / preview.height) * 0.85;
+        const pw = preview.width * scale;
+        const ph = preview.height * scale;
+        const px = previewX + (previewSize - pw) / 2;
+        const py = previewY + (previewSize - ph) / 2;
+        ctx.drawImage(preview.canvas, px, py, pw, ph);
+      } else {
+        // 降级：显示鱼名首字母
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        ctx.font = 'bold 22px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const initial = (fish.fishName || '?')[0];
+        ctx.fillText(initial, previewX + previewSize / 2, previewY + previewSize / 2);
+        ctx.textBaseline = 'alphabetic';
+        ctx.textAlign = 'left';
+      }
 
       // 鱼名（单行截断）
       const nameY = cy + previewSize + 18;
-      ctx.fillStyle = '#FFFFFF';
+      ctx.fillStyle = '#1C1C1E';
       ctx.font = 'bold 13px -apple-system, "PingFang SC", sans-serif';
       ctx.textAlign = 'center';
       const displayName = (fish.fishName || '小鱼').length > 6
@@ -585,7 +597,7 @@ class InterfaceRenderer {
 
       // 评分
       const scoreY = nameY + 18;
-      ctx.fillStyle = 'rgba(255,255,255,0.45)';
+      ctx.fillStyle = 'rgba(0,0,0,0.45)';
       ctx.font = '11px sans-serif';
       ctx.textAlign = 'center';
       const starCount = Math.min(5, Math.ceil((fish.score || 0) / 20));
