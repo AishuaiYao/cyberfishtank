@@ -117,15 +117,39 @@ class Enemy {
     this.floatBaseY = this.y;
     this.floatPhase = Math.random() * Math.PI * 2;
     this.onGround = false;
+    this.chasing = false;  // 是否正在追玩家
   }
 
-  update(dt, tiles, levelH) {
+  update(dt, tiles, levelH, player) {
     if (!this.alive) return;
     this.animTimer += dt;
 
-    // 水平巡逻
-    this.vx = this.speed * (this.vx > 0 ? 1 : -1);
+    // 水平巡逻 —— 默认在巡逻范围内来回走
+    // 但当玩家进入检测范围（200px）时，主动追玩家
+    let moveDir = 0;
+    if (player) {
+      const dx = (player.x + player.w / 2) - (this.x + this.w / 2);
+      const dy = (player.y + player.h / 2) - (this.y + this.h / 2);
+      const dist = Math.hypot(dx, dy);
+      // 检测范围：200 像素，且玩家大致同高度（避免隔墙穿越感）
+      if (dist < 200 && Math.abs(dy) < 100) {
+        moveDir = dx > 0 ? 1 : -1;
+        this.vx = moveDir * this.speed * 1.3;   // 追击速度 ×1.3
+        this.chasing = true;
+      } else {
+        // 退回巡逻模式
+        moveDir = this.vx > 0 ? 1 : -1;
+        this.vx = moveDir * this.speed;
+        this.chasing = false;
+      }
+    } else {
+      moveDir = this.vx > 0 ? 1 : -1;
+      this.vx = moveDir * this.speed;
+      this.chasing = false;
+    }
+
     this.x += this.vx * dt;
+    // 巡逻模式下撞到边界就反转；追击模式下也限制不超巡逻范围太远
     if (this.x <= this.patrolLeft)  { this.x = this.patrolLeft;  this.vx = Math.abs(this.speed); }
     if (this.x >= this.patrolRight) { this.x = this.patrolRight; this.vx = -Math.abs(this.speed); }
 
@@ -240,6 +264,20 @@ class Enemy {
       ctx.beginPath(); ctx.arc(cx + 4, cy - 5, 3, 0, Math.PI * 2); ctx.fill();
     }
     ctx.restore();
+
+    // 追击状态：头顶闪烁红色感叹号
+    if (this.chasing) {
+      const blink = Math.floor(this.animTimer * 6) % 2 === 0;
+      if (blink) {
+        ctx.fillStyle = '#FF3B5C';
+        ctx.font = 'bold 14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('!', cx, sy - 10);
+        ctx.textBaseline = 'alphabetic';
+        ctx.textAlign = 'left';
+      }
+    }
   }
 }
 
@@ -307,7 +345,7 @@ class PlatformerGame {
     this.bullets = [];       // 子弹数组
     this.finishX = 0;
     this.finishY = 0;
-    this.hasGun = false;     // 是否获得了射击能力
+    this.ammo = 0;          // 弹药数量（顶问号 +3 发）
     this.fireCooldown = 0;   // 射击冷却计时
 
     // 输入
@@ -385,7 +423,7 @@ class PlatformerGame {
 
     this.particles = [];
     this.bullets = [];
-    this.hasGun = false;
+    this.ammo = 0;
     this.fireCooldown = 0;
     this.state = 'playing';
     this.stateTimer = 0;
@@ -493,13 +531,14 @@ class PlatformerGame {
 
     // 射击
     if (this.fireCooldown > 0) this.fireCooldown -= dt;
-    if (this.hasGun && this.input.fire && !this.input.fireConsumed && this.fireCooldown <= 0) {
+    if (this.ammo > 0 && this.input.fire && !this.input.fireConsumed && this.fireCooldown <= 0) {
       const dir = this.player.facingRight ? 1 : -1;
       this.bullets.push(new Bullet(
         this.player.x + dir * (this.player.w / 2 + 6),
         this.player.y + this.player.h / 2,
         dir * 450
       ));
+      this.ammo--;              // 消耗一发子弹
       this.fireCooldown = 0.35;   // 射击冷却 0.35 秒
       this.input.fireConsumed = true;
     }
@@ -533,7 +572,7 @@ class PlatformerGame {
 
     // ---- 敌人更新 ----
     for (const enemy of this.enemies) {
-      enemy.update(dt, this.tiles, this.levelH);
+      enemy.update(dt, this.tiles, this.levelH, this.player);
     }
 
     // ---- 敌人碰撞 ----
@@ -644,7 +683,7 @@ class PlatformerGame {
             qb.hit = true;
             this.coinCount++;
             this.score += 100;
-            this.hasGun = true;  // 授予射击能力
+            this.ammo += 3;  // 每个问号给 3 发子弹
             this.spawnParticles(tx * ts + ts / 2, top * ts, '#FFD700', 12);
             this.coins.push({
               x: tx * ts + ts / 2, y: top * ts - 10,
@@ -1286,6 +1325,15 @@ class PlatformerGame {
     ctx.font = `bold ${fontSize}px sans-serif`;
     ctx.fillText(`${this.coinCount}  ${this.score}分`, sw - padX, textY);
 
+    // 弹药数（左爱心右侧，仅当有弹药时显示）
+    if (this.ammo > 0) {
+      ctx.fillStyle = '#FF8C42';
+      ctx.font = `bold ${fontSize}px sans-serif`;
+      ctx.textAlign = 'left';
+      ctx.fillText('🔫x' + this.ammo, padX + 40 + this.lives * 22 + 8, textY);
+    }
+
+
     ctx.textAlign = 'left';
   }
 
@@ -1409,7 +1457,7 @@ class PlatformerGame {
 
   // ---- 开火键（跳跃键上方）----
   drawFireButton(ctx) {
-    if (!this.hasGun) return;   // 没获得能力不显示
+    if (this.ammo <= 0) return;   // 没弹药不显示
     const L = this.getButtonLayout();
     const { fireCX, fireCY, btnR } = L;
     const fireActive = this.input.fire;
@@ -1434,6 +1482,14 @@ class PlatformerGame {
     ctx.beginPath();
     ctx.arc(fireCX - 3, fireCY - 3, 3, 0, Math.PI * 2);
     ctx.fill();
+    // 弹药数
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('x' + this.ammo, fireCX, fireCY + r + 12);
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'left';
     ctx.restore();
   }
 
@@ -1503,7 +1559,7 @@ class PlatformerGame {
     ctx.fillStyle = 'rgba(255,255,255,0.65)';
     ctx.font = '11px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('⭐ 收金币  🦶 踩敌人  ⬆ 二连跳  ❓顶问号得武器  🚩 到旗帜  ❤️ 3条命', sw / 2, tipY);
+    ctx.fillText('⭐ 收金币  🦶 踩敌人  ⬆ 二连跳  ❓顶问号得3发子弹  🚩 到旗帜  ❤️ 3条命', sw / 2, tipY);
 
     // 小鱼预览 + 点击提示
     const previewY = tipY + 22;
