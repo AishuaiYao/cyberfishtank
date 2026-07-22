@@ -447,14 +447,6 @@ class InterfaceRenderer {
     ctx.textBaseline = 'alphabetic';
     ctx.textAlign = 'left';
 
-    // 邮箱小字
-    const emailY = btnY + btnHeight + 16;
-    ctx.fillStyle = '#8E8E93';
-    ctx.font = '12px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('联系作者：cyberfishtank@163.com', config.screenWidth / 2, emailY);
-    ctx.textAlign = 'left';
-
     // 存储按钮边界供触碰检测使用
     this.challengeBtnBounds = { x: btnX, y: btnY, w: btnWidth, h: btnHeight };
   }
@@ -462,6 +454,327 @@ class InterfaceRenderer {
   // 获取闯关按钮边界
   getChallengeBtnBounds() {
     return this.challengeBtnBounds || null;
+  }
+
+  // ======================== 积分榜按钮 + 联系作者 ========================
+  drawLeaderboardButton() {
+    const ctx = this.ctx;
+    const margin = 15;
+    const btnWidth = config.screenWidth - margin * 2;
+    const btnHeight = 32;
+    const positions = getAreaPositions();
+    const btnY = positions.jumpAreaY + config.jumpHeight + 42 + 18;
+
+    // 存储按钮边界
+    this.leaderboardBtnBounds = { x: margin, y: btnY, w: btnWidth, h: btnHeight };
+
+    // 按钮底色卡片
+    Utils.drawCard(ctx, margin, btnY, btnWidth, btnHeight);
+
+    // 按钮背景
+    const gradient = ctx.createLinearGradient(margin, btnY, margin, btnY + btnHeight);
+    gradient.addColorStop(0, '#7B68EE');
+    gradient.addColorStop(1, '#6A5ACD');
+    ctx.fillStyle = gradient;
+    Utils.drawRoundedRect(ctx, margin + 1, btnY + 1, btnWidth - 2, btnHeight - 2, 8, true, false);
+
+    // 文字
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🏆 闯关积分榜', margin + btnWidth / 2, btnY + btnHeight / 2);
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'left';
+
+    // 联系作者（积分榜下方）
+    const emailY = btnY + btnHeight + 16;
+    ctx.fillStyle = '#8E8E93';
+    ctx.font = '12px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('联系作者：cyberfishtank@163.com', config.screenWidth / 2, emailY);
+    ctx.textAlign = 'left';
+  }
+
+  getLeaderboardBtnBounds() {
+    return this.leaderboardBtnBounds || null;
+  }
+
+  // ======================== 选鱼界面 ========================
+  drawFishSelectScreen(fishList, selectedIndex, hasDrawing) {
+    const ctx = this.ctx;
+    const sw = config.screenWidth;
+    const sh = config.screenHeight;
+
+    // 重置触摸信息
+    this.fishSelectCardBounds = [];
+    this.fishSelectBackBounds = null;
+    this.fishSelectDrawBtnBounds = null;
+
+    // 半透明背景遮罩
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+    ctx.fillRect(0, 0, sw, sh);
+
+    // 标题
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 20px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('🐟 选择出战的小鱼', sw / 2, 52);
+    ctx.textAlign = 'left';
+
+    // 子标题
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('点击小鱼即可出战！', sw / 2, 76);
+    ctx.textAlign = 'left';
+
+    // 大鱼卡片网格
+    const cardW = (sw - 48) / 3;   // 3 列
+    const cardH = 130;
+    const startY = 95;
+    const maxCards = Math.min(fishList.length, 12); // 最多 4 行（12 条）
+
+    for (let i = 0; i < maxCards; i++) {
+      const col = i % 3;
+      const row = Math.floor(i / 3);
+      const cx = 14 + col * (cardW + 10);
+      const cy = startY + row * (cardH + 10);
+      const fish = fishList[i];
+      const isSelected = (i === selectedIndex);
+
+      // 卡片背景
+      Utils.drawCard(ctx, cx, cy, cardW, cardH);
+      if (isSelected) {
+        ctx.strokeStyle = '#FFD700';
+        ctx.lineWidth = 2.5;
+        Utils.drawRoundedRect(ctx, cx, cy, cardW, cardH, 10, false, true);
+        ctx.lineWidth = 1;
+      }
+
+      // 预览图区域（渐变背景）
+      const previewSize = Math.min(cardW - 20, 64);
+      const previewX = cx + (cardW - previewSize) / 2;
+      const previewY = cy + 8;
+      const previewGrad = ctx.createLinearGradient(previewX, previewY, previewX, previewY + previewSize);
+      previewGrad.addColorStop(0, '#1a1a2e');
+      previewGrad.addColorStop(1, '#16213e');
+      ctx.fillStyle = previewGrad;
+      Utils.drawRoundedRect(ctx, previewX, previewY, previewSize, previewSize, 8, true, false);
+
+      // 绘制鱼名字前导字母
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ctx.font = 'bold 22px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const initial = (fish.fishName || '?')[0];
+      ctx.fillText(initial, previewX + previewSize / 2, previewY + previewSize / 2);
+      ctx.textBaseline = 'alphabetic';
+      ctx.textAlign = 'left';
+
+      // 鱼名（单行截断）
+      const nameY = cy + previewSize + 18;
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 13px -apple-system, "PingFang SC", sans-serif';
+      ctx.textAlign = 'center';
+      const displayName = (fish.fishName || '小鱼').length > 6
+        ? (fish.fishName || '小鱼').slice(0, 5) + '…'
+        : (fish.fishName || '小鱼');
+      ctx.fillText(displayName, cx + cardW / 2, nameY);
+      ctx.textAlign = 'left';
+
+      // 评分
+      const scoreY = nameY + 18;
+      ctx.fillStyle = 'rgba(255,255,255,0.45)';
+      ctx.font = '11px sans-serif';
+      ctx.textAlign = 'center';
+      const starCount = Math.min(5, Math.ceil((fish.score || 0) / 20));
+      const stars = '⭐'.repeat(starCount) + '☆'.repeat(5 - starCount);
+      ctx.fillText(stars, cx + cardW / 2, scoreY);
+      ctx.textAlign = 'left';
+
+      // 存储触摸区域
+      this.fishSelectCardBounds.push({ x: cx, y: cy, w: cardW, h: cardH, index: i });
+    }
+
+    // 底部按钮区
+    let bottomY = startY + Math.ceil(maxCards / 3) * (cardH + 10) + 20;
+
+    // "使用当前绘画"按钮（如果有绘画）
+    if (hasDrawing) {
+      const btnW = sw - 60;
+      const btnH = 44;
+      const btnX = 30;
+      bottomY = Math.max(bottomY, sh - 120);
+
+      this.fishSelectDrawBtnBounds = { x: btnX, y: bottomY, w: btnW, h: btnH };
+
+      const grad = ctx.createLinearGradient(btnX, bottomY, btnX, bottomY + btnH);
+      grad.addColorStop(0, '#FF6B35');
+      grad.addColorStop(1, '#FF4500');
+      ctx.fillStyle = grad;
+      Utils.drawRoundedRect(ctx, btnX, bottomY, btnW, btnH, 10, true, false);
+
+      ctx.fillStyle = '#FFF';
+      ctx.font = 'bold 15px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🎨 使用当前绘画出战', btnX + btnW / 2, bottomY + btnH / 2);
+      ctx.textBaseline = 'alphabetic';
+      ctx.textAlign = 'left';
+
+      bottomY += btnH + 14;
+    }
+
+    // 返回按钮
+    bottomY = Math.min(bottomY, sh - 52);
+    const backW = sw - 60;
+    const backH = 42;
+    const backX = 30;
+    this.fishSelectBackBounds = { x: backX, y: bottomY, w: backW, h: backH };
+
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    Utils.drawRoundedRect(ctx, backX, bottomY, backW, backH, 10, true, false);
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+    ctx.lineWidth = 1;
+    Utils.drawRoundedRect(ctx, backX, bottomY, backW, backH, 10, false, true);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.font = '14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('返回', backX + backW / 2, bottomY + backH / 2);
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'left';
+  }
+
+  // ======================== 积分榜 ========================
+  drawLeaderboard(scores) {
+    const ctx = this.ctx;
+    const sw = config.screenWidth;
+    const sh = config.screenHeight;
+
+    // 重置触摸信息
+    this.leaderboardBackBounds = null;
+
+    // 半透明遮罩
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+    ctx.fillRect(0, 0, sw, sh);
+
+    // 标题
+    ctx.fillStyle = '#FFD700';
+    ctx.font = 'bold 22px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('🏆 闯关积分榜', sw / 2, 48);
+    ctx.textAlign = 'left';
+
+    if (scores.length === 0) {
+      // 空状态
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.font = '14px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('还没有闯关记录', sw / 2, sh / 2 - 10);
+      ctx.fillText('快去用你的小鱼冒险吧！', sw / 2, sh / 2 + 16);
+      ctx.textAlign = 'left';
+    } else {
+      // 排序：分数降序
+      const sorted = [...scores].sort((a, b) => b.score - a.score);
+
+      // 表头
+      const headerY = 75;
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      ctx.font = 'bold 13px sans-serif';
+      const colX_name = 58;
+      const colX_score = sw - 140;
+      const colX_coins = sw - 82;
+      ctx.fillText('排名', 16, headerY);
+      ctx.fillText('小鱼', colX_name, headerY);
+      ctx.fillText('分数', colX_score, headerY);
+      ctx.fillText('金币', colX_coins, headerY);
+
+      // 分隔线
+      ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(16, headerY + 8);
+      ctx.lineTo(sw - 16, headerY + 8);
+      ctx.stroke();
+
+      // 列表行
+      const rowH = 42;
+      const maxRows = Math.min(sorted.length, Math.floor((sh - 140) / rowH));
+      for (let i = 0; i < maxRows; i++) {
+        const row = sorted[i];
+        const ry = headerY + 18 + i * rowH;
+        const isTop3 = i < 3;
+
+        // 行背景（斑马纹）
+        if (i % 2 === 0) {
+          ctx.fillStyle = 'rgba(255,255,255,0.04)';
+          ctx.fillRect(10, ry - 2, sw - 20, rowH - 4);
+        }
+
+        // 排名
+        const rankText = i < 3 ? ['🥇', '🥈', '🥉'][i] : `${i + 1}`;
+        ctx.fillStyle = isTop3 ? '#FFD700' : 'rgba(255,255,255,0.55)';
+        ctx.font = isTop3 ? '16px sans-serif' : '13px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(rankText, 28, ry + rowH / 2 + 4);
+
+        // 鱼名
+        const displayName = (row.fishName || '未知').length > 8
+          ? row.fishName.slice(0, 7) + '…'
+          : row.fishName;
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '13px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(displayName, colX_name, ry + rowH / 2 + 4);
+
+        // 分数
+        ctx.fillStyle = isTop3 ? '#FFD700' : '#FFFFFF';
+        ctx.font = 'bold 13px sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText(`${row.score}`, colX_score + 30, ry + rowH / 2 + 4);
+
+        // 金币
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.font = '12px sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText(`🪙${row.coins}`, colX_coins + 20, ry + rowH / 2 + 4);
+
+        ctx.textAlign = 'left';
+      }
+
+      // 总记录数提示
+      if (sorted.length > maxRows) {
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.font = '11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(`... 共 ${sorted.length} 条记录，仅展示前 ${maxRows} 条`, sw / 2, headerY + 18 + maxRows * rowH + 10);
+        ctx.textAlign = 'left';
+      }
+    }
+
+    // 返回按钮（固定在底部）
+    const backW = sw - 60;
+    const backH = 42;
+    const backX = 30;
+    const backY = sh - backH - 20;
+    this.leaderboardBackBounds = { x: backX, y: backY, w: backW, h: backH };
+
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    Utils.drawRoundedRect(ctx, backX, backY, backW, backH, 10, true, false);
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+    ctx.lineWidth = 1;
+    Utils.drawRoundedRect(ctx, backX, backY, backW, backH, 10, false, true);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.font = '14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('关闭', backX + backW / 2, backY + backH / 2);
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'left';
   }
 }
 

@@ -10,6 +10,7 @@ const FishAnimator = require('./fishManager/fishAnimator.js');
 const FishDataManager = require('./fishManager/fishDataManager.js');
 
 const { Fish, FishTank } = require('./fishCore.js');
+const { PlatformerGame } = require('./platformer/platformer.js');
 
 class EventHandler {
   constructor(canvas, ctx, gameState, uiManager, game) {
@@ -36,6 +37,16 @@ class EventHandler {
 
     // 界面状态（精简）
     this.isSwimInterfaceVisible = false;
+    this.isPlatformerMode = false;
+    this.platformer = null;
+
+    // 选鱼界面状态
+    this.showFishSelect = false;
+    this.selectedFishIndex = -1;
+
+    // 积分榜状态
+    this.showLeaderboard = false;
+    this.platformerScores = [];    // 闯关历史积分
 
     // 鱼缸数据
     this.fishTank = null;
@@ -54,6 +65,7 @@ class EventHandler {
 
     this.bindEvents();
     this.loadLocalFishes();
+    this.loadPlatformerScores();
     console.log('EventHandler 初始化完成（本地模式）');
   }
 
@@ -96,6 +108,39 @@ class EventHandler {
     this.saveLocalFishes();
   }
 
+  // === 闯关积分榜存储 ===
+  loadPlatformerScores() {
+    try {
+      const data = wx.getStorageSync(config.storagePrefix + 'p_scores');
+      this.platformerScores = data ? JSON.parse(data) : [];
+      console.log(`加载了 ${this.platformerScores.length} 条闯关记录`);
+    } catch (e) {
+      console.warn('加载闯关积分失败:', e);
+      this.platformerScores = [];
+    }
+  }
+
+  savePlatformerScore(result) {
+    this.platformerScores.unshift({
+      fishName: result.fishName || '未知小鱼',
+      score: result.score || 0,
+      coins: result.coins || 0,
+      levelIndex: result.levelIndex || 0,
+      state: result.state || 'unknown',
+      timestamp: Date.now()
+    });
+    // 最多 50 条
+    if (this.platformerScores.length > 50) {
+      this.platformerScores = this.platformerScores.slice(0, 50);
+    }
+    try {
+      wx.setStorageSync(config.storagePrefix + 'p_scores', JSON.stringify(this.platformerScores));
+      console.log('闯关积分已保存');
+    } catch (e) {
+      console.error('保存闯关积分失败:', e);
+    }
+  }
+
   // ===== 触摸事件绑定 =====
   bindEvents() {
     wx.onTouchStart((e) => this.handleTouchStart(e));
@@ -110,6 +155,24 @@ class EventHandler {
     const touches = e.touches;
     const x = touches[0].clientX;
     const y = touches[0].clientY;
+
+    // 闯关模式：路由到平台跳跃游戏
+    if (this.isPlatformerMode && this.platformer) {
+      this.platformer.handleTouchStart(x, y);
+      return;
+    }
+
+    // 积分榜界面
+    if (this.showLeaderboard) {
+      this.handleLeaderboardTap(x, y);
+      return;
+    }
+
+    // 选鱼界面
+    if (this.showFishSelect) {
+      this.handleFishSelectTap(x, y);
+      return;
+    }
 
     if (this.isSwimInterfaceVisible) {
       this.touchHandlers.swim.handleTouchStart(x, y);
@@ -127,6 +190,15 @@ class EventHandler {
     const x = touches[0].clientX;
     const y = touches[0].clientY;
 
+    // 闯关模式
+    if (this.isPlatformerMode && this.platformer) {
+      this.platformer.handleTouchMove(x, y);
+      return;
+    }
+
+    // 选鱼/积分榜界面：忽略 move
+    if (this.showLeaderboard || this.showFishSelect) return;
+
     if (this.isSwimInterfaceVisible) {
       this.touchHandlers.swim.handleTouchMove(x, y);
     } else {
@@ -142,6 +214,15 @@ class EventHandler {
     const x = touch.clientX;
     const y = touch.clientY;
 
+    // 闯关模式
+    if (this.isPlatformerMode && this.platformer) {
+      this.platformer.handleTouchEnd(x, y);
+      return;
+    }
+
+    // 选鱼/积分榜界面：忽略 end
+    if (this.showLeaderboard || this.showFishSelect) return;
+
     if (this.isSwimInterfaceVisible) {
       this.touchHandlers.swim.handleTouchEnd(x, y);
     } else {
@@ -150,6 +231,10 @@ class EventHandler {
   }
 
   handleTouchCancel(e) {
+    // 闯关模式
+    if (this.isPlatformerMode && this.platformer) {
+      return;
+    }
     const gameState = this.gameState;
     if (this.touchHandlers.main) {
       this.touchHandlers.main.resetTouchState();
@@ -213,13 +298,236 @@ class EventHandler {
 
   // ===== 闯关功能 =====
   handleChallenge() {
-    wx.showModal({
-      title: '🚀 闯关模式',
-      content: '闯关模式正在开发中，敬请期待！\n\n联系作者一起探讨：\ncyberfishtank@163.com',
-      showCancel: false,
-      confirmText: '好的',
-      success: () => {}
-    });
+    if (this.isPlatformerMode) return;
+
+    // 有已保存的小鱼 → 展示选鱼界面
+    const hasDrawing = this.gameState.drawingPaths.length > 0;
+    const hasSavedFish = this.myFishesList.length > 0;
+
+    if (hasDrawing && !hasSavedFish) {
+      // 只有画好的鱼，没有存鱼：直接用当前绘画开始
+      this.startPlatformerDirect();
+    } else if (hasSavedFish) {
+      // 有存鱼：打开选鱼界面（可选存鱼或当前绘画）
+      this.openFishSelectScreen();
+    } else {
+      // 既没有画也没有存鱼
+      Utils.showError('请先画一条鱼再闯关！');
+    }
+  }
+
+  // 直接用当前绘画开始闯关
+  startPlatformerDirect() {
+    const fishCanvas = this.createFishImage();
+    this.launchPlatformer(fishCanvas, '手绘小鱼');
+  }
+
+  // ===== 选鱼界面 =====
+  openFishSelectScreen() {
+    this.showFishSelect = true;
+    this.selectedFishIndex = -1;
+
+    // 渲染选鱼界面
+    const renderer = this.uiManager.interfaceRenderer;
+    const hasDrawing = this.gameState.drawingPaths.length > 0;
+    renderer.drawFishSelectScreen(this.myFishesList, this.selectedFishIndex, hasDrawing);
+  }
+
+  handleFishSelectTap(x, y) {
+    const renderer = this.uiManager.interfaceRenderer;
+    const hasDrawing = this.gameState.drawingPaths.length > 0;
+
+    // 检查是否点击了返回按钮
+    if (renderer.fishSelectBackBounds && this._pointInRect(x, y, renderer.fishSelectBackBounds)) {
+      this.showFishSelect = false;
+      this.uiManager.drawGameUI(this.gameState);
+      return;
+    }
+
+    // 检查是否选中了某条小鱼卡片
+    if (renderer.fishSelectCardBounds && renderer.fishSelectCardBounds.length > 0) {
+      for (let i = 0; i < renderer.fishSelectCardBounds.length; i++) {
+        const b = renderer.fishSelectCardBounds[i];
+        if (this._pointInRect(x, y, b)) {
+          // base64 → canvas → 开始游戏
+          this.selectFishForPlatformer(i);
+          return;
+        }
+      }
+    }
+
+    // 检查是否点击"使用当前绘画"按钮
+    if (hasDrawing && renderer.fishSelectDrawBtnBounds &&
+        this._pointInRect(x, y, renderer.fishSelectDrawBtnBounds)) {
+      this.showFishSelect = false;
+      this.startPlatformerDirect();
+      return;
+    }
+  }
+
+  _pointInRect(x, y, rect) {
+    return x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h;
+  }
+
+  // 选中保存的小鱼开始闯关
+  selectFishForPlatformer(index) {
+    if (index < 0 || index >= this.myFishesList.length) return;
+    const fish = this.myFishesList[index];
+    this.showFishSelect = false;
+    this.selectedFishIndex = index;
+
+    wx.showLoading({ title: '加载小鱼...', mask: true });
+    this.fishManager.data.base64ToCanvas(fish.base64)
+      .then(result => {
+        wx.hideLoading();
+        // 缩放到合理大小用于游戏内显示
+        const fishCanvas = this._scaleFishCanvas(result.canvas);
+        this.launchPlatformer(fishCanvas, fish.fishName || '小鱼');
+      })
+      .catch(err => {
+        wx.hideLoading();
+        console.error('加载小鱼图片失败:', err);
+        Utils.showError('加载失败，请重试');
+        this.uiManager.drawGameUI(this.gameState);
+      });
+  }
+
+  // 缩放鱼图片到游戏内合适大小
+  _scaleFishCanvas(srcCanvas) {
+    // 目标大小与 createFishImage 一致
+    const TARGET_W = 48;
+    const TARGET_H = 40;
+    const offCanvas = wx.createCanvas();
+    offCanvas.width = TARGET_W;
+    offCanvas.height = TARGET_H;
+    const ctx = offCanvas.getContext('2d');
+    ctx.clearRect(0, 0, TARGET_W, TARGET_H);
+
+    const scale = Math.min(TARGET_W / srcCanvas.width, TARGET_H / srcCanvas.height);
+    const w = srcCanvas.width * scale;
+    const h = srcCanvas.height * scale;
+    ctx.drawImage(srcCanvas, (TARGET_W - w) / 2, (TARGET_H - h) / 2, w, h);
+    return offCanvas;
+  }
+
+  // 启动闯关游戏
+  launchPlatformer(fishCanvas, fishName) {
+    this.isPlatformerMode = true;
+    this.platformer = new PlatformerGame(
+      this.canvas, this.ctx, config,
+      fishCanvas,
+      (result) => this.exitPlatformer(result),
+      { fishName: fishName }
+    );
+    this.platformer.init();
+    console.log(`闯关模式已启动 (${fishName})`);
+  }
+
+  // 从 drawingPaths 生成小鱼图像（用于平台跳跃游戏的主角）
+  createFishImage() {
+    const positions = this.positions || getAreaPositions();
+    const drawingAreaY = positions.drawingAreaY;
+    const drawingWidth = config.screenWidth - 24;
+    const drawingHeight = config.drawingAreaHeight;
+
+    // 目标角色大小（物理像素），不要太大避免性能问题
+    const TARGET_W = 48;
+    const TARGET_H = 40;
+    const scaleX = TARGET_W / drawingWidth;
+    const scaleY = TARGET_H / drawingHeight;
+    const scale = Math.min(scaleX, scaleY);
+
+    // 离屏 Canvas，合理的小尺寸
+    const offCanvas = wx.createCanvas();
+    offCanvas.width = TARGET_W;
+    offCanvas.height = TARGET_H;
+    const ctx = offCanvas.getContext('2d');
+
+    // 透明背景（不再使用白色背景）
+    ctx.clearRect(0, 0, TARGET_W, TARGET_H);
+
+    // 计算笔迹边界
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    const paths = this.gameState.drawingPaths;
+    for (let p = 0; p < paths.length; p++) {
+      for (const pt of paths[p].points) {
+        if (pt.x < minX) minX = pt.x;
+        if (pt.x > maxX) maxX = pt.x;
+        if (pt.y < minY) minY = pt.y;
+        if (pt.y > maxY) maxY = pt.y;
+      }
+    }
+    if (!isFinite(minX)) { minX = 12; minY = drawingAreaY; maxX = 12 + 50; maxY = drawingAreaY + 50; }
+    const contentW = maxX - minX || 1;
+    const contentH = maxY - minY || 1;
+    const offsetX = (TARGET_W - contentW * scale) / 2;
+    const offsetY = (TARGET_H - contentH * scale) / 2;
+
+    // 绘制所有笔迹，缩放到目标尺寸并居中
+    for (let p = 0; p < paths.length; p++) {
+      const path = paths[p];
+      if (path.points.length < 2) continue;
+      ctx.save();
+      ctx.beginPath();
+      const first = path.points[0];
+      ctx.moveTo(
+        (first.x - minX) * scale + offsetX,
+        (first.y - minY) * scale + offsetY
+      );
+      for (let i = 1; i < path.points.length; i++) {
+        ctx.lineTo(
+          (path.points[i].x - minX) * scale + offsetX,
+          (path.points[i].y - minY) * scale + offsetY
+        );
+      }
+      ctx.strokeStyle = path.color;
+      ctx.lineWidth = Math.max(1.5, path.size * scale);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    return offCanvas;
+  }
+
+  // 退出闯关模式（接收局内结果）
+  exitPlatformer(result) {
+    // 保存积分
+    if (result && result.score !== undefined) {
+      this.savePlatformerScore(result);
+    }
+
+    if (this.platformer) {
+      this.platformer.destroy();
+      this.platformer = null;
+    }
+    this.isPlatformerMode = false;
+
+    // 清除 Canvas 残留并重绘主界面
+    this.ctx.clearRect(0, 0, config.screenWidth, config.screenHeight);
+    this.uiManager.drawGameUI(this.gameState);
+    console.log('闯关模式已退出');
+  }
+
+  // ===== 积分榜 =====
+  showScoreboard() {
+    this.showLeaderboard = true;
+    const renderer = this.uiManager.interfaceRenderer;
+    renderer.drawLeaderboard(this.platformerScores);
+  }
+
+  handleLeaderboardTap(x, y) {
+    const renderer = this.uiManager.interfaceRenderer;
+    // 点击返回按钮
+    if (renderer.leaderboardBackBounds && this._pointInRect(x, y, renderer.leaderboardBackBounds)) {
+      this.showLeaderboard = false;
+      this.uiManager.drawGameUI(this.gameState);
+      return;
+    }
+    // 点击任意其他位置也关闭
+    this.showLeaderboard = false;
+    this.uiManager.drawGameUI(this.gameState);
   }
 
   // ===== "加入鱼缸" 功能（带广告）=====

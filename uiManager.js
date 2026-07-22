@@ -92,6 +92,7 @@ class UIManager {
     this.interfaceRenderer.drawScoreArea(gameState, positions);
     this.interfaceRenderer.drawJumpArea(positions);
     this.interfaceRenderer.drawChallengeSection();
+    this.interfaceRenderer.drawLeaderboardButton();
   }
 }
 

@@ -270,6 +270,7 @@ class MainTouchHandler {
     }
 
     if (this.handleChallengeBtnClick(x, y)) return;
+    if (this.handleLeaderboardBtnClick(x, y)) return;
     if (this.handleZoomResetClick(x, y)) return;
     if (this.handleColorButtonClick(x, y)) return;
     if (this.handleBrushSizeClick(x, y)) return;
@@ -343,6 +344,21 @@ class MainTouchHandler {
         y >= bounds.y && y <= bounds.y + bounds.h) {
       console.log('闯关按钮被点击');
       this.eventHandler.handleChallenge();
+      return true;
+    }
+    return false;
+  }
+
+  // 积分榜按钮点击
+  handleLeaderboardBtnClick(x, y) {
+    const renderer = this.eventHandler.uiManager.interfaceRenderer;
+    const bounds = renderer.getLeaderboardBtnBounds();
+    if (!bounds) return false;
+
+    if (x >= bounds.x && x <= bounds.x + bounds.w &&
+        y >= bounds.y && y <= bounds.y + bounds.h) {
+      console.log('积分榜按钮被点击');
+      this.eventHandler.showScoreboard();
       return true;
     }
     return false;
