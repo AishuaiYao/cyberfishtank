@@ -44,6 +44,7 @@ class Bullet {
   constructor(x, y, vx) {
     this.x = x; this.y = y;
     this.vx = vx;
+    this.vy = 0;
     this.w = 14; this.h = 8;
     this.alive = true;
     this.life = 1.5;       // 最大飞行时间（秒）
@@ -58,13 +59,21 @@ class Bullet {
     if (this.trail.length > 8) this.trail.shift();
     for (const t of this.trail) t.life -= dt;
     this.trail = this.trail.filter(t => t.life > 0);
-    // 撞墙消失
+    // 撞墙——返回砖块击碎信息给调用方
+    this.hitBrick = null;
     const tileX = this.vx > 0
       ? Math.floor((this.x + this.w / 2) / ts)
       : Math.floor((this.x - this.w / 2) / ts);
     const tileY = Math.floor(this.y / ts);
     if (tileY >= 0 && tileY < levelH && tileX >= 0 && tileX < levelW) {
-      if (tiles[tileY][tileX] !== 0) this.alive = false;
+      const t = tiles[tileY][tileX];
+      if (t !== 0) {
+        this.alive = false;
+        if (t === 3) {  // TILE_BRICK
+          tiles[tileY][tileX] = 0;  // 砖块被打碎
+          this.hitBrick = { tx: tileX, ty: tileY };
+        }
+      }
     } else {
       this.alive = false;
     }
@@ -109,7 +118,7 @@ class Enemy {
     this.patrolRight = (spec.x + spec.patrol) * ts;
     this.vx = this.speed;
     this.vy = 0;
-    this.w = 30; this.h = 24;
+    this.w = 50; this.h = 64;
     this.alive = true;
     this.animTimer = Math.random() * Math.PI * 2;
     this.tileSize = ts;
@@ -262,6 +271,66 @@ class Enemy {
       ctx.beginPath(); ctx.arc(cx + 4, cy - 5, 6, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(cx - 6, cy - 5, 3, 0, Math.PI * 2); ctx.fill();
       ctx.beginPath(); ctx.arc(cx + 4, cy - 5, 3, 0, Math.PI * 2); ctx.fill();
+    } else if (this.type === 'shark') {
+      // 鲨鱼：流线型灰色身体 + 尖牙
+      ctx.fillStyle = '#5A6B7A';
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, this.w / 2, this.h / 2.2, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // 腹部浅色
+      ctx.fillStyle = '#8A9BAA';
+      ctx.beginPath();
+      ctx.ellipse(cx, cy + 4, this.w / 2.5, this.h / 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // 背鳍
+      ctx.fillStyle = '#4A5B6A';
+      ctx.beginPath();
+      ctx.moveTo(cx - 2, cy - this.h / 2.5);
+      ctx.lineTo(cx + 4, cy - this.h / 2 - 6);
+      ctx.lineTo(cx + 8, cy - this.h / 2.5);
+      ctx.fill();
+      // 尾鳍
+      const tailWag = Math.sin(this.animTimer * 5) * 3;
+      ctx.beginPath();
+      ctx.moveTo(cx - this.w / 2 + 2, cy);
+      ctx.lineTo(cx - this.w / 2 - 8, cy - 6 + tailWag);
+      ctx.lineTo(cx - this.w / 2 - 6, cy);
+      ctx.lineTo(cx - this.w / 2 - 8, cy + 6 + tailWag);
+      ctx.fill();
+      // 眼睛（凶狠红眼）
+      ctx.fillStyle = '#FF2222';
+      ctx.beginPath(); ctx.arc(cx + 8, cy - 3, 2.5, 0, Math.PI * 2); ctx.fill();
+      // 尖牙
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath();
+      ctx.moveTo(cx + this.w / 2 - 4, cy + 2);
+      ctx.lineTo(cx + this.w / 2 - 1, cy + 6);
+      ctx.lineTo(cx + this.w / 2 - 7, cy + 2);
+      ctx.fill();
+    } else if (this.type === 'star') {
+      // 海星：五角星，紫红色，缓慢旋转
+      const rot = this.animTimer * 0.8;
+      const r1 = this.w / 2;
+      const r2 = r1 * 0.45;
+      ctx.fillStyle = '#C44CAD';
+      ctx.beginPath();
+      for (let i = 0; i < 10; i++) {
+        const ang = rot + i * Math.PI / 5 - Math.PI / 2;
+        const r = i % 2 === 0 ? r1 : r2;
+        const px = cx + Math.cos(ang) * r;
+        const py = cy + Math.sin(ang) * r;
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#8B2A6B';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      // 中心点（小眼）
+      ctx.fillStyle = '#FFEE88';
+      ctx.beginPath(); ctx.arc(cx, cy, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#000';
+      ctx.beginPath(); ctx.arc(cx, cy, 1.5, 0, Math.PI * 2); ctx.fill();
     }
     ctx.restore();
 
@@ -421,6 +490,9 @@ class PlatformerGame {
       hit: false,
     }));
 
+    // ---- 随机生成额外内容（基于关卡索引提高难度）----
+    this._generateRandomContent(spec, index);
+
     this.particles = [];
     this.bullets = [];
     this.ammo = 0;
@@ -431,6 +503,81 @@ class PlatformerGame {
     this.tutorialTimer = 0;
     this.camera.x = 0;
     this.camera.y = Math.max(0, spec.height * ts - this.config.screenHeight);
+  }
+
+  // ======================== 随机内容生成 ========================
+  // 根据关卡难度，在原有静态数据基础上随机补充敌人种类/数量和砖块障碍
+  _generateRandomContent(spec, levelIndex) {
+    const ts = TILE_SIZE;
+    const W = spec.width, H = spec.height;
+    const enemyTypes = ['crab', 'jelly', 'puffer', 'shark', 'star'];
+    // 每关随机敌人数量：基础 3 + 关卡数
+    const extraEnemyCount = 3 + levelIndex * 2;
+    // 随机砖块数量：基础 4 + 关卡数 * 2
+    const brickCount = 4 + levelIndex * 2;
+    const used = new Set();   // 记录已占用 tile（"x,y"）
+
+    // 标记已有内容的 tile 为已占用
+    const markUsed = (x, y) => used.add(x + ',' + y);
+    for (const [a, b] of spec.ground) for (let x = a; x < b; x++) { markUsed(x, H - 1); markUsed(x, H - 2); }
+    for (const p of spec.platforms) for (let i = 0; i < p.w; i++) markUsed(p.x + i, p.y);
+    for (const q of spec.questions) markUsed(q.x, q.y);
+    for (const c of spec.coins) markUsed(c.x, c.y);
+    for (const e of spec.enemies) markUsed(e.x, e.y);
+    markUsed(spec.playerStart.x, spec.playerStart.y);
+    markUsed(spec.finish.x, spec.finish.y);
+    // 玩家附近 3 格内不生成
+    for (let dx = -3; dx <= 3; dx++) markUsed(spec.playerStart.x + dx, spec.playerStart.y);
+
+    // 找出所有"地面正上方"且为空气的 tile（row H-3，用于放敌人）
+    const groundTops = [];
+    for (const [a, b] of spec.ground) {
+      for (let x = a + 2; x < b - 1; x++) {   // 边缘留空，避免堵路
+        if (!used.has(x + ',' + (H - 3))) groundTops.push({ x, y: H - 3 });
+      }
+    }
+
+    // 1. 随机补充敌人
+    for (let i = 0; i < extraEnemyCount; i++) {
+      if (groundTops.length === 0) break;
+      const idx = Math.floor(Math.random() * groundTops.length);
+      const pos = groundTops.splice(idx, 1)[0];
+      const type = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
+      this.enemies.push(new Enemy({
+        type,
+        x: pos.x,
+        y: pos.y,
+        patrol: 2 + Math.floor(Math.random() * 4),
+        speed: 0.8 + levelIndex * 0.3 + Math.random() * 0.8,
+      }, ts));
+      // 占用敌人周边
+      markUsed(pos.x, pos.y);
+    }
+
+    // 2. 随机补充砖块障碍
+    // 砖块放在 row 10~12 的空气中（玩家跳跃路径上，作为障碍）
+    let placed = 0, attempts = 0;
+    while (placed < brickCount && attempts < brickCount * 10) {
+      attempts++;
+      const x = 4 + Math.floor(Math.random() * (W - 8));
+      const y = 10 + Math.floor(Math.random() * 3);   // row 10-12
+      const key = x + ',' + y;
+      if (used.has(key)) continue;
+      // 上下方也得是空气，避免砖块挤压玩家
+      if (used.has(x + ',' + (y - 1))) continue;
+      if (used.has(x + ',' + (y + 1))) continue;
+      // 横向避免连续砖块墙堵死路：检查左右 2 格内是否已有砖块
+      let blocked = false;
+      for (let dx = -2; dx <= 2; dx++) {
+        if (dx === 0) continue;
+        if (this.tiles[y][x + dx] === 3) { blocked = true; break; }
+      }
+      if (blocked) continue;
+
+      this.tiles[y][x] = 3;   // TILE_BRICK
+      markUsed(x, y);
+      placed++;
+    }
   }
 
   // ======================== 主循环 ========================
@@ -535,7 +682,7 @@ class PlatformerGame {
       const dir = this.player.facingRight ? 1 : -1;
       this.bullets.push(new Bullet(
         this.player.x + dir * (this.player.w / 2 + 6),
-        this.player.y + this.player.h / 2,
+        this.player.y + this.player.h / 2,   // 从鱼身中部射出
         dir * 450
       ));
       this.ammo--;              // 消耗一发子弹
@@ -589,18 +736,31 @@ class PlatformerGame {
     this.particles = this.particles.filter(p => !p.dead);
 
     // ---- 子弹更新 ----
-    for (const b of this.bullets) b.update(dt, this.tiles, this.levelW, this.levelH, TILE_SIZE);
+    for (const b of this.bullets) {
+      b.update(dt, this.tiles, this.levelW, this.levelH, TILE_SIZE);
+      if (b.hitBrick) {
+        this.spawnParticles(
+          b.hitBrick.tx * TILE_SIZE + TILE_SIZE / 2,
+          b.hitBrick.ty * TILE_SIZE + TILE_SIZE / 2,
+          '#B5651D', 10
+        );
+      }
+    }
     this.bullets = this.bullets.filter(b => b.alive);
 
     // ---- 子弹 vs 敌人 ----
+    // 子弹水平飞行，但敌人可能比子弹射出位置低很多
+    // 因此垂直命中判定范围扩大，让子弹能稳定打中地面上的敌人
     for (const b of this.bullets) {
       if (!b.alive) continue;
       for (const enemy of this.enemies) {
         if (!enemy.alive) continue;
         const ecx = enemy.x + enemy.w / 2;
         const ecy = enemy.y + enemy.h / 2;
+        // 垂直判定范围：子弹高度 + 玩家身高（约 72px），保证子弹能命中地面敌人
+        const hitH = b.h + PLAYER_H * 1.5;   // 子弹垂直命中范围扩大，对准地面敌人
         if (Math.abs(b.x - ecx) < (b.w + enemy.w) / 2 &&
-            Math.abs(b.y - ecy) < (b.h + enemy.h) / 2) {
+            Math.abs(b.y - ecy) < (hitH + enemy.h) / 2) {
           enemy.alive = false;
           b.alive = false;
           this.score += 150;
@@ -1115,6 +1275,21 @@ class PlatformerGame {
       ctx.strokeStyle = 'rgba(0,0,0,0.1)';
       ctx.lineWidth = 1;
       ctx.strokeRect(x + 2, y + 2, s - 4, s - 4);
+    } else if (type === TILE_BRICK) {
+      // 砖块障碍（可被子弹打碎）
+      ctx.fillStyle = '#B5651D';
+      ctx.fillRect(x, y, s, s);
+      ctx.fillStyle = '#C97A2E';
+      ctx.fillRect(x + 1, y + 1, s - 2, s - 2);
+      // 砖缝纹理
+      ctx.strokeStyle = 'rgba(60, 30, 0, 0.5)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(x, y + s / 2); ctx.lineTo(x + s, y + s / 2);
+      ctx.moveTo(x + s / 2, y); ctx.lineTo(x + s / 2, y + s / 2);
+      ctx.moveTo(x + s / 4, y + s / 2); ctx.lineTo(x + s / 4, y + s);
+      ctx.moveTo(x + s * 3 / 4, y + s / 2); ctx.lineTo(x + s * 3 / 4, y + s);
+      ctx.stroke();
     } else if (type === TILE_QUESTION) {
       // 问号砖块
       const bounce = Math.sin(this.animTime * 3 + col * 0.5) * 1;
