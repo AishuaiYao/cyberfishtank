@@ -197,9 +197,11 @@ class PlatformerGame {
   constructor(canvas, ctx, gameConfig, playerImgCanvas, onExit, options = {}) {
     this.canvas = canvas;
     this.ctx = ctx;
-    this.playerImgCanvas = playerImgCanvas;
     this.onExit = onExit;
     this._fishName = options.fishName || '未知小鱼';
+
+    // 预处理：将鱼图缩放到 PLAYER_W × PLAYER_H，避免 drawPlayer 中实时拉伸导致锯齿/重影
+    this.playerImgCanvas = this._preScalePlayerImage(playerImgCanvas);
 
     // 画布是竖屏（game.json portrait），实际宽 < 高
     // 平台跳跃是横屏玩法，通过旋转矩阵实现
@@ -654,10 +656,13 @@ class PlatformerGame {
   //   中 1/3 → 后退/左移（右手）
   //   右 1/3 → 前进/右移（右手）
   // 只在下半屏幕生效（上半用于观察）
-  handleTouchStart(x, y) {
+  // 多指触控：activeTouches 跟踪所有按下的手指，抬手时只移除对应的手指，
+  // 然后基于剩余手指重新评估输入状态，避免多指操作时误清除跳跃。
+  handleTouchStart(x, y, touchId) {
     // 竖屏物理坐标 → 横屏逻辑坐标
     const lx = this._portraitH - y;
     const ly = x;
+    const id = touchId != null ? touchId : (Date.now() + Math.random());
 
     // 教学模式下点击任意位置关闭教学
     if (this.showTutorial) {
@@ -680,57 +685,94 @@ class PlatformerGame {
     // 上半屏幕不响应
     if (ly < this.config.screenHeight * 0.35) return;
 
-    // 距离检测：匹配绘制按钮位置
-    this._hitTest(lx, ly);
+    // 记录触摸点并重新评估所有手指的输入
+    this.activeTouches[id] = { x: lx, y: ly };
+    this._evalInputs();
   }
 
-  handleTouchMove(x, y) {
+  handleTouchMove(x, y, touchId) {
     const lx = this._portraitH - y;
     const ly = x;
+    const id = touchId != null ? touchId : (Date.now() + Math.random());
 
     if (ly < this.config.screenHeight * 0.35) {
-      this.input.left = false;
-      this.input.right = false;
-      this.input.jump = false;
+      // 手指滑到上半屏幕：移除该触摸点
+      delete this.activeTouches[id];
+      this._evalInputs();
       return;
     }
-    this._hitTest(lx, ly);
-  }
 
-  // 距离检测：方向键和跳跃键独立判断，互不干扰
-  _hitTest(lx, ly) {
-    const L = this.getButtonLayout();
-    const { btnY, btnR, backCX, fwdCX, jumpCX } = L;
-    const sw = this.config.screenWidth;
-
-    // ---- 方向键（左半屏）----
-    if (lx < sw * 0.45) {
-      const distBack = Math.hypot(lx - backCX, ly - btnY);
-      const distFwd  = Math.hypot(lx - fwdCX, ly - btnY);
-      if (distBack < distFwd) {
-        this.input.left  = true;
-        this.input.right = false;
-      } else {
-        this.input.left  = false;
-        this.input.right = true;
-      }
-      this._lastMoveTouch = true;
+    // 更新触摸点位置并重新评估
+    if (this.activeTouches[id]) {
+      this.activeTouches[id] = { x: lx, y: ly };
     } else {
-      // 离开了方向键区域，不清空方向状态（由 handleTouchEnd 统一清）
+      this.activeTouches[id] = { x: lx, y: ly };
     }
-
-    // ---- 跳跃键（右半屏）独立判断，不干扰方向键 ----
-    if (lx > sw * 0.55) {
-      const distJump = Math.hypot(lx - jumpCX, ly - btnY);
-      this.input.jump = (distJump < btnR + 20);
-    }
+    this._evalInputs();
   }
 
-  handleTouchEnd(x, y) {
+  handleTouchEnd(x, y, touchId) {
+    const id = touchId != null ? touchId : (Date.now() + Math.random());
+    delete this.activeTouches[id];
+    this._evalInputs();
+  }
+
+  // 输入状态复位（用于 touchCancel 等异常情况）
+  _resetInputs() {
     this.input.left = false;
     this.input.right = false;
     this.input.jump = false;
     this.input.jumpConsumed = false;
+    this.activeTouches = {};
+  }
+
+  // 基于所有活跃触摸点重新评估方向键和跳跃键
+  _evalInputs() {
+    const activeIds = Object.keys(this.activeTouches);
+    if (activeIds.length === 0) {
+      this._resetInputs();
+      return;
+    }
+
+    const L = this.getButtonLayout();
+    const { btnY, btnR, backCX, fwdCX, jumpCX } = L;
+    const sw = this.config.screenWidth;
+    const enlargeR = btnR + 24; // 稍微放大判定半径，提升手感
+
+    // 方向键：只要有任意活跃手指在左半屏，取最近的那根
+    let leftActive = false, rightActive = false;
+    let bestMoveDist = Infinity;
+    for (const id of activeIds) {
+      const t = this.activeTouches[id];
+      if (t.x < sw * 0.45) {
+        const dBack = Math.hypot(t.x - backCX, t.y - btnY);
+        const dFwd  = Math.hypot(t.x - fwdCX, t.y - btnY);
+        if (dBack < dFwd && dBack < bestMoveDist) {
+          bestMoveDist = dBack;
+          leftActive = true; rightActive = false;
+        } else if (dFwd < dBack && dFwd < bestMoveDist) {
+          bestMoveDist = dFwd;
+          leftActive = false; rightActive = true;
+        }
+      }
+    }
+    this.input.left = leftActive;
+    this.input.right = rightActive;
+    if (leftActive || rightActive) this._lastMoveTouch = true;
+
+    // 跳跃键：只要有任意活跃手指在右半屏且在判定范围内
+    let jumpActive = false;
+    for (const id of activeIds) {
+      const t = this.activeTouches[id];
+      if (t.x > sw * 0.55) {
+        const distJump = Math.hypot(t.x - jumpCX, t.y - btnY);
+        if (distJump < enlargeR) {
+          jumpActive = true;
+          break;
+        }
+      }
+    }
+    this.input.jump = jumpActive;
   }
 
   // ======================== 渲染 ========================
@@ -952,6 +994,45 @@ class PlatformerGame {
     ctx.textAlign = 'left';
   }
 
+  // ---- 玩家鱼图片预处理：缩放 + 清理白边光晕 ----
+  _preScalePlayerImage(srcCanvas) {
+    if (!srcCanvas) return null;
+    const TARGET_W = PLAYER_W;  // 88
+    const TARGET_H = PLAYER_H;  // 72
+
+    const offCanvas = wx.createCanvas();
+    offCanvas.width = TARGET_W;
+    offCanvas.height = TARGET_H;
+    const ctx = offCanvas.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.clearRect(0, 0, TARGET_W, TARGET_H);
+    // 等比缩放居中
+    const scale = Math.min(TARGET_W / srcCanvas.width, TARGET_H / srcCanvas.height);
+    const w = srcCanvas.width * scale;
+    const h = srcCanvas.height * scale;
+    ctx.drawImage(srcCanvas, (TARGET_W - w) / 2, (TARGET_H - h) / 2, w, h);
+
+    // 关键：清理笔触抗锯齿边缘的浅灰光晕（白底转透明时残留的近白像素）
+    // 原来的 createTransparentImage 只把纯白 (255,255,255) 设为透明，
+    // 但 230,230,230 这类像素在深色背景上会形成一圈"重影光晕"
+    try {
+      const imageData = ctx.getImageData(0, 0, TARGET_W, TARGET_H);
+      const data = imageData.data;
+      // 阈值：RGB 都大于 220 的像素视为背景，设为透明
+      // 太低会误伤浅色笔触，220 在深色鱼线/彩色笔触下安全
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i], g = data[i + 1], b = data[i + 2];
+        if (r > 220 && g > 220 && b > 220) {
+          data[i + 3] = 0;
+        }
+      }
+      ctx.putImageData(imageData, 0, 0);
+    } catch (e) {
+      // getImageData 在某些小游戏 Canvas 上可能不可用，忽略即可
+    }
+    return offCanvas;
+  }
+
   // ---- 玩家鱼 ----
   drawPlayer(ctx, cam) {
     const p = this.player;
@@ -966,11 +1047,11 @@ class PlatformerGame {
     if (!p.facingRight) ctx.scale(-1, 1);
 
     if (this.playerImgCanvas) {
-      // 使用用户画的鱼
+      // 使用用户画的鱼（已预处理到 88×72 并清理白边光晕，直接原生绘制）
       const bob = Math.sin(this.animTime * 6) * 1.5;
       const tilt = p.onGround ? 0 : p.vy * 0.02;
       ctx.rotate(tilt);
-      ctx.drawImage(this.playerImgCanvas, -p.w / 2, -p.h / 2 + bob, p.w, p.h);
+      ctx.drawImage(this.playerImgCanvas, -p.w / 2, -p.h / 2 + bob);
 
       // 气泡（偶尔吐出）
       if (Math.random() < 0.03) {

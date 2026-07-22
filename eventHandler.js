@@ -153,14 +153,18 @@ class EventHandler {
     if (!e.touches || e.touches.length === 0) return;
 
     const touches = e.touches;
-    const x = touches[0].clientX;
-    const y = touches[0].clientY;
 
-    // 闯关模式：路由到平台跳跃游戏
+    // 闯关模式：路由到平台跳跃游戏（传递所有触摸点 + 真实 touchId）
     if (this.isPlatformerMode && this.platformer) {
-      this.platformer.handleTouchStart(x, y);
+      for (let i = 0; i < touches.length; i++) {
+        const t = touches[i];
+        this.platformer.handleTouchStart(t.clientX, t.clientY, t.identifier);
+      }
       return;
     }
+
+    const x = touches[0].clientX;
+    const y = touches[0].clientY;
 
     // 积分榜界面
     if (this.showLeaderboard) {
@@ -187,14 +191,18 @@ class EventHandler {
     if (!e.touches || e.touches.length === 0) return;
 
     const touches = e.touches;
-    const x = touches[0].clientX;
-    const y = touches[0].clientY;
 
-    // 闯关模式
+    // 闯关模式：传递所有触摸点 + 真实 touchId
     if (this.isPlatformerMode && this.platformer) {
-      this.platformer.handleTouchMove(x, y);
+      for (let i = 0; i < touches.length; i++) {
+        const t = touches[i];
+        this.platformer.handleTouchMove(t.clientX, t.clientY, t.identifier);
+      }
       return;
     }
+
+    const x = touches[0].clientX;
+    const y = touches[0].clientY;
 
     // 选鱼/积分榜界面：忽略 move
     if (this.showLeaderboard || this.showFishSelect) return;
@@ -210,15 +218,18 @@ class EventHandler {
     const changedTouches = e.changedTouches;
     if (!changedTouches || changedTouches.length === 0) return;
 
+    // 闯关模式：传递所有抬起的触摸点 + 真实 touchId
+    if (this.isPlatformerMode && this.platformer) {
+      for (let i = 0; i < changedTouches.length; i++) {
+        const t = changedTouches[i];
+        this.platformer.handleTouchEnd(t.clientX, t.clientY, t.identifier);
+      }
+      return;
+    }
+
     const touch = changedTouches[0];
     const x = touch.clientX;
     const y = touch.clientY;
-
-    // 闯关模式
-    if (this.isPlatformerMode && this.platformer) {
-      this.platformer.handleTouchEnd(x, y);
-      return;
-    }
 
     // 选鱼/积分榜界面：忽略 end
     if (this.showLeaderboard || this.showFishSelect) return;
