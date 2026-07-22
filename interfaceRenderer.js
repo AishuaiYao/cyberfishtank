@@ -461,7 +461,7 @@ class InterfaceRenderer {
     const ctx = this.ctx;
     const margin = 15;
     const btnWidth = config.screenWidth - margin * 2;
-    const btnHeight = 32;
+    const btnHeight = 42;
     const positions = getAreaPositions();
     const btnY = positions.jumpAreaY + config.jumpHeight + 42 + 18;
 
@@ -476,11 +476,11 @@ class InterfaceRenderer {
     gradient.addColorStop(0, '#7B68EE');
     gradient.addColorStop(1, '#6A5ACD');
     ctx.fillStyle = gradient;
-    Utils.drawRoundedRect(ctx, margin + 1, btnY + 1, btnWidth - 2, btnHeight - 2, 8, true, false);
+    Utils.drawRoundedRect(ctx, margin + 1, btnY + 1, btnWidth - 2, btnHeight - 2, config.borderRadius, true, false);
 
     // 文字
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 14px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+    ctx.font = 'bold 18px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('🏆 闯关积分榜', margin + btnWidth / 2, btnY + btnHeight / 2);
@@ -505,6 +505,7 @@ class InterfaceRenderer {
     const ctx = this.ctx;
     const sw = config.screenWidth;
     const sh = config.screenHeight;
+    const safeTop = 54;  // 避开灵动岛/刘海区域
 
     // 重置触摸信息
     this.fishSelectCardBounds = [];
@@ -519,20 +520,20 @@ class InterfaceRenderer {
     ctx.fillStyle = '#FFFFFF';
     ctx.font = 'bold 20px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('🐟 选择出战的小鱼', sw / 2, 52);
+    ctx.fillText('🐟 选择出战的小鱼', sw / 2, safeTop + 22);
     ctx.textAlign = 'left';
 
     // 子标题
     ctx.fillStyle = 'rgba(255,255,255,0.5)';
     ctx.font = '12px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('点击小鱼即可出战！', sw / 2, 76);
+    ctx.fillText('点击小鱼即可出战！', sw / 2, safeTop + 46);
     ctx.textAlign = 'left';
 
     // 大鱼卡片网格
     const cardW = (sw - 48) / 3;   // 3 列
     const cardH = 130;
-    const startY = 95;
+    const startY = safeTop + 60;
     const maxCards = Math.min(fishList.length, 12); // 最多 4 行（12 条）
 
     for (let i = 0; i < maxCards; i++) {
@@ -665,6 +666,7 @@ class InterfaceRenderer {
     const ctx = this.ctx;
     const sw = config.screenWidth;
     const sh = config.screenHeight;
+    const safeTop = 54;  // 避开灵动岛/刘海区域
 
     // 重置触摸信息
     this.leaderboardBackBounds = null;
@@ -677,7 +679,7 @@ class InterfaceRenderer {
     ctx.fillStyle = '#FFD700';
     ctx.font = 'bold 22px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('🏆 闯关积分榜', sw / 2, 48);
+    ctx.fillText('🏆 闯关积分榜', sw / 2, safeTop + 22);
     ctx.textAlign = 'left';
 
     if (scores.length === 0) {
@@ -693,7 +695,7 @@ class InterfaceRenderer {
       const sorted = [...scores].sort((a, b) => b.score - a.score);
 
       // 表头
-      const headerY = 75;
+      const headerY = safeTop + 46;
       ctx.fillStyle = 'rgba(255,255,255,0.8)';
       ctx.font = 'bold 13px sans-serif';
       const colX_name = 58;
@@ -714,7 +716,7 @@ class InterfaceRenderer {
 
       // 列表行
       const rowH = 42;
-      const maxRows = Math.min(sorted.length, Math.floor((sh - 140) / rowH));
+      const maxRows = Math.min(sorted.length, Math.floor((sh - headerY - 65) / rowH));
       for (let i = 0; i < maxRows; i++) {
         const row = sorted[i];
         const ry = headerY + 18 + i * rowH;

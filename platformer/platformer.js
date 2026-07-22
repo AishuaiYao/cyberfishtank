@@ -39,6 +39,64 @@ class Particle {
   get dead() { return this.life <= 0; }
 }
 
+// ======================== 子弹 ========================
+class Bullet {
+  constructor(x, y, vx) {
+    this.x = x; this.y = y;
+    this.vx = vx;
+    this.w = 14; this.h = 8;
+    this.alive = true;
+    this.life = 1.5;       // 最大飞行时间（秒）
+    this.trail = [];        // 拖尾粒子位置
+  }
+  update(dt, tiles, levelW, levelH, ts) {
+    this.x += this.vx * dt;
+    this.life -= dt;
+    if (this.life <= 0) { this.alive = false; return; }
+    // 拖尾记录
+    this.trail.push({ x: this.x, y: this.y, life: 0.15 });
+    if (this.trail.length > 8) this.trail.shift();
+    for (const t of this.trail) t.life -= dt;
+    this.trail = this.trail.filter(t => t.life > 0);
+    // 撞墙消失
+    const tileX = this.vx > 0
+      ? Math.floor((this.x + this.w / 2) / ts)
+      : Math.floor((this.x - this.w / 2) / ts);
+    const tileY = Math.floor(this.y / ts);
+    if (tileY >= 0 && tileY < levelH && tileX >= 0 && tileX < levelW) {
+      if (tiles[tileY][tileX] !== 0) this.alive = false;
+    } else {
+      this.alive = false;
+    }
+  }
+  draw(ctx, cam) {
+    if (!this.alive) return;
+    const sx = this.x - cam.x;
+    const sy = this.y - cam.y;
+    // 拖尾
+    for (const t of this.trail) {
+      const alpha = t.life / 0.15;
+      ctx.fillStyle = `rgba(100, 200, 255, ${alpha * 0.5})`;
+      ctx.beginPath();
+      ctx.arc(t.x - cam.x, t.y - cam.y, 3 * alpha, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // 子弹主体（发光圆球）
+    ctx.save();
+    // 外发光
+    ctx.fillStyle = 'rgba(100, 200, 255, 0.3)';
+    ctx.beginPath(); ctx.arc(sx, sy, 8, 0, Math.PI * 2); ctx.fill();
+    // 主体
+    const grad = ctx.createRadialGradient(sx - 1, sy - 1, 1, sx, sy, 6);
+    grad.addColorStop(0, '#FFFFFF');
+    grad.addColorStop(0.4, '#64C8FF');
+    grad.addColorStop(1, 'rgba(30, 100, 200, 0.6)');
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(sx, sy, 6, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+}
+
 // ======================== 敌人 ========================
 class Enemy {
   constructor(spec, tileSize) {
@@ -246,11 +304,14 @@ class PlatformerGame {
     this.coins = [];         // { x, y, collected, animTimer }
     this.questionBlocks = [];// { x, y, hit }
     this.particles = [];
+    this.bullets = [];       // 子弹数组
     this.finishX = 0;
     this.finishY = 0;
+    this.hasGun = false;     // 是否获得了射击能力
+    this.fireCooldown = 0;   // 射击冷却计时
 
     // 输入
-    this.input = { left: false, right: false, jump: false, jumpConsumed: false };
+    this.input = { left: false, right: false, jump: false, jumpConsumed: false, fire: false, fireConsumed: false };
     this.activeTouches = {}; // id → { x, y }
     this._lastMoveDir = 0;   // 缓存最近移动方向（-1左 0无 1右），跳跃惯性用
 
@@ -323,6 +384,9 @@ class PlatformerGame {
     }));
 
     this.particles = [];
+    this.bullets = [];
+    this.hasGun = false;
+    this.fireCooldown = 0;
     this.state = 'playing';
     this.stateTimer = 0;
     this.showTutorial = true;       // 每关开始显示教学
@@ -427,6 +491,20 @@ class PlatformerGame {
     }
     if (!this.input.jump) this.input.jumpConsumed = false;
 
+    // 射击
+    if (this.fireCooldown > 0) this.fireCooldown -= dt;
+    if (this.hasGun && this.input.fire && !this.input.fireConsumed && this.fireCooldown <= 0) {
+      const dir = this.player.facingRight ? 1 : -1;
+      this.bullets.push(new Bullet(
+        this.player.x + dir * (this.player.w / 2 + 6),
+        this.player.y + this.player.h / 2,
+        dir * 450
+      ));
+      this.fireCooldown = 0.35;   // 射击冷却 0.35 秒
+      this.input.fireConsumed = true;
+    }
+    if (!this.input.fire) this.input.fireConsumed = false;
+
     // 无敌计时
     if (this.player.invincibleTimer > 0) this.player.invincibleTimer -= dt;
 
@@ -470,6 +548,28 @@ class PlatformerGame {
     // ---- 粒子更新 ----
     for (const p of this.particles) p.update(dt);
     this.particles = this.particles.filter(p => !p.dead);
+
+    // ---- 子弹更新 ----
+    for (const b of this.bullets) b.update(dt, this.tiles, this.levelW, this.levelH, TILE_SIZE);
+    this.bullets = this.bullets.filter(b => b.alive);
+
+    // ---- 子弹 vs 敌人 ----
+    for (const b of this.bullets) {
+      if (!b.alive) continue;
+      for (const enemy of this.enemies) {
+        if (!enemy.alive) continue;
+        const ecx = enemy.x + enemy.w / 2;
+        const ecy = enemy.y + enemy.h / 2;
+        if (Math.abs(b.x - ecx) < (b.w + enemy.w) / 2 &&
+            Math.abs(b.y - ecy) < (b.h + enemy.h) / 2) {
+          enemy.alive = false;
+          b.alive = false;
+          this.score += 150;
+          this.spawnParticles(enemy.x, enemy.y, '#64C8FF', 8);
+          break;
+        }
+      }
+    }
 
     // ---- 金币弹跳动画 ----
     for (const c of this.coins) {
@@ -533,27 +633,31 @@ class PlatformerGame {
         }
       }
     }
-    // 上升 (头顶)
+    // 上升 (头顶) — 两遍扫描：先处理问号砖块，再处理普通碰撞
     if (p.vy < 0 && top >= 0 && top < this.levelH) {
+      // 第一遍：扫描所有列，优先处理问号砖块
       for (let tx = left; tx <= right; tx++) {
         if (tx < 0 || tx >= this.levelW) continue;
-        const tile = this.tiles[top][tx];
-        if (tile !== TILE_AIR) {
-          if (tile === TILE_QUESTION && !this.questionBlocks.find(q => q.x === tx * ts && q.y === top * ts && !q.hit)) {
-            // 问号砖块还没被顶过
-            const qb = this.questionBlocks.find(q => q.x === tx * ts && q.y === top * ts && !q.hit);
-            if (qb) {
-              qb.hit = true;
-              this.coinCount++;
-              this.score += 100;
-              this.spawnParticles(tx * ts + ts / 2, top * ts, '#FFD700', 8);
-              // 弹出金币动画
-              this.coins.push({
-                x: tx * ts + ts / 2, y: top * ts - 10,
-                collected: true, animTimer: 0, vy: COIN_BOUNCE, life: 0.8,
-              });
-            }
+        if (this.tiles[top][tx] === TILE_QUESTION) {
+          const qb = this.questionBlocks.find(q => q.x === tx * ts && q.y === top * ts && !q.hit);
+          if (qb) {
+            qb.hit = true;
+            this.coinCount++;
+            this.score += 100;
+            this.hasGun = true;  // 授予射击能力
+            this.spawnParticles(tx * ts + ts / 2, top * ts, '#FFD700', 12);
+            this.coins.push({
+              x: tx * ts + ts / 2, y: top * ts - 10,
+              collected: true, animTimer: 0, vy: COIN_BOUNCE, life: 0.8,
+            });
+            this.tiles[top][tx] = TILE_AIR;  // 顶完后变空气
           }
+        }
+      }
+      // 第二遍：检查该行剩余阻挡（问号已变空气，平台等仍在）
+      for (let tx = left; tx <= right; tx++) {
+        if (tx < 0 || tx >= this.levelW) continue;
+        if (this.tiles[top][tx] !== TILE_AIR) {
           p.y = (top + 1) * ts;
           p.vy = 0;
           return;
@@ -723,6 +827,8 @@ class PlatformerGame {
     this.input.right = false;
     this.input.jump = false;
     this.input.jumpConsumed = false;
+    this.input.fire = false;
+    this.input.fireConsumed = false;
     this.activeTouches = {};
   }
 
@@ -773,6 +879,21 @@ class PlatformerGame {
       }
     }
     this.input.jump = jumpActive;
+
+    // 开火键：跳跃键上方独立区域
+    let fireActive = false;
+    const L2 = this.getButtonLayout();
+    for (const id of activeIds) {
+      const t = this.activeTouches[id];
+      if (t.x > sw * 0.55) {
+        const distFire = Math.hypot(t.x - L2.fireCX, t.y - L2.fireCY);
+        if (distFire < enlargeR) {
+          fireActive = true;
+          break;
+        }
+      }
+    }
+    this.input.fire = fireActive;
   }
 
   // ======================== 渲染 ========================
@@ -894,11 +1015,19 @@ class PlatformerGame {
       p.draw(ctx, cam);
     }
 
+    // 7.5. 子弹
+    for (const b of this.bullets) {
+      b.draw(ctx, cam);
+    }
+
     // 8. UI 覆盖层
     this.drawUI(ctx);
 
     // 9. 触控提示
     this.drawControls(ctx);
+
+    // 9.5. 开火键
+    this.drawFireButton(ctx);
 
     // 10. 新手引导
     if (this.showTutorial) this.drawTutorial(ctx);
@@ -1194,7 +1323,9 @@ class PlatformerGame {
     const backCX = marginX + btnR;
     const fwdCX  = backCX + btnR * 2 + leftGap;
     const jumpCX = sw - marginX - btnR;
-    return { sh, sw, btnR, barH, btnY, marginX, leftGap, backCX, fwdCX, jumpCX };
+    const fireCX = jumpCX;
+    const fireCY = btnY - 80;    // 开火键在跳跃键上方 80px
+    return { sh, sw, btnR, barH, btnY, marginX, leftGap, backCX, fwdCX, jumpCX, fireCX, fireCY };
   }
 
   // ---- 触控按钮（左手左下=前进后退，右手右下=跳跃）----
@@ -1276,6 +1407,36 @@ class PlatformerGame {
     ctx.restore();
   }
 
+  // ---- 开火键（跳跃键上方）----
+  drawFireButton(ctx) {
+    if (!this.hasGun) return;   // 没获得能力不显示
+    const L = this.getButtonLayout();
+    const { fireCX, fireCY, btnR } = L;
+    const fireActive = this.input.fire;
+
+    ctx.save();
+    const r = btnR - 2;
+    // 外圈
+    ctx.fillStyle = fireActive ? 'rgba(255, 100, 60, 0.40)' : 'rgba(255, 100, 60, 0.12)';
+    ctx.beginPath();
+    ctx.arc(fireCX, fireCY, r + 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255, 100, 60, 0.40)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    // 子弹图标
+    ctx.fillStyle = fireActive ? '#FF8C42' : 'rgba(255, 140, 66, 0.60)';
+    ctx.beginPath();
+    ctx.arc(fireCX, fireCY, 8, 0, Math.PI * 2);
+    ctx.fill();
+    // 小火花
+    ctx.fillStyle = fireActive ? '#FFE0C0' : 'rgba(255, 224, 192, 0.55)';
+    ctx.beginPath();
+    ctx.arc(fireCX - 3, fireCY - 3, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
   // ---- 新手引导（横版紧凑布局）----
   drawTutorial(ctx) {
     const sw = this.config.screenWidth;
@@ -1342,7 +1503,7 @@ class PlatformerGame {
     ctx.fillStyle = 'rgba(255,255,255,0.65)';
     ctx.font = '11px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('⭐ 收金币  🦶 踩敌人  ⬆ 二连跳  🚩 到旗帜  ❤️ 3条命', sw / 2, tipY);
+    ctx.fillText('⭐ 收金币  🦶 踩敌人  ⬆ 二连跳  ❓顶问号得武器  🚩 到旗帜  ❤️ 3条命', sw / 2, tipY);
 
     // 小鱼预览 + 点击提示
     const previewY = tipY + 22;
