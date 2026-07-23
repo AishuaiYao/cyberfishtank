@@ -912,6 +912,7 @@ class PlatformerGame {
     this.levelW = spec.width;
     this.levelH = spec.height;
     this.levelName = spec.name;   // 保存关卡名供 UI 显示
+    this.theme = spec.theme || null;   // 保存主题对象供背景渲染使用
     this.tiles = generateTileMap(spec);
     const ts = TILE_SIZE;
 
@@ -973,10 +974,10 @@ class PlatformerGame {
     const ts = TILE_SIZE;
     const W = spec.width, H = spec.height;
     const enemyTypes = ['crab', 'jelly', 'puffer', 'shark', 'star', 'fishfly', 'octo'];
-    // 每关随机敌人数量：基础 3 + 关卡数
-    const extraEnemyCount = (3 + levelIndex * 2) * 3;   // 小怪数量 ×3
-    // 随机砖块数量：基础 4 + 关卡数 * 2
-    const brickCount = 4 + levelIndex * 2;
+    // 每关随机敌人数量：基础 (3 + 关卡数 × 2) × 6
+    const extraEnemyCount = (3 + levelIndex * 2) * 6;   // 小怪数量 ×6
+    // 随机砖块数量：基础 4 + 关卡数 × 10
+    const brickCount = 4 + levelIndex * 10;
     // 随机平台数量：基础 5 + 关卡数 * 2
     const platformCount = 5 + levelIndex * 2;
     // 随机问号砖块数量：基础 2 + 关卡数
@@ -1014,7 +1015,7 @@ class PlatformerGame {
       const type = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
       if (isFlyingType(type)) {
         // 飞行小怪：在空中随机生成（row 4~9）
-        for (let attempt = 0; attempt < 10; attempt++) {
+        for (let attempt = 0; attempt < 20; attempt++) {
           const x = 6 + Math.floor(Math.random() * (W - 12));
           const y = 4 + Math.floor(Math.random() * 6);   // row 4~9 空中
           if (isUsed(x, y)) continue;
@@ -1107,7 +1108,7 @@ class PlatformerGame {
     // 3. 随机补充砖块障碍
     // 砖块放在 row 10~12 的空气中（玩家跳跃路径上，作为障碍）
     let placed = 0, attempts = 0;
-    while (placed < brickCount && attempts < brickCount * 10) {
+    while (placed < brickCount && attempts < brickCount * 20) {
       attempts++;
       const x = 4 + Math.floor(Math.random() * (W - 8));
       const y = 10 + Math.floor(Math.random() * 3);   // row 10-12
@@ -1115,9 +1116,9 @@ class PlatformerGame {
       // 上下方也得是空气，避免砖块挤压玩家
       if (isUsed(x, y - 1)) continue;
       if (isUsed(x, y + 1)) continue;
-      // 横向避免连续砖块墙堵死路：检查左右 2 格内是否已有砖块
+      // 横向避免连续砖块墙堵死路：检查左右 1 格内是否已有砖块
       let blocked = false;
-      for (let dx = -2; dx <= 2; dx++) {
+      for (let dx = -1; dx <= 1; dx++) {
         if (dx === 0) continue;
         if (this.tiles[y][x + dx] === 3) { blocked = true; break; }
       }
@@ -1733,31 +1734,8 @@ class PlatformerGame {
     // 0. 彻底清除画布，防频闪
     ctx.clearRect(0, 0, sw, sh);
 
-    // 1. 海底背景
-    const bgGrad = ctx.createLinearGradient(0, 0, 0, sh);
-    bgGrad.addColorStop(0, '#0a1628');
-    bgGrad.addColorStop(0.5, '#0f2847');
-    bgGrad.addColorStop(1, '#163a5c');
-    ctx.fillStyle = bgGrad;
-    ctx.fillRect(0, 0, sw, sh);
-
-    // 背景气泡
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
-    for (let i = 0; i < 20; i++) {
-      const bx = (i * 173 + 67) % sw;
-      const by = ((this.totalTime * 20 + i * 97) % (sh + 40)) - 20;
-      const br = 4 + (i % 6);
-      ctx.beginPath();
-      ctx.arc(bx, by, br, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // 远处光柱
-    ctx.fillStyle = 'rgba(100, 200, 255, 0.03)';
-    for (let i = 0; i < 5; i++) {
-      const lx = (i * 190 + 40) - cam.x * 0.2;
-      ctx.fillRect(lx % (sw + 200) - 100, 0, 60 + i * 20, sh);
-    }
+    // 1. 海底背景 —— 根据关卡主题渲染
+    this.drawThemedBackground(ctx, sw, sh, cam);
 
     // 2. 瓦片
     const startCol = Math.max(0, Math.floor(cam.x / ts) - 1);
@@ -1886,17 +1864,197 @@ class PlatformerGame {
     ctx.restore();  // 恢复旋转矩阵
   }
 
+  // ---- 主题背景渲染 ----
+  drawThemedBackground(ctx, sw, sh, cam) {
+    const theme = this.theme;
+    if (!theme || !theme.bgStops) {
+      // 兜底：原固定背景
+      const bgGrad = ctx.createLinearGradient(0, 0, 0, sh);
+      bgGrad.addColorStop(0, '#0a1628');
+      bgGrad.addColorStop(0.5, '#0f2847');
+      bgGrad.addColorStop(1, '#163a5c');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, sw, sh);
+      return;
+    }
+
+    // 1a. 多段渐变背景
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, sh);
+    for (const stop of theme.bgStops) {
+      bgGrad.addColorStop(stop.pos, stop.color);
+    }
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, sw, sh);
+
+    // 1b. 主题装饰
+    const decoType = theme.decoType;
+    const decoColor = theme.decoColor || 'rgba(100,200,255,0.05)';
+    const t = this.totalTime;
+
+    if (decoType === 'sunrays') {
+      // 浅滩：阳光光柱（从顶部斜射，缓慢移动）
+      for (let i = 0; i < 6; i++) {
+        const baseX = (i * 180 + 40) - cam.x * 0.15;
+        const lx = ((baseX % (sw + 300)) + (sw + 300)) % (sw + 300) - 150;
+        const w = 50 + i * 15;
+        const sway = Math.sin(t * 0.5 + i) * 20;
+        const grad = ctx.createLinearGradient(lx + sway, 0, lx + sway + w, sh);
+        grad.addColorStop(0, decoColor);
+        grad.addColorStop(0.7, decoColor.replace(/[\d.]+\)/, '0.03)'));
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.moveTo(lx + sway, 0);
+        ctx.lineTo(lx + sway + w, 0);
+        ctx.lineTo(lx + sway + w + 80, sh);
+        ctx.lineTo(lx + sway - 30, sh);
+        ctx.closePath();
+        ctx.fill();
+      }
+      // 浅滩额外：海底沙地起伏
+      ctx.fillStyle = 'rgba(80, 120, 100, 0.15)';
+      ctx.beginPath();
+      ctx.moveTo(0, sh);
+      for (let x = 0; x <= sw; x += 20) {
+        const y = sh - 30 - Math.sin((x + cam.x * 0.3) * 0.02) * 15 - Math.sin((x + cam.x * 0.3) * 0.05) * 8;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(sw, sh);
+      ctx.closePath();
+      ctx.fill();
+
+    } else if (decoType === 'seaweed') {
+      // 珊瑚暗礁：背景海草飘动 + 远处珊瑚剪影
+      ctx.fillStyle = decoColor;
+      for (let i = 0; i < 8; i++) {
+        const baseX = (i * 120 + 30) - cam.x * 0.2;
+        const x = ((baseX % (sw + 200)) + (sw + 200)) % (sw + 200) - 100;
+        const h = 80 + (i % 3) * 40;
+        const sway = Math.sin(t * 1.2 + i * 0.7) * 12;
+        ctx.strokeStyle = decoColor;
+        ctx.lineWidth = 6 + (i % 2) * 3;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(x, sh);
+        ctx.quadraticCurveTo(x + sway * 0.5, sh - h * 0.5, x + sway, sh - h);
+        ctx.stroke();
+      }
+      // 远处珊瑚剪影
+      ctx.fillStyle = 'rgba(60, 30, 50, 0.25)';
+      for (let i = 0; i < 5; i++) {
+        const cx = (i * 200 + 50) - cam.x * 0.1;
+        const x = ((cx % (sw + 300)) + (sw + 300)) % (sw + 300) - 150;
+        ctx.beginPath();
+        ctx.moveTo(x, sh);
+        ctx.lineTo(x + 20, sh - 50);
+        ctx.lineTo(x + 40, sh - 30);
+        ctx.lineTo(x + 60, sh - 60);
+        ctx.lineTo(x + 80, sh - 20);
+        ctx.lineTo(x + 90, sh);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+    } else if (decoType === 'glowdots') {
+      // 深渊迷宫：深海发光生物点（缓慢闪烁漂移）
+      for (let i = 0; i < 30; i++) {
+        const seed = i * 137;
+        const bx = ((seed + cam.x * 0.1) % sw + sw) % sw;
+        const by = ((seed * 1.7 + t * 8) % (sh + 100));
+        const phase = (t * 0.8 + i * 0.5) % (Math.PI * 2);
+        const flicker = 0.3 + Math.abs(Math.sin(phase)) * 0.7;
+        const r = 1.5 + (i % 3);
+        ctx.fillStyle = decoColor.replace(/[\d.]+\)/, (flicker * 0.25).toFixed(2) + ')');
+        ctx.beginPath();
+        ctx.arc(bx, by, r, 0, Math.PI * 2);
+        ctx.fill();
+        // 光晕
+        ctx.fillStyle = decoColor.replace(/[\d.]+\)/, (flicker * 0.08).toFixed(2) + ')');
+        ctx.beginPath();
+        ctx.arc(bx, by, r * 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+    } else if (decoType === 'embers') {
+      // 深海火山：上升火星 + 底部岩浆红光
+      // 底部红光
+      const lavaGrad = ctx.createLinearGradient(0, sh - 80, 0, sh);
+      lavaGrad.addColorStop(0, 'rgba(255, 60, 0, 0)');
+      lavaGrad.addColorStop(1, 'rgba(255, 80, 0, 0.25)');
+      ctx.fillStyle = lavaGrad;
+      ctx.fillRect(0, sh - 80, sw, 80);
+      // 上升火星
+      for (let i = 0; i < 40; i++) {
+        const seed = i * 211;
+        const speed = 30 + (i % 5) * 15;
+        const bx = ((seed + cam.x * 0.2) % sw + sw) % sw;
+        const by = sh - ((t * speed + seed * 3) % (sh + 50));
+        const r = 1 + (i % 3);
+        const flicker = 0.4 + Math.abs(Math.sin(t * 3 + i)) * 0.6;
+        ctx.fillStyle = decoColor.replace(/[\d.]+\)/, (flicker * 0.3).toFixed(2) + ')');
+        ctx.beginPath();
+        ctx.arc(bx, by, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+    } else if (decoType === 'crystals') {
+      // 荧光海穴：发光晶体（多边形 + 脉冲光晕）
+      for (let i = 0; i < 12; i++) {
+        const seed = i * 173;
+        const cx = ((seed + cam.x * 0.15) % (sw + 200) + (sw + 200)) % (sw + 200) - 100;
+        const cy = sh - 40 - (i % 4) * 50 - (seed % 30);
+        const pulse = 0.5 + Math.abs(Math.sin(t * 1.5 + i * 0.8)) * 0.5;
+        const size = 8 + (i % 3) * 4;
+        // 光晕
+        ctx.fillStyle = decoColor.replace(/[\d.]+\)/, (pulse * 0.15).toFixed(2) + ')');
+        ctx.beginPath();
+        ctx.arc(cx, cy, size * 3, 0, Math.PI * 2);
+        ctx.fill();
+        // 晶体（菱形）
+        ctx.fillStyle = decoColor.replace(/[\d.]+\)/, (0.3 + pulse * 0.3).toFixed(2) + ')');
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - size);
+        ctx.lineTo(cx + size * 0.6, cy);
+        ctx.lineTo(cx, cy + size);
+        ctx.lineTo(cx - size * 0.6, cy);
+        ctx.closePath();
+        ctx.fill();
+        // 高光
+        ctx.fillStyle = 'rgba(255, 255, 255, ' + (pulse * 0.4).toFixed(2) + ')';
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - size);
+        ctx.lineTo(cx + size * 0.2, cy - size * 0.3);
+        ctx.lineTo(cx - size * 0.1, cy);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+
+    // 1c. 背景气泡（所有主题通用，颜色取自主题）
+    const bubbleColor = theme.bubbleColor || 'rgba(255,255,255,0.06)';
+    ctx.fillStyle = bubbleColor;
+    for (let i = 0; i < 20; i++) {
+      const bx = (i * 173 + 67) % sw;
+      const by = ((t * 20 + i * 97) % (sh + 40)) - 20;
+      const br = 4 + (i % 6);
+      ctx.beginPath();
+      ctx.arc(bx, by, br, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
   // ---- 绘制单个瓦片 ----
   drawTile(ctx, x, y, type, row, col) {
     const s = TILE_SIZE;
+    const th = this.theme || {};
     if (type === TILE_GROUND) {
-      // 石头/海底地面
+      // 石头/海底地面 —— 颜色随主题变化
       const isTop = row === this.levelH - 2;
       if (isTop) {
-        // 表面层：珊瑚/海草色
-        ctx.fillStyle = '#3D7A6E';
+        // 表面层
+        ctx.fillStyle = th.groundTop || '#3D7A6E';
         ctx.fillRect(x, y, s, s);
-        ctx.fillStyle = '#4A9E8E';
+        ctx.fillStyle = th.groundTopLight || '#4A9E8E';
         ctx.fillRect(x, y, s, 6);
         // 纹理
         ctx.fillStyle = 'rgba(0,0,0,0.15)';
@@ -1904,11 +2062,11 @@ class PlatformerGame {
         ctx.fillRect(x + 22, y + 16, 8, 2);
       } else {
         // 深层：深色岩石
-        ctx.fillStyle = '#4A5A6A';
+        ctx.fillStyle = th.groundDeep || '#4A5A6A';
         ctx.fillRect(x, y, s, s);
-        ctx.fillStyle = '#3D4D5D';
+        ctx.fillStyle = th.groundDeepDark || '#3D4D5D';
         ctx.fillRect(x + 2, y + 2, s - 4, s - 4);
-        ctx.fillStyle = '#526476';
+        ctx.fillStyle = th.groundDeepMid || '#526476';
         ctx.fillRect(x + 6, y + 8, 8, 6);
       }
     } else if (type === TILE_PLATFORM) {
