@@ -118,7 +118,7 @@ class Enemy {
     this.patrolRight = (spec.x + spec.patrol) * ts;
     this.vx = this.speed;
     this.vy = 0;
-    this.w = 50; this.h = 64;
+    this.w = 64; this.h = 64;
     this.alive = true;
     this.animTimer = Math.random() * Math.PI * 2;
     this.tileSize = ts;
@@ -128,7 +128,7 @@ class Enemy {
     this.onGround = false;
     this.chasing = false;  // 是否正在追玩家
     // 飞行小怪：不受重力，自由飞行
-    this.flying = (spec.type === 'fishfly' || spec.type === 'octo');
+    this.flying = (spec.type === 'octo' || spec.type === 'shark');
     this.detectRange = 500;   // 飞行小怪检测范围更大
   }
 
@@ -324,22 +324,25 @@ class Enemy {
     const t = this.animTimer;
 
     // ===== 通用辅助函数 =====
-    // 可爱大眼睛（带双层高光）
-    const drawCuteEye = (ex, ey, r) => {
+    // 可爱大眼睛（带双层高光 + 眨眼）
+    const drawCuteEye = (ex, ey, r, blinkFactor = 1) => {
+      const blink = blinkFactor;
       // 眼眶阴影
       ctx.fillStyle = 'rgba(0,0,0,0.15)';
-      ctx.beginPath(); ctx.arc(ex + 1, ey + 1.5, r, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(ex + 1, ey + 1.5, r, r * blink, 0, 0, Math.PI * 2); ctx.fill();
       // 眼白
       ctx.fillStyle = '#FFFFFF';
-      ctx.beginPath(); ctx.arc(ex, ey, r, 0, Math.PI * 2); ctx.fill();
-      // 大黑眼珠
-      ctx.fillStyle = '#1A1A3E';
-      ctx.beginPath(); ctx.arc(ex + 0.5, ey + 1, r * 0.65, 0, Math.PI * 2); ctx.fill();
-      // 主高光（大）
-      ctx.fillStyle = '#FFFFFF';
-      ctx.beginPath(); ctx.arc(ex - r * 0.3, ey - r * 0.35, r * 0.35, 0, Math.PI * 2); ctx.fill();
-      // 副高光（小亮点）
-      ctx.beginPath(); ctx.arc(ex + r * 0.35, ey + r * 0.3, r * 0.15, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(ex, ey, r, r * blink, 0, 0, Math.PI * 2); ctx.fill();
+      if (blink > 0.3) {
+        // 大黑眼珠
+        ctx.fillStyle = '#1A1A3E';
+        ctx.beginPath(); ctx.arc(ex + 0.5, ey + 1, r * 0.65, 0, Math.PI * 2); ctx.fill();
+        // 主高光（大）
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath(); ctx.arc(ex - r * 0.3, ey - r * 0.35, r * 0.35, 0, Math.PI * 2); ctx.fill();
+        // 副高光（小亮点）
+        ctx.beginPath(); ctx.arc(ex + r * 0.35, ey + r * 0.3, r * 0.15, 0, Math.PI * 2); ctx.fill();
+      }
     };
     // 腮红（渐变）
     const drawBlush = (bx, by) => {
@@ -354,228 +357,20 @@ class Enemy {
       ctx.fillStyle = 'rgba(0,0,0,0.2)';
       ctx.beginPath(); ctx.ellipse(cx, sy + this.h - 2, sw, sh, 0, 0, Math.PI * 2); ctx.fill();
     };
+    // 微笑（通用）
+    const drawSmile = (mx, my, mr, color = '#1A1A3E') => {
+      ctx.strokeStyle = color; ctx.lineWidth = 1.8;
+      ctx.beginPath(); ctx.arc(mx, my, mr, 0.2, Math.PI - 0.2); ctx.stroke();
+    };
 
     ctx.save();
 
-    if (this.type === 'crab') {
-      // 🦀 螃蟹：圆滚滚红橙渐变身体 + 弯曲腿 + 大圆钳 + 凸眼
-      const bounce = Math.sin(t * 5) * 2;
-      drawShadow(this.w / 2.5, 4);
-      // 腿（弯曲关节）
-      ctx.strokeStyle = '#D04020'; ctx.lineWidth = 3.5; ctx.lineCap = 'round';
-      for (let i = -2; i <= 2; i++) {
-        if (i === 0) continue;
-        const lx = cx + i * 6;
-        const ly = cy + this.h / 3 + bounce;
-        const legSwing = Math.sin(t * 8 + i * 0.5) * 2;
-        ctx.beginPath();
-        ctx.moveTo(lx, ly);
-        ctx.quadraticCurveTo(lx + i * 3 + legSwing, ly + 5, lx + i * 4, ly + 9);
-        ctx.stroke();
-        // 脚尖
-        ctx.fillStyle = '#D04020';
-        ctx.beginPath(); ctx.arc(lx + i * 4, ly + 9, 2, 0, Math.PI * 2); ctx.fill();
-      }
-      // 身体（多层渐变）
-      const bg = ctx.createRadialGradient(cx - 5, cy - 5 + bounce, 3, cx, cy + bounce, this.w / 2);
-      bg.addColorStop(0, '#FF9966');
-      bg.addColorStop(0.5, '#FF6633');
-      bg.addColorStop(1, '#CC2200');
-      ctx.fillStyle = bg;
-      ctx.beginPath();
-      ctx.ellipse(cx, cy + bounce, this.w / 2.2, this.h / 2.3, 0, 0, Math.PI * 2);
-      ctx.fill();
-      // 身体高光（顶部亮带）
-      ctx.fillStyle = 'rgba(255,255,255,0.3)';
-      ctx.beginPath();
-      ctx.ellipse(cx - 4, cy - 8 + bounce, 8, 3, -0.2, 0, Math.PI * 2);
-      ctx.fill();
-      // 钳子（大圆钳 + 渐变）
-      const clawSwing = Math.sin(t * 4) * 3;
-      for (const side of [-1, 1]) {
-        const clx = cx + side * (this.w / 2 + 5);
-        const cly = cy - 4 + bounce + clawSwing * side;
-        const clg = ctx.createRadialGradient(clx - 2, cly - 2, 1, clx, cly, 8);
-        clg.addColorStop(0, '#FF7744');
-        clg.addColorStop(1, '#CC2200');
-        ctx.fillStyle = clg;
-        ctx.beginPath();
-        ctx.ellipse(clx, cly, 8, 7, side * 0.3, 0, Math.PI * 2);
-        ctx.fill();
-        // 钳子锯齿
-        ctx.fillStyle = '#A01800';
-        for (let j = 0; j < 3; j++) {
-          ctx.beginPath();
-          ctx.arc(clx + side * (3 + j * 2), cly - 3 + j, 1.5, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-      // 眼睛（凸起在头顶，带眼柄）
-      const eyeY = cy - this.h / 3 + bounce;
-      ctx.strokeStyle = '#D04020'; ctx.lineWidth = 2.5;
-      ctx.beginPath(); ctx.moveTo(cx - 6, cy - this.h / 4 + bounce); ctx.lineTo(cx - 6, eyeY - 5); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(cx + 6, cy - this.h / 4 + bounce); ctx.lineTo(cx + 6, eyeY - 5); ctx.stroke();
-      drawCuteEye(cx - 6, eyeY, 5);
-      drawCuteEye(cx + 6, eyeY, 5);
-      drawBlush(cx - 11, cy + 3 + bounce);
-      drawBlush(cx + 11, cy + 3 + bounce);
-      // 微笑
-      ctx.strokeStyle = '#7A1000'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(cx, cy + 5 + bounce, 4, 0.2, Math.PI - 0.2); ctx.stroke();
-
-    } else if (this.type === 'jelly') {
-      // 🎐 水母：Q弹透明伞 + 多层渐变 + 粗波浪触须 + 眨眼
-      const bob = Math.sin(t * 2.5) * 6;
-      const squash = 1 + Math.sin(t * 2.5) * 0.1;
-      drawShadow(this.w / 3, 3);
-      // 外层光晕（多层）
-      for (let i = 3; i >= 0; i--) {
-        ctx.fillStyle = `rgba(140, 210, 255, ${0.06 + i * 0.02})`;
-        ctx.beginPath();
-        ctx.ellipse(cx, cy + bob, this.w / 2 + 6 - i, this.h / 3 + 6 - i, 0, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      // 伞盖主体（多层渐变）
-      const jg = ctx.createLinearGradient(cx, cy - this.h / 3 + bob, cx, cy + this.h / 4 + bob);
-      jg.addColorStop(0, 'rgba(200, 240, 255, 0.98)');
-      jg.addColorStop(0.4, 'rgba(140, 210, 255, 0.9)');
-      jg.addColorStop(0.8, 'rgba(100, 180, 240, 0.8)');
-      jg.addColorStop(1, 'rgba(70, 150, 220, 0.7)');
-      ctx.fillStyle = jg;
-      ctx.beginPath();
-      ctx.ellipse(cx, cy + bob, this.w / 2 * squash, this.h / 3 * (2 - squash), 0, Math.PI, 0);
-      ctx.lineTo(cx + this.w / 2, cy + this.h / 6 + bob);
-      ctx.lineTo(cx - this.w / 2, cy + this.h / 6 + bob);
-      ctx.closePath();
-      ctx.fill();
-      // 伞盖顶部高光
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-      ctx.beginPath();
-      ctx.ellipse(cx - 4, cy - this.h / 4 + bob, 6, 3, -0.3, 0, Math.PI * 2);
-      ctx.fill();
-      // 伞盖底部褶皱（半圆装饰）
-      ctx.strokeStyle = 'rgba(70, 150, 220, 0.6)'; ctx.lineWidth = 1.5;
-      for (let i = -2; i <= 2; i++) {
-        const fx = cx + i * (this.w / 5);
-        ctx.beginPath();
-        ctx.arc(fx, cy + this.h / 6 + bob, 5, Math.PI, Math.PI * 2);
-        ctx.stroke();
-      }
-      // 触须（粗波浪形，带渐变透明度）
-      for (let i = -2; i <= 2; i++) {
-        const tx0 = cx + i * (this.w / 6);
-        ctx.strokeStyle = `rgba(140, 210, 255, ${0.8 - Math.abs(i) * 0.1})`;
-        ctx.lineWidth = 3; ctx.lineCap = 'round';
-        ctx.beginPath();
-        ctx.moveTo(tx0, cy + this.h / 6 + bob);
-        for (let s = 0; s < 5; s++) {
-          ctx.quadraticCurveTo(
-            tx0 + (s % 2 === 0 ? 5 : -5) + Math.sin(t * 5 + i + s) * 3,
-            cy + this.h / 6 + bob + 5 + s * 5,
-            tx0 + Math.sin(t * 5 + i + s + 1) * 3,
-            cy + this.h / 6 + bob + 8 + s * 5
-          );
-        }
-        ctx.stroke();
-        // 触须末端小球
-        ctx.fillStyle = `rgba(180, 230, 255, ${0.7 - Math.abs(i) * 0.1})`;
-        const endX = tx0 + Math.sin(t * 5 + i + 5) * 3;
-        const endY = cy + this.h / 6 + bob + 28;
-        ctx.beginPath(); ctx.arc(endX, endY, 2.5, 0, Math.PI * 2); ctx.fill();
-      }
-      // 大眼睛（偶尔眨眼）
-      const blink = Math.sin(t * 0.7) > 0.92 ? 0.15 : 1;
-      ctx.fillStyle = '#FFFFFF';
-      ctx.beginPath(); ctx.ellipse(cx - 6, cy - 2 + bob, 4.5, 4.5 * blink, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.ellipse(cx + 6, cy - 2 + bob, 4.5, 4.5 * blink, 0, 0, Math.PI * 2); ctx.fill();
-      if (blink > 0.5) {
-        ctx.fillStyle = '#1A1A3E';
-        ctx.beginPath(); ctx.arc(cx - 5, cy - 1 + bob, 2.5, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(cx + 7, cy - 1 + bob, 2.5, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#FFFFFF';
-        ctx.beginPath(); ctx.arc(cx - 6, cy - 2 + bob, 1, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(cx + 6, cy - 2 + bob, 1, 0, Math.PI * 2); ctx.fill();
-      }
-      drawBlush(cx - 10, cy + 3 + bob);
-      drawBlush(cx + 10, cy + 3 + bob);
-      // 微笑
-      ctx.strokeStyle = 'rgba(50, 100, 150, 0.6)'; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.arc(cx, cy + 4 + bob, 3, 0.2, Math.PI - 0.2); ctx.stroke();
-
-    } else if (this.type === 'puffer') {
-      // 🐡 河豚：圆胖金黄 + 三层渐变 + 圆点刺 + 超大水汪汪眼
-      const puff = 1 + Math.abs(Math.sin(t * 1.5)) * 0.12;
-      const breathe = Math.sin(t * 3) * 0.04;
-      drawShadow(this.w / 2.5, 4);
-      // 身体（三层渐变球）
-      const pg = ctx.createRadialGradient(cx - 6, cy - 6, 2, cx, cy + 2, this.w / 2 * puff);
-      pg.addColorStop(0, '#FFF0A0');
-      pg.addColorStop(0.3, '#FFE040');
-      pg.addColorStop(0.7, '#FFC000');
-      pg.addColorStop(1, '#D08800');
-      ctx.fillStyle = pg;
-      ctx.beginPath();
-      ctx.ellipse(cx, cy, this.w / 2 * puff, this.h / 2 * puff * (1 + breathe), 0, 0, Math.PI * 2);
-      ctx.fill();
-      // 顶部高光
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
-      ctx.beginPath();
-      ctx.ellipse(cx - 6, cy - 10, 8, 4, -0.3, 0, Math.PI * 2);
-      ctx.fill();
-      // 小圆点刺（均匀分布，渐变大小）
-      ctx.fillStyle = '#CC8800';
-      for (let a = 0; a < Math.PI * 2; a += Math.PI / 5) {
-        for (let r = 0.55; r <= 0.92; r += 0.18) {
-          const dx = cx + Math.cos(a) * this.w / 2 * puff * r;
-          const dy = cy + Math.sin(a) * this.h / 2 * puff * (1 + breathe) * r;
-          ctx.beginPath();
-          ctx.arc(dx, dy, 1.8 * (1 - r * 0.3), 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-      // 侧鳍（摆动三角）
-      const finWag = Math.sin(t * 7) * 4;
-      ctx.fillStyle = '#CC8800';
-      ctx.beginPath();
-      ctx.moveTo(cx - this.w / 2 + 4, cy);
-      ctx.quadraticCurveTo(cx - this.w / 2 - 4, cy - 6 + finWag, cx - this.w / 2 - 8, cy + 2);
-      ctx.quadraticCurveTo(cx - this.w / 2 - 4, cy + 6, cx - this.w / 2 + 4, cy + 2);
-      ctx.fill();
-      // 超大水汪汪眼睛
-      drawCuteEye(cx - 8, cy - 3, 7);
-      drawCuteEye(cx + 6, cy - 3, 7);
-      // 鼓腮帮
-      ctx.fillStyle = 'rgba(255, 180, 80, 0.4)';
-      ctx.beginPath(); ctx.arc(cx - 12, cy + 6, 5, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(cx + 12, cy + 6, 5, 0, Math.PI * 2); ctx.fill();
-      drawBlush(cx - 14, cy + 4);
-      drawBlush(cx + 14, cy + 4);
-      // 嘟嘴
-      ctx.fillStyle = '#CC6600';
-      ctx.beginPath(); ctx.ellipse(cx - 1, cy + 7, 2.5, 1.8, 0, 0, Math.PI * 2); ctx.fill();
-
-    } else if (this.type === 'shark') {
+    if (this.type === 'shark') {
       // 🦈 鲨鱼：Q版胖鲨鱼 + 蓝灰多层渐变 + 摆尾 + 友好表情
       const wag = Math.sin(t * 4) * 0.12;
+      const bob = Math.sin(t * 3) * 2;
       drawShadow(this.w / 2.5, 4);
-      // 身体（胖椭圆 + 多层渐变）
-      const sg = ctx.createLinearGradient(cx, cy - this.h / 2, cx, cy + this.h / 2);
-      sg.addColorStop(0, '#8DB5D0');
-      sg.addColorStop(0.4, '#5A85A8');
-      sg.addColorStop(0.7, '#4070A0');
-      sg.addColorStop(1, '#2A5078');
-      ctx.fillStyle = sg;
-      ctx.beginPath();
-      ctx.ellipse(cx, cy, this.w / 2, this.h / 2.3, wag, 0, Math.PI * 2);
-      ctx.fill();
-      // 腹部浅色
-      const fg = ctx.createLinearGradient(cx, cy, cx, cy + this.h / 3);
-      fg.addColorStop(0, 'rgba(200, 225, 240, 0.5)');
-      fg.addColorStop(1, 'rgba(220, 235, 245, 0.9)');
-      ctx.fillStyle = fg;
-      ctx.beginPath();
-      ctx.ellipse(cx, cy + 6, this.w / 2.6, this.h / 5, wag, 0, Math.PI * 2);
-      ctx.fill();
+
       // 尾鳍（大三角 + 摆动 + 渐变）
       const tailY = cy + Math.sin(t * 6) * 5;
       const tg = ctx.createLinearGradient(cx - this.w / 2, cy, cx - this.w / 2 - 12, tailY);
@@ -583,177 +378,69 @@ class Enemy {
       tg.addColorStop(1, '#2A5078');
       ctx.fillStyle = tg;
       ctx.beginPath();
-      ctx.moveTo(cx - this.w / 2 + 5, cy);
-      ctx.quadraticCurveTo(cx - this.w / 2 - 8, tailY - 12, cx - this.w / 2 - 12, tailY - 8);
-      ctx.lineTo(cx - this.w / 2 - 6, tailY);
-      ctx.quadraticCurveTo(cx - this.w / 2 - 8, tailY + 12, cx - this.w / 2 - 12, tailY + 8);
+      ctx.moveTo(cx - this.w / 2 + 5, cy + bob);
+      ctx.quadraticCurveTo(cx - this.w / 2 - 8, tailY - 12 + bob, cx - this.w / 2 - 12, tailY - 8 + bob);
+      ctx.lineTo(cx - this.w / 2 - 6, tailY + bob);
+      ctx.quadraticCurveTo(cx - this.w / 2 - 8, tailY + 12 + bob, cx - this.w / 2 - 12, tailY + 8 + bob);
       ctx.fill();
+
+      // 身体（胖椭圆 + 多层渐变）
+      const sg = ctx.createLinearGradient(cx, cy - this.h / 2 + bob, cx, cy + this.h / 2 + bob);
+      sg.addColorStop(0, '#8DB5D0');
+      sg.addColorStop(0.4, '#5A85A8');
+      sg.addColorStop(0.7, '#4070A0');
+      sg.addColorStop(1, '#2A5078');
+      ctx.fillStyle = sg;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy + bob, this.w / 2, this.h / 2.3, wag, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 腹部浅色
+      const fg = ctx.createLinearGradient(cx, cy + bob, cx, cy + this.h / 3 + bob);
+      fg.addColorStop(0, 'rgba(200, 225, 240, 0.5)');
+      fg.addColorStop(1, 'rgba(220, 235, 245, 0.9)');
+      ctx.fillStyle = fg;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy + 6 + bob, this.w / 2.6, this.h / 5, wag, 0, Math.PI * 2);
+      ctx.fill();
+
       // 背鳍
       ctx.fillStyle = '#3A6595';
       ctx.beginPath();
-      ctx.moveTo(cx - 6, cy - this.h / 2.5);
-      ctx.quadraticCurveTo(cx, cy - this.h / 2 - 12, cx + 8, cy - this.h / 2.5);
+      ctx.moveTo(cx - 6, cy - this.h / 2.5 + bob);
+      ctx.quadraticCurveTo(cx, cy - this.h / 2 - 12 + bob, cx + 8, cy - this.h / 2.5 + bob);
       ctx.fill();
+
       // 胸鳍
       ctx.fillStyle = '#4070A0';
       ctx.beginPath();
-      ctx.moveTo(cx, cy + 4);
-      ctx.quadraticCurveTo(cx - 4, cy + 16, cx + 12, cy + 10);
+      ctx.moveTo(cx, cy + 4 + bob);
+      ctx.quadraticCurveTo(cx - 4, cy + 16 + bob, cx + 12, cy + 10 + bob);
       ctx.fill();
+
       // 友好大眼睛
-      drawCuteEye(cx + 7, cy - 4, 5.5);
-      drawBlush(cx + 13, cy + 3);
+      drawCuteEye(cx + 7, cy - 4 + bob, 5.5);
+      drawBlush(cx + 13, cy + 3 + bob);
+
       // 微笑 + 小尖牙
       ctx.strokeStyle = '#1A3050'; ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(cx + this.w / 3, cy + 4, 5, Math.PI + 0.3, -0.3);
+      ctx.arc(cx + this.w / 3, cy + 4 + bob, 5, Math.PI + 0.3, -0.3);
       ctx.stroke();
       ctx.fillStyle = '#FFFFFF';
       ctx.beginPath();
-      ctx.moveTo(cx + this.w / 3, cy + 8);
-      ctx.lineTo(cx + this.w / 3 + 2.5, cy + 12);
-      ctx.lineTo(cx + this.w / 3 - 2.5, cy + 12);
+      ctx.moveTo(cx + this.w / 3, cy + 8 + bob);
+      ctx.lineTo(cx + this.w / 3 + 2.5, cy + 12 + bob);
+      ctx.lineTo(cx + this.w / 3 - 2.5, cy + 12 + bob);
       ctx.fill();
-
-    } else if (this.type === 'star') {
-      // ⭐ 海星：胖嘟嘟 + 三层渐变 + 斑点 + 旋转 + 眨眼
-      const rot = t * 0.5;
-      const breathe = 1 + Math.sin(t * 3) * 0.06;
-      drawShadow(this.w / 3, 4);
-      const r1 = this.w / 2 * breathe;
-      const r2 = r1 * 0.5;
-      // 主体（多层渐变）
-      const stg = ctx.createRadialGradient(cx, cy - 3, 2, cx, cy, r1);
-      stg.addColorStop(0, '#FFB0D8');
-      stg.addColorStop(0.5, '#FF70B0');
-      stg.addColorStop(0.8, '#E44090');
-      stg.addColorStop(1, '#B03070');
-      ctx.fillStyle = stg;
-      ctx.beginPath();
-      for (let i = 0; i < 10; i++) {
-        const ang = rot + i * Math.PI / 5 - Math.PI / 2;
-        const r = i % 2 === 0 ? r1 : r2;
-        const px = cx + Math.cos(ang) * r;
-        const py = cy + Math.sin(ang) * r;
-        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-      }
-      ctx.closePath();
-      ctx.fill();
-      // 描边
-      ctx.strokeStyle = '#9A2060';
-      ctx.lineWidth = 2.5;
-      ctx.stroke();
-      // 小斑点（5 个角各一个）
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-      for (let i = 0; i < 5; i++) {
-        const ang = rot + i * Math.PI * 2 / 5 - Math.PI / 2;
-        const px = cx + Math.cos(ang) * r1 * 0.55;
-        const py = cy + Math.sin(ang) * r1 * 0.55;
-        ctx.beginPath();
-        ctx.arc(px, py, 3, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      // 中心亮点
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-      ctx.beginPath(); ctx.arc(cx - 3, cy - 3, 5, 0, Math.PI * 2); ctx.fill();
-      // 大眼睛
-      const blink = Math.sin(t * 0.5) > 0.95 ? 0.2 : 1;
-      ctx.fillStyle = '#FFFFFF';
-      ctx.beginPath(); ctx.ellipse(cx - 6, cy - 2, 4.5, 4.5 * blink, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.ellipse(cx + 6, cy - 2, 4.5, 4.5 * blink, 0, 0, Math.PI * 2); ctx.fill();
-      if (blink > 0.5) {
-        ctx.fillStyle = '#1A1A3E';
-        ctx.beginPath(); ctx.arc(cx - 5, cy - 1, 2.5, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(cx + 7, cy - 1, 2.5, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#FFFFFF';
-        ctx.beginPath(); ctx.arc(cx - 6, cy - 2, 1, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(cx + 6, cy - 2, 1, 0, Math.PI * 2); ctx.fill();
-      }
-      drawBlush(cx - 10, cy + 4);
-      drawBlush(cx + 10, cy + 4);
-      // 微笑
-      ctx.strokeStyle = '#8B2050'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(cx, cy + 5, 3, 0.2, Math.PI - 0.2); ctx.stroke();
-
-    } else if (this.type === 'fishfly') {
-      // 🐟 飞鱼：紫蓝色 + 振翅 + 渐变 + 拖影
-      const wingFlap = Math.sin(t * 14) * 0.6;
-      const bodyTilt = Math.sin(t * 4) * 0.1;
-      drawShadow(this.w / 3, 2);
-      ctx.save();
-      ctx.translate(cx, cy);
-      ctx.rotate(bodyTilt);
-      // 翅膀拖影
-      ctx.fillStyle = 'rgba(180, 150, 255, 0.15)';
-      ctx.beginPath();
-      ctx.ellipse(-6, 0, 16, 8, 0, 0, Math.PI * 2);
-      ctx.fill();
-      // 翅膀（双层 + 渐变）
-      for (const side of [-1, 1]) {
-        const wg = ctx.createLinearGradient(side * 5, 0, side * 16, 0);
-        wg.addColorStop(0, 'rgba(180, 150, 255, 0.8)');
-        wg.addColorStop(1, 'rgba(140, 100, 230, 0.4)');
-        ctx.fillStyle = wg;
-        ctx.beginPath();
-        ctx.ellipse(side * 8, -3, 13, 5, side * (0.4 + wingFlap * 0.3), 0, Math.PI * 2);
-        ctx.fill();
-        // 翅膀亮纹
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-        ctx.beginPath();
-        ctx.ellipse(side * 8, -4, 8, 2, side * (0.4 + wingFlap * 0.3), 0, Math.PI * 2);
-        ctx.fill();
-      }
-      // 身体（三层渐变）
-      const fg = ctx.createLinearGradient(0, -this.h / 3, 0, this.h / 3);
-      fg.addColorStop(0, '#B89FFF');
-      fg.addColorStop(0.5, '#8860E0');
-      fg.addColorStop(1, '#5030A0');
-      ctx.fillStyle = fg;
-      ctx.beginPath();
-      ctx.ellipse(0, 0, this.w / 2.5, this.h / 3, 0, 0, Math.PI * 2);
-      ctx.fill();
-      // 身体高光
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-      ctx.beginPath();
-      ctx.ellipse(-2, -4, 6, 2, 0, 0, Math.PI * 2);
-      ctx.fill();
-      // 尾鳍
-      const tailWag = Math.sin(t * 9) * 0.25;
-      ctx.fillStyle = '#5030A0';
-      ctx.beginPath();
-      ctx.moveTo(-this.w / 2.5, 0);
-      ctx.quadraticCurveTo(-this.w / 2.5 - 8, -6 + tailWag * 6, -this.w / 2.5 - 12, 0);
-      ctx.quadraticCurveTo(-this.w / 2.5 - 8, 6 + tailWag * 6, -this.w / 2.5, 0);
-      ctx.fill();
-      // 大眼睛
-      drawCuteEye(this.w / 5, -3, 4.5);
-      drawBlush(this.w / 6, 4);
-      // 小嘴
-      ctx.fillStyle = '#3A2080';
-      ctx.beginPath(); ctx.ellipse(this.w / 3.5, 3, 1.8, 1.2, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.restore();
 
     } else if (this.type === 'octo') {
-      // 🐙 小章鱼：圆头 + 8 条触手 + 多层渐变 + 触手末端吸盘
+      // 🐙 八爪鱼：圆头 + 8条触手 + 多层渐变 + 触手末端吸盘
       const float = Math.sin(t * 2) * 4;
       const breathe = 1 + Math.sin(t * 3) * 0.06;
       drawShadow(this.w / 3, 3);
-      // 头部（多层渐变）
-      const og = ctx.createRadialGradient(cx - 5, cy - 6 + float, 2, cx, cy + float, this.w / 2.2);
-      og.addColorStop(0, '#FFB088');
-      og.addColorStop(0.5, '#FF8040');
-      og.addColorStop(0.8, '#E85020');
-      og.addColorStop(1, '#C03000');
-      ctx.fillStyle = og;
-      ctx.beginPath();
-      ctx.ellipse(cx, cy - 4 + float, this.w / 2.2 * breathe, this.h / 3 * breathe, 0, 0, Math.PI * 2);
-      ctx.fill();
-      // 头部高光
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-      ctx.beginPath();
-      ctx.ellipse(cx - 5, cy - 8 + float, 6, 3, -0.3, 0, Math.PI * 2);
-      ctx.fill();
-      // 8 条触手（渐变粗细 + 波浪 + 吸盘）
+
+      // 8 条触手
       for (let i = 0; i < 8; i++) {
         const ang = (i / 8) * Math.PI - Math.PI;
         const baseX = cx + Math.cos(ang) * this.w / 3;
@@ -762,7 +449,7 @@ class Enemy {
         const len = 16 + (i % 2) * 4;
         const endX = baseX + wave * 0.5;
         const endY = baseY + len;
-        // 触手主体（粗→细）
+        // 触手主体
         ctx.strokeStyle = '#FF7030'; ctx.lineWidth = 5; ctx.lineCap = 'round';
         ctx.beginPath();
         ctx.moveTo(baseX, baseY);
@@ -774,20 +461,271 @@ class Enemy {
         ctx.moveTo(baseX, baseY + 2);
         ctx.quadraticCurveTo(baseX + wave, baseY + len * 0.5, endX, endY);
         ctx.stroke();
-        // 吸盘（末端小圆）
+        // 吸盘
         ctx.fillStyle = '#D04010';
         ctx.beginPath(); ctx.arc(endX, endY, 2.5, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#FF9060';
         ctx.beginPath(); ctx.arc(endX - 0.5, endY - 0.5, 1, 0, Math.PI * 2); ctx.fill();
       }
+
+      // 头部（多层渐变）
+      const og = ctx.createRadialGradient(cx - 5, cy - 6 + float, 2, cx, cy + float, this.w / 2.2);
+      og.addColorStop(0, '#FFB088');
+      og.addColorStop(0.5, '#FF8040');
+      og.addColorStop(0.8, '#E85020');
+      og.addColorStop(1, '#C03000');
+      ctx.fillStyle = og;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy - 4 + float, this.w / 2.2 * breathe, this.h / 3 * breathe, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 头部高光
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.beginPath();
+      ctx.ellipse(cx - 5, cy - 8 + float, 6, 3, -0.3, 0, Math.PI * 2);
+      ctx.fill();
+
       // 大眼睛
       drawCuteEye(cx - 7, cy - 6 + float, 5);
       drawCuteEye(cx + 7, cy - 6 + float, 5);
       drawBlush(cx - 12, cy + float);
       drawBlush(cx + 12, cy + float);
+
       // 微笑
-      ctx.strokeStyle = '#A02000'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(cx, cy + 2 + float, 3.5, 0.2, Math.PI - 0.2); ctx.stroke();
+      drawSmile(cx, cy + 2 + float, 3.5, '#A02000');
+
+    } else if (this.type === 'puffer') {
+      // 🐡 河豚：圆胖金黄 + 三层渐变 + 圆点刺 + 超大水汪汪眼
+      const puff = 1 + Math.abs(Math.sin(t * 1.5)) * 0.12;
+      const breathe = Math.sin(t * 3) * 0.04;
+      drawShadow(this.w / 2.5, 4);
+
+      // 身体
+      const pg = ctx.createRadialGradient(cx - 6, cy - 6, 2, cx, cy + 2, this.w / 2 * puff);
+      pg.addColorStop(0, '#FFF0A0');
+      pg.addColorStop(0.3, '#FFE040');
+      pg.addColorStop(0.7, '#FFC000');
+      pg.addColorStop(1, '#D08800');
+      ctx.fillStyle = pg;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, this.w / 2 * puff, this.h / 2 * puff * (1 + breathe), 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 顶部高光
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+      ctx.beginPath();
+      ctx.ellipse(cx - 6, cy - 10, 8, 4, -0.3, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 小圆点刺
+      ctx.fillStyle = '#CC8800';
+      for (let a = 0; a < Math.PI * 2; a += Math.PI / 5) {
+        for (let r = 0.55; r <= 0.92; r += 0.18) {
+          const dx = cx + Math.cos(a) * this.w / 2 * puff * r;
+          const dy = cy + Math.sin(a) * this.h / 2 * puff * (1 + breathe) * r;
+          ctx.beginPath();
+          ctx.arc(dx, dy, 1.8 * (1 - r * 0.3), 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // 侧鳍
+      const finWag = Math.sin(t * 7) * 4;
+      ctx.fillStyle = '#CC8800';
+      ctx.beginPath();
+      ctx.moveTo(cx - this.w / 2 + 4, cy);
+      ctx.quadraticCurveTo(cx - this.w / 2 - 4, cy - 6 + finWag, cx - this.w / 2 - 8, cy + 2);
+      ctx.quadraticCurveTo(cx - this.w / 2 - 4, cy + 6, cx - this.w / 2 + 4, cy + 2);
+      ctx.fill();
+
+      // 超大水汪汪眼睛
+      drawCuteEye(cx - 8, cy - 3, 7);
+      drawCuteEye(cx + 6, cy - 3, 7);
+
+      // 鼓腮帮
+      ctx.fillStyle = 'rgba(255, 180, 80, 0.4)';
+      ctx.beginPath(); ctx.arc(cx - 12, cy + 6, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx + 12, cy + 6, 5, 0, Math.PI * 2); ctx.fill();
+      drawBlush(cx - 14, cy + 4);
+      drawBlush(cx + 14, cy + 4);
+
+      // 嘟嘴
+      ctx.fillStyle = '#CC6600';
+      ctx.beginPath(); ctx.ellipse(cx - 1, cy + 7, 2.5, 1.8, 0, 0, Math.PI * 2); ctx.fill();
+
+    } else if (this.type === 'seaurchin') {
+      // 🦔 海胆：圆球 + 满身尖刺 + 紫色渐变 + 小眼睛
+      const breathe = 1 + Math.sin(t * 3) * 0.05;
+      const rot = t * 0.3;
+      drawShadow(this.w / 3, 3);
+
+      // 尖刺（密集放射）
+      const spikeCount = 24;
+      for (let i = 0; i < spikeCount; i++) {
+        const a = (i / spikeCount) * Math.PI * 2 + rot;
+        const lenBase = 12 + (i % 3) * 3;
+        const pulse = Math.sin(t * 2 + i * 0.5) * 2;
+        const len = lenBase + pulse;
+        const rIn = this.w / 2.5 * breathe;
+        const rOut = rIn + len;
+        const x1 = cx + Math.cos(a) * rIn;
+        const y1 = cy + Math.sin(a) * rIn * 0.95;
+        const x2 = cx + Math.cos(a) * rOut;
+        const y2 = cy + Math.sin(a) * rOut * 0.95;
+        const sg = ctx.createLinearGradient(x1, y1, x2, y2);
+        sg.addColorStop(0, '#7A3A9A');
+        sg.addColorStop(1, '#5A2A7A');
+        ctx.strokeStyle = sg; ctx.lineWidth = 2.2; ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+        // 刺尖小亮点
+        ctx.fillStyle = '#C080E0';
+        ctx.beginPath(); ctx.arc(x2, y2, 1, 0, Math.PI * 2); ctx.fill();
+      }
+
+      // 身体（圆球 + 多层渐变）
+      const bg = ctx.createRadialGradient(cx - 4, cy - 4, 2, cx, cy, this.w / 2.5 * breathe);
+      bg.addColorStop(0, '#B070D0');
+      bg.addColorStop(0.5, '#8A40B0');
+      bg.addColorStop(1, '#5A2070');
+      ctx.fillStyle = bg;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, this.w / 2.5 * breathe, this.h / 2.5 * breathe, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 高光
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+      ctx.beginPath();
+      ctx.ellipse(cx - 4, cy - 6, 6, 3, -0.3, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 小眼睛
+      const eyeBlink = Math.sin(t * 0.8) > 0.9 ? 0.1 : 1;
+      drawCuteEye(cx - 5, cy - 1, 4, eyeBlink);
+      drawCuteEye(cx + 5, cy - 1, 4, eyeBlink);
+
+      drawBlush(cx - 9, cy + 3);
+      drawBlush(cx + 9, cy + 3);
+
+      // 小嘴巴
+      ctx.fillStyle = '#4A1060';
+      ctx.beginPath(); ctx.arc(cx, cy + 5, 1.8, 0, Math.PI * 2); ctx.fill();
+
+    } else if (this.type === 'lobster') {
+      // 🦞 龙虾：红色渐变 + 大钳子 + 多节身体 + 触须 + 尾扇
+      const bounce = Math.sin(t * 5) * 2;
+      const wag = Math.sin(t * 3) * 0.06;
+      drawShadow(this.w / 2.5, 4);
+
+      // 尾扇
+      const tailWag = Math.sin(t * 4) * 4;
+      ctx.fillStyle = '#C03020';
+      ctx.beginPath();
+      ctx.moveTo(cx - this.w / 2 + 8, cy + bounce);
+      ctx.lineTo(cx - this.w / 2 - 6, cy - 10 + bounce + tailWag);
+      ctx.lineTo(cx - this.w / 2 - 10, cy - 2 + bounce + tailWag);
+      ctx.lineTo(cx - this.w / 2 - 10, cy + 6 + bounce - tailWag);
+      ctx.lineTo(cx - this.w / 2 - 6, cy + 12 + bounce - tailWag);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#8A2010'; ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(cx - this.w / 2 + 8, cy + bounce);
+      ctx.lineTo(cx - this.w / 2 - 8, cy - 6 + bounce + tailWag);
+      ctx.moveTo(cx - this.w / 2 + 8, cy + bounce);
+      ctx.lineTo(cx - this.w / 2 - 8, cy + 8 + bounce - tailWag);
+      ctx.stroke();
+
+      // 身体（多节）
+      const bg = ctx.createLinearGradient(cx, cy - this.h / 2, cx, cy + this.h / 2);
+      bg.addColorStop(0, '#FF6040');
+      bg.addColorStop(0.4, '#E03020');
+      bg.addColorStop(0.8, '#B02010');
+      bg.addColorStop(1, '#8A1008');
+      ctx.fillStyle = bg;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy + bounce, this.w / 2.5, this.h / 2.5, wag, 0, Math.PI * 2);
+      ctx.fill();
+      // 分节线
+      ctx.strokeStyle = 'rgba(80, 10, 0, 0.4)'; ctx.lineWidth = 1.5;
+      for (let i = 1; i <= 2; i++) {
+        const segX = cx - this.w / 6 + i * this.w / 7;
+        ctx.beginPath();
+        ctx.moveTo(segX, cy - this.h / 3 + bounce);
+        ctx.quadraticCurveTo(segX + 2, cy + bounce, segX, cy + this.h / 3 + bounce);
+        ctx.stroke();
+      }
+
+      // 身体高光
+      ctx.fillStyle = 'rgba(255, 200, 180, 0.3)';
+      ctx.beginPath();
+      ctx.ellipse(cx - 2, cy - 6 + bounce, 7, 3, -0.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 大钳子
+      const clawSwing = Math.sin(t * 4) * 3;
+      for (const side of [-1, 1]) {
+        const clx = cx + side * (this.w / 2 + 6);
+        const cly = cy + 4 + bounce + clawSwing * side;
+        // 钳臂
+        ctx.strokeStyle = '#C03020'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(cx + side * (this.w / 3), cy + bounce);
+        ctx.quadraticCurveTo(cx + side * (this.w / 2.5), cy - 4 + bounce, clx, cly);
+        ctx.stroke();
+        // 钳子主体
+        const clg = ctx.createRadialGradient(clx - 2, cly - 2, 1, clx, cly, 10);
+        clg.addColorStop(0, '#FF7050');
+        clg.addColorStop(0.6, '#E03020');
+        clg.addColorStop(1, '#A01808');
+        ctx.fillStyle = clg;
+        ctx.beginPath();
+        ctx.ellipse(clx, cly, 10, 8, side * 0.3, 0, Math.PI * 2);
+        ctx.fill();
+        // 钳子开口
+        ctx.fillStyle = '#5A0808';
+        ctx.beginPath();
+        ctx.moveTo(clx + side * 2, cly - 6);
+        ctx.lineTo(clx + side * 8, cly - 2);
+        ctx.lineTo(clx + side * 8, cly + 2);
+        ctx.lineTo(clx + side * 2, cly + 6);
+        ctx.closePath();
+        ctx.fill();
+        // 锯齿
+        ctx.fillStyle = '#FFFFFF';
+        for (let j = 0; j < 3; j++) {
+          ctx.beginPath();
+          ctx.arc(clx + side * (3 + j * 2), cly - 2 + j * 2, 1.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // 触须
+      ctx.strokeStyle = '#C03020'; ctx.lineWidth = 1.5; ctx.lineCap = 'round';
+      for (const side of [-1, 1]) {
+        const wave1 = Math.sin(t * 3 + side) * 4;
+        const wave2 = Math.sin(t * 3 + side + 1) * 6;
+        ctx.beginPath();
+        ctx.moveTo(cx + side * 4, cy - this.h / 3 + bounce);
+        ctx.quadraticCurveTo(cx + side * 8 + wave1, cy - this.h / 2 + bounce, cx + side * 12 + wave2, cy - this.h / 2 - 8 + bounce);
+        ctx.stroke();
+      }
+
+      // 眼睛
+      const eyeY = cy - this.h / 3 - 2 + bounce;
+      ctx.strokeStyle = '#C03020'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(cx - 4, cy - this.h / 3 + bounce); ctx.lineTo(cx - 4, eyeY - 3); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx + 4, cy - this.h / 3 + bounce); ctx.lineTo(cx + 4, eyeY - 3); ctx.stroke();
+      drawCuteEye(cx - 4, eyeY, 4);
+      drawCuteEye(cx + 4, eyeY, 4);
+
+      drawBlush(cx - 10, cy + 2 + bounce);
+      drawBlush(cx + 10, cy + 2 + bounce);
+
+      // 微笑
+      drawSmile(cx, cy + 4 + bounce, 3.5, '#5A0808');
     }
     ctx.restore();
 
@@ -872,6 +810,7 @@ class PlatformerGame {
     this.finishX = 0;
     this.finishY = 0;
     this.ammo = 0;          // 弹药数量（顶问号 +3 发）
+    this.shields = 0;        // 保护圈数量（顶问号获得，可叠加，碰怪消耗）
     this.fireCooldown = 0;   // 射击冷却计时
 
     // 输入
@@ -901,6 +840,8 @@ class PlatformerGame {
     this.score = 0;
     this.coinCount = 0;
     this.levelIndex = 0;
+    this.ammo = 0;       // 新游戏清零弹药
+    this.shields = 0;    // 新游戏清零保护圈
     this.loadLevel(0);
     this.isRunning = true;
     this.lastTime = Date.now();
@@ -958,7 +899,7 @@ class PlatformerGame {
 
     this.particles = [];
     this.bullets = [];
-    this.ammo = 0;
+    // 注意：ammo 和 shields 不在这里清零，跨关继承（仅 init 新游戏时重置）
     this.fireCooldown = 0;
     this.state = 'playing';
     this.stateTimer = 0;
@@ -973,11 +914,11 @@ class PlatformerGame {
   _generateRandomContent(spec, levelIndex) {
     const ts = TILE_SIZE;
     const W = spec.width, H = spec.height;
-    const enemyTypes = ['crab', 'jelly', 'puffer', 'shark', 'star', 'fishfly', 'octo'];
-    // 每关随机敌人数量：基础 (3 + 关卡数 × 2) × 6
-    const extraEnemyCount = (3 + levelIndex * 2) * 6;   // 小怪数量 ×6
-    // 随机砖块数量：基础 4 + 关卡数 × 10
-    const brickCount = 4 + levelIndex * 10;
+    const enemyTypes = ['shark', 'octo', 'puffer', 'seaurchin', 'lobster'];
+    // 每关随机敌人数量：(3 + 关卡数 × 2) × 3
+    const extraEnemyCount = (3 + levelIndex * 2) * 3;   // 小怪数量
+    // 随机砖块数量：基础 4 + 关卡数 × 2
+    const brickCount = 4 + levelIndex * 2;
     // 随机平台数量：基础 5 + 关卡数 * 2
     const platformCount = 5 + levelIndex * 2;
     // 随机问号砖块数量：基础 2 + 关卡数
@@ -1008,14 +949,14 @@ class PlatformerGame {
     }
 
     // 1. 随机补充敌人（飞行小怪放空中，地面小怪放地面）
-    const flyingTypes = ['fishfly', 'octo'];
+    const flyingTypes = ['octo', 'shark'];
     const isFlyingType = (t) => flyingTypes.indexOf(t) >= 0;
 
     for (let i = 0; i < extraEnemyCount; i++) {
       const type = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
       if (isFlyingType(type)) {
         // 飞行小怪：在空中随机生成（row 4~9）
-        for (let attempt = 0; attempt < 20; attempt++) {
+        for (let attempt = 0; attempt < 10; attempt++) {
           const x = 6 + Math.floor(Math.random() * (W - 12));
           const y = 4 + Math.floor(Math.random() * 6);   // row 4~9 空中
           if (isUsed(x, y)) continue;
@@ -1066,8 +1007,9 @@ class PlatformerGame {
       if (isUsed(x - 1, y) && this.tiles[y][x - 1] === 4) continue;
       if (isUsed(x + 1, y) && this.tiles[y][x + 1] === 4) continue;
 
-      // 随机奖励类型：70% 子弹，30% 加命
-      const reward = Math.random() < 0.7 ? 'ammo' : 'life';
+      // 随机奖励类型：50% 子弹，25% 加命，25% 保护圈
+      const rr = Math.random();
+      const reward = rr < 0.5 ? 'ammo' : (rr < 0.75 ? 'life' : 'shield');
       this.tiles[y][x] = 4;   // TILE_QUESTION
       this.questionBlocks.push({
         x: x * ts, y: y * ts,
@@ -1108,7 +1050,7 @@ class PlatformerGame {
     // 3. 随机补充砖块障碍
     // 砖块放在 row 10~12 的空气中（玩家跳跃路径上，作为障碍）
     let placed = 0, attempts = 0;
-    while (placed < brickCount && attempts < brickCount * 20) {
+    while (placed < brickCount && attempts < brickCount * 12) {
       attempts++;
       const x = 4 + Math.floor(Math.random() * (W - 8));
       const y = 10 + Math.floor(Math.random() * 3);   // row 10-12
@@ -1116,9 +1058,9 @@ class PlatformerGame {
       // 上下方也得是空气，避免砖块挤压玩家
       if (isUsed(x, y - 1)) continue;
       if (isUsed(x, y + 1)) continue;
-      // 横向避免连续砖块墙堵死路：检查左右 1 格内是否已有砖块
+      // 横向避免连续砖块墙堵死路：检查左右 2 格内是否已有砖块
       let blocked = false;
-      for (let dx = -1; dx <= 1; dx++) {
+      for (let dx = -2; dx <= 2; dx++) {
         if (dx === 0) continue;
         if (this.tiles[y][x + dx] === 3) { blocked = true; break; }
       }
@@ -1462,6 +1404,15 @@ class PlatformerGame {
                 x: tx * ts + ts / 2, y: top * ts - 10,
                 collected: true, animTimer: 0, vy: COIN_BOUNCE, life: 0.8, isHeart: true,
               });
+            } else if (qb.reward === 'shield') {
+              // 加 1 个保护圈（可叠加）
+              this.shields++;
+              this.spawnParticles(tx * ts + ts / 2, top * ts, '#00E8FF', 16);
+              // 弹出护盾图标动画
+              this.coins.push({
+                x: tx * ts + ts / 2, y: top * ts - 10,
+                collected: true, animTimer: 0, vy: COIN_BOUNCE, life: 0.8, isShield: true,
+              });
             } else {
               // 加 3 发子弹
               this.ammo += 3;
@@ -1514,7 +1465,18 @@ class PlatformerGame {
           this.score += 200;
           this.spawnParticles(e.x, e.y, '#FF6B35', 10);
         } else {
-          this.killPlayer();
+          // 有保护圈：消耗一个保护圈，击退玩家，不死
+          if (this.shields > 0) {
+            this.shields--;
+            this.player.invincibleTimer = 1.5;
+            // 击退玩家
+            const knockDir = pcx < ecx ? -1 : 1;
+            this.player.vx = knockDir * MOVE_SPEED * 1.2;
+            this.player.vy = JUMP_VELOCITY * 0.5;
+            this.spawnParticles(this.player.x, this.player.y, '#00E8FF', 16);
+          } else {
+            this.killPlayer();
+          }
         }
       }
     }
@@ -1801,6 +1763,28 @@ class PlatformerGame {
         // 高光
         ctx.fillStyle = 'rgba(255,255,255,0.4)';
         ctx.beginPath(); ctx.arc(-2.5, -r * 0.6, 2, 0, Math.PI * 2); ctx.fill();
+      } else if (c.isShield) {
+        // 护盾图标（保护圈奖励弹出动画）
+        ctx.fillStyle = 'rgba(0, 232, 255, 0.25)';
+        ctx.beginPath(); ctx.arc(0, 0, 11, 0, Math.PI * 2); ctx.fill();
+        // 六边形护盾
+        const sr = 8;
+        ctx.fillStyle = '#00E8FF';
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+          const a = (i / 6) * Math.PI * 2 - Math.PI / 2;
+          const px = Math.cos(a) * sr;
+          const py = Math.sin(a) * sr;
+          if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+        // 高光
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.beginPath(); ctx.arc(-2.5, -3, 2.5, 0, Math.PI * 2); ctx.fill();
+        // 中心亮点
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath(); ctx.arc(0, 0, 1.5, 0, Math.PI * 2); ctx.fill();
       } else {
         // 金币
         ctx.fillStyle = 'rgba(255, 215, 0, 0.25)';
@@ -2227,6 +2211,30 @@ class PlatformerGame {
       ctx.arc(cx, cy, p.w / 2 + 6, 0, Math.PI * 2);
       ctx.stroke();
     }
+
+    // 保护圈光环（有 shields 时显示蓝色旋转环）
+    if (this.shields > 0) {
+      const rot = this.animTime * 2;
+      const ringR = p.w / 2 + 10;
+      // 外层光晕
+      ctx.fillStyle = 'rgba(0, 232, 255, 0.10)';
+      ctx.beginPath(); ctx.arc(cx, cy, ringR + 4, 0, Math.PI * 2); ctx.fill();
+      // 主光环
+      ctx.strokeStyle = 'rgba(0, 232, 255, 0.6)';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(cx, cy, ringR, 0, Math.PI * 2); ctx.stroke();
+      // 旋转的小亮点（数量 = shields，最多显示3个）
+      const dotCount = Math.min(this.shields, 3);
+      for (let i = 0; i < dotCount; i++) {
+        const a = rot + (i / dotCount) * Math.PI * 2;
+        const dx = cx + Math.cos(a) * ringR;
+        const dy = cy + Math.sin(a) * ringR;
+        ctx.fillStyle = '#00E8FF';
+        ctx.beginPath(); ctx.arc(dx, dy, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath(); ctx.arc(dx - 1, dy - 1, 1.5, 0, Math.PI * 2); ctx.fill();
+      }
+    }
   }
 
   // ---- 默认鱼（没有用户画的鱼时） ----
@@ -2311,6 +2319,38 @@ class PlatformerGame {
       ctx.font = `bold ${fontSize}px sans-serif`;
       ctx.textAlign = 'left';
       ctx.fillText('🔫x' + this.ammo, padX + 40 + this.lives * 22 + 8, textY);
+    }
+
+    // 保护圈数量（弹药右侧，仅当有保护圈时显示）
+    if (this.shields > 0) {
+      const shieldX = padX + 40 + this.lives * 22 + 8 + (this.ammo > 0 ? 60 : 0);
+      // 画一个小护盾图标
+      const sx = shieldX;
+      const sy = textY - 4;
+      ctx.fillStyle = '#00E8FF';
+      ctx.beginPath();
+      ctx.moveTo(sx, sy - 4);
+      ctx.lineTo(sx + 6, sy - 2);
+      ctx.lineTo(sx + 6, sy + 3);
+      ctx.lineTo(sx, sy + 7);
+      ctx.lineTo(sx - 6, sy + 3);
+      ctx.lineTo(sx - 6, sy - 2);
+      ctx.closePath();
+      ctx.fill();
+      // 高光
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ctx.beginPath();
+      ctx.moveTo(sx - 3, sy - 3);
+      ctx.lineTo(sx, sy - 5);
+      ctx.lineTo(sx + 1, sy + 2);
+      ctx.lineTo(sx - 3, sy + 1);
+      ctx.closePath();
+      ctx.fill();
+      // 数量文字
+      ctx.fillStyle = '#00E8FF';
+      ctx.font = `bold ${fontSize}px sans-serif`;
+      ctx.textAlign = 'left';
+      ctx.fillText('x' + this.shields, sx + 12, textY);
     }
 
 
@@ -2539,7 +2579,7 @@ class PlatformerGame {
     ctx.fillStyle = 'rgba(255,255,255,0.65)';
     ctx.font = '11px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('⭐ 收金币  🦶 踩敌人  ⬆ 三连跳  ❓顶问号有惊喜  🚩 到旗帜', sw / 2, tipY);
+    ctx.fillText('⭐ 收金币  🦶 踩敌人  ⬆ 三连跳  ❓顶问号获道具  🛡️保护圈碰怪不死  🚩 到旗帜', sw / 2, tipY);
 
     // 小鱼预览 + 点击提示
     const previewY = tipY + 22;
