@@ -1,5 +1,5 @@
 // platformer/levelData.js
-// 闯关游戏 - 三关地下城/海底主题关卡数据
+// 闯关游戏 - 无限关卡，每关动态生成
 
 const TILE_AIR = 0;
 const TILE_GROUND = 1;
@@ -7,141 +7,66 @@ const TILE_PLATFORM = 2;
 const TILE_BRICK = 3;
 const TILE_QUESTION = 4;
 
-const LEVELS = [
-  // ===== 第 1 关：浅滩初探 =====
-  {
-    name: '浅滩初探',
-    width: 80,        // 瓦片列数
-    height: 16,       // 瓦片行数
-    tileSize: 40,     // 每瓦片 40 逻辑像素
-    // 背景色（从上到下渐变）
-    background: { top: '#0a1628', bottom: '#1a4a6e' },
-    // 地面段：[开始列, 结束列) —— 全覆盖，无坑
-    ground: [[0, 80]],
-    // 悬空平台：{x:左列, y:行号(0=最顶), w:宽度(列数)}
-    platforms: [
-      { x: 12, y: 12, w: 4 },
-      { x: 25, y: 10, w: 3 },
-      { x: 35, y: 11, w: 5 },
-      { x: 48, y: 9, w: 4 },
-      { x: 60, y: 11, w: 4 },
-      { x: 70, y: 10, w: 3 },
-    ],
-    questions: [
-      { x: 8,  y: 11 },   // 跳一跳即可碰到（row 11 是玩家头顶可达位置）
-      { x: 45, y: 11 },
-    ],
-    playerStart: { x: 3, y: 14 },
-    finish: { x: 77, y: 14 },
-    enemies: [
-      { type: 'crab', x: 18, y: 14, patrol: 3, speed: 1.0 },
-      { type: 'crab', x: 55, y: 14, patrol: 4, speed: 1.2 },
-    ],
-    coins: [
-      { x: 13, y: 11 }, { x: 14, y: 11 },
-      { x: 26, y: 9 },
-      { x: 36, y: 10 }, { x: 37, y: 10 }, { x: 38, y: 10 },
-      { x: 49, y: 8 },
-      { x: 71, y: 9 },
-    ],
-  },
-
-  // ===== 第 2 关：珊瑚暗礁 =====
-  {
-    name: '珊瑚暗礁',
-    width: 100,
-    height: 16,
-    tileSize: 40,
-    background: { top: '#0a2040', bottom: '#1a5a7e' },
-    // 地面出现间隔（2 个 3 格缺口）
-    ground: [[0, 28], [31, 48], [51, 75], [78, 100]],
-    platforms: [
-      { x: 10, y: 12, w: 4 },
-      { x: 22, y: 10, w: 3 },
-      { x: 33, y: 8, w: 3 },   // 缺口上方平台
-      { x: 42, y: 11, w: 3 },
-      { x: 53, y: 10, w: 4 },   // 缺口上方平台
-      { x: 64, y: 8, w: 5 },
-      { x: 82, y: 11, w: 4 },
-      { x: 92, y: 9, w: 3 },
-    ],
-    questions: [
-      { x: 5,  y: 11 },
-      { x: 46, y: 11 },
-      { x: 90, y: 11 },
-    ],
-    playerStart: { x: 3, y: 14 },
-    finish: { x: 97, y: 14 },
-    enemies: [
-      { type: 'crab',    x: 14, y: 14, patrol: 4, speed: 1.5 },
-      { type: 'jelly',   x: 40, y: 12, patrol: 3, speed: 1.0 },
-      { type: 'crab',    x: 65, y: 14, patrol: 5, speed: 1.8 },
-      { type: 'jelly',   x: 85, y: 14, patrol: 4, speed: 1.3 },
-    ],
-    coins: [
-      { x: 11, y: 11 },
-      { x: 23, y: 9 }, { x: 24, y: 9 },
-      { x: 34, y: 7 },
-      { x: 43, y: 10 },
-      { x: 54, y: 9 }, { x: 55, y: 9 },
-      { x: 66, y: 7 },
-      { x: 83, y: 10 }, { x: 84, y: 10 },
-      { x: 93, y: 8 },
-    ],
-  },
-
-  // ===== 第 3 关：深渊迷宫 =====
-  {
-    name: '深渊迷宫',
-    width: 120,
-    height: 16,
-    tileSize: 40,
-    background: { top: '#050d1a', bottom: '#0a3050' },
-    // 多处地面断裂，需要精确跳跃
-    ground: [[0, 20], [24, 34], [38, 50], [54, 64], [69, 82], [86, 100], [104, 120]],
-    platforms: [
-      { x: 8,  y: 12, w: 4 },
-      { x: 18, y: 10, w: 3 },
-      { x: 28, y: 8,  w: 3 },
-      { x: 42, y: 10, w: 3 },
-      { x: 56, y: 8,  w: 4 },
-      { x: 72, y: 10, w: 4 },
-      { x: 88, y: 9,  w: 3 },
-      { x: 96, y: 11, w: 5 },
-      { x: 108, y: 9, w: 4 },
-      { x: 115, y: 10, w: 3 },
-    ],
-    questions: [
-      { x: 5,   y: 11 },
-      { x: 32,  y: 11 },
-      { x: 60,  y: 11 },
-      { x: 80,  y: 11 },
-      { x: 105, y: 11 },
-    ],
-    playerStart: { x: 3, y: 14 },
-    finish: { x: 117, y: 14 },
-    enemies: [
-      { type: 'crab',  x: 12, y: 14, patrol: 4, speed: 2.0 },
-      { type: 'jelly', x: 30, y: 14, patrol: 3, speed: 1.5 },
-      { type: 'crab',  x: 46, y: 14, patrol: 5, speed: 2.2 },
-      { type: 'puffer',x: 62, y: 14, patrol: 5, speed: 2.5 },
-      { type: 'jelly', x: 78, y: 14, patrol: 4, speed: 1.8 },
-      { type: 'crab',  x: 95, y: 14, patrol: 4, speed: 2.0 },
-    ],
-    coins: [
-      { x: 9,  y: 11 },
-      { x: 19, y: 9 },  { x: 20, y: 9 },
-      { x: 29, y: 7 },
-      { x: 43, y: 9 },
-      { x: 57, y: 7 },  { x: 58, y: 7 },  { x: 59, y: 7 },
-      { x: 73, y: 9 },
-      { x: 89, y: 8 },
-      { x: 97, y: 10 }, { x: 98, y: 10 },
-      { x: 109, y: 8 },
-      { x: 116, y: 9 },
-    ],
-  },
+// 关卡主题（循环使用）
+const THEMES = [
+  { name: '浅滩初探', bgTop: '#0a1628', bgBottom: '#1a4a6e' },
+  { name: '珊瑚暗礁', bgTop: '#0a2040', bgBottom: '#1a5a7e' },
+  { name: '深渊迷宫', bgTop: '#050d1a', bgBottom: '#0a3050' },
+  { name: '深海火山', bgTop: '#1a0a0a', bgBottom: '#3a1010' },
+  { name: '荧光海穴', bgTop: '#0a0a2a', bgBottom: '#1a1a4e' },
 ];
+
+// 根据关卡索引生成关卡 spec
+// 难度随关卡递增：更长、更多缺口、更多敌人
+function generateLevelSpec(index) {
+  const theme = THEMES[index % THEMES.length];
+  const levelNum = index + 1;
+  // 宽度：120 + 关卡数 * 8，上限 280
+  const width = 500;   // 固定 500 格长度
+  const height = 16;
+
+  // 生成地面段：随关卡递增缺口数量和宽度
+  const ground = [];
+  const gapCount = Math.min(12, 1 + Math.floor(index / 2));   // 缺口数 1~12
+  const gapWidth = Math.min(5, 2 + Math.floor(index / 3));    // 缺口宽 2~5
+  let pos = 0;
+  const segLen = Math.floor((width - gapCount * gapWidth) / (gapCount + 1));
+  for (let i = 0; i <= gapCount; i++) {
+    const end = Math.min(width, pos + segLen);
+    ground.push([pos, end]);
+    pos = end + gapWidth;
+    if (pos >= width) break;
+  }
+  // 确保最后一段覆盖到终点
+  if (ground.length > 0) {
+    const last = ground[ground.length - 1];
+    if (last[1] < width - 5) ground.push([last[1] + gapWidth, width]);
+  }
+
+  // 生成缺口上方踏脚平台
+  const platforms = [];
+  for (let i = 0; i < ground.length - 1; i++) {
+    const gapStart = ground[i][1];
+    const gapEnd = ground[i + 1][0];
+    if (gapEnd > gapStart) {
+      platforms.push({ x: gapStart, y: 10, w: gapEnd - gapStart + 1 });
+    }
+  }
+
+  return {
+    name: `第${levelNum}关 · ${theme.name}`,
+    width, height, tileSize: 40,
+    background: { top: theme.bgTop, bottom: theme.bgBottom },
+    ground,
+    platforms,
+    questions: [],   // 随机生成
+    playerStart: { x: 3, y: 14 },
+    finish: { x: width - 3, y: 14 },
+    enemies: [],     // 随机生成
+    coins: [],       // 随机生成（固定 100 个）
+    levelIndex: index,   // 传递关卡索引用于难度计算
+  };
+}
 
 // 生成满瓦片格子（供碰撞检测用）
 function generateTileMap(spec) {
@@ -174,4 +99,4 @@ function generateTileMap(spec) {
   return map;
 }
 
-module.exports = { LEVELS, TILE_AIR, TILE_GROUND, TILE_PLATFORM, TILE_BRICK, TILE_QUESTION, generateTileMap };
+module.exports = { THEMES, generateLevelSpec, TILE_AIR, TILE_GROUND, TILE_PLATFORM, TILE_BRICK, TILE_QUESTION, generateTileMap };
